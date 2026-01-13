@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+<div class="container mx-auto max-w-4xl">
+
+    <div class="container mx-auto max-w-4xl px-0 sm:px-2">
+        <a href="{{ url_for('autenticacao.listar_usuarios') }}" class="p-2 rounded-lg text-gray-400 hover:text-navy-900 hover:bg-white transition-colors">
+            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+        </a>
+        <div>
+            <h2 class="text-2xl font-bold text-navy-900">Novo Colaborador</h2>
+            <p class="text-sm text-gray-500">Preencha os dados para registrar um novo membro na equipe.</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        
+        <div class="bg-gray-50 px-8 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-navy-900 font-semibold">
+                <div class="bg-electric-500 rounded-full p-1.5 text-white">
+                    <i data-lucide="user-plus" class="w-4 h-4"></i>
+                </div>
+                Ficha Cadastral
+            </div>
+        </div>
+
+        <div class="p-8">
+            <form method="POST" class="space-y-8">
+                {{ form.hidden_tag() }}
+
+                <div>
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">Dados Pessoais</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-navy-900 mb-1">Nome Completo</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                    <i data-lucide="user" class="w-5 h-5"></i>
+                                </span>
+                                {{ form.nome(class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-navy-900 focus:border-transparent outline-none transition-all", placeholder="Ex: João da Silva") }}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-navy-900 mb-1">CPF</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                    <i data-lucide="file-text" class="w-5 h-5"></i>
+                                </span>
+                                {{ form.cpf(class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-navy-900 focus:border-transparent outline-none transition-all", placeholder="000.000.000-00") }}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-navy-900 mb-1">Telefone / Celular</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                    <i data-lucide="phone" class="w-5 h-5"></i>
+                                </span>
+                                {{ form.telefone(class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-navy-900 focus:border-transparent outline-none transition-all", placeholder="(00) 00000-0000") }}
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-navy-900 mb-1">E-mail Corporativo <span class="text-gray-400 font-normal">(Opcional)</span></label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                    <i data-lucide="mail" class="w-5 h-5"></i>
+                                </span>
+                                {{ form.email(class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-navy-900 focus:border-transparent outline-none transition-all", placeholder="joao.silva@eletromaster.com") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">Configuração de Acesso</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-navy-900 mb-1">Usuário de Login</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                    <i data-lucide="at-sign" class="w-5 h-5"></i>
+                                </span>
+                                {{ form.usuario(class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-navy-900 focus:border-transparent outline-none transition-all", placeholder="joao.silva") }}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-navy-900 mb-1">Senha Inicial</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                    <i data-lucide="lock" class="w-5 h-5"></i>
+                                </span>
+                                {{ form.senha(class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-navy-900 focus:border-transparent outline-none transition-all") }}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-navy-900 mb-1">Cargo / Função</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                    <i data-lucide="briefcase" class="w-5 h-5"></i>
+                                </span>
+                                {{ form.cargo(class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-navy-900 focus:border-transparent outline-none transition-all appearance-none") }}
+                                <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">Permissões de Sistema</h3>
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <label class="block text-sm font-medium text-navy-900 mb-3">Módulos Permitidos</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {% for subfield in form.modulos_acesso %}
+                            <label class="flex items-center p-3 bg-white border border-gray-200 rounded-lg hover:border-electric-500 cursor-pointer transition-colors group">
+                                {{ subfield(class="w-4 h-4 text-navy-900 border-gray-300 rounded focus:ring-navy-900") }}
+                                <span class="ml-3 text-sm text-gray-700 group-hover:text-navy-900 font-medium select-none">{{ subfield.label.text }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2 flex items-center">
+                            <i data-lucide="info" class="w-3 h-3 mr-1"></i>
+                            Selecione apenas as áreas estritamente necessárias para a função.
+                        </p>
+                    </div>
+                </div>
+
+                {% if form.salario %}
+                <div class="bg-yellow-50 rounded-xl p-6 border border-yellow-200">
+                    <div class="flex items-center gap-2 mb-4 text-yellow-800">
+                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                        <h4 class="font-bold">Área Restrita (Dono)</h4>
+                    </div>
+                    
+                    <div class="max-w-xs">
+                        <label class="block text-sm font-medium text-yellow-900 mb-1">Salário Mensal</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-yellow-600 font-bold">R$</span>
+                            {{ form.salario(class="w-full pl-10 pr-4 py-2 bg-white border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none text-yellow-900 font-medium") }}
+                        </div>
+                        <p class="text-xs text-yellow-700 mt-1">Visível apenas para administradores nível Dono.</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="pt-6 border-t border-gray-100 flex items-center justify-end gap-3">
+                    <a href="{{ url_for('autenticacao.listar_usuarios') }}" class="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </a>
+                    {{ form.botao_submit(class="px-6 py-2.5 rounded-lg bg-navy-900 text-white font-bold hover:bg-navy-800 shadow-lg shadow-navy-900/20 transition-all transform hover:-translate-y-0.5 cursor-pointer") }}
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

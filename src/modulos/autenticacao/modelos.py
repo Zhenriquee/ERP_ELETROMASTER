@@ -3,6 +3,21 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
+# Tabela de Associação (Qual Usuário acessa Qual Módulo)
+usuario_modulos = db.Table('usuario_modulos',
+    db.Column('usuario_id', db.Integer, db.ForeignKey('usuarios.id'), primary_key=True),
+    db.Column('modulo_id', db.Integer, db.ForeignKey('modulos.id'), primary_key=True)
+)
+
+class Modulo(db.Model):
+    __tablename__ = 'modulos'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(50), nullable=False)
+    codigo = db.Column(db.String(50), unique=True, nullable=False)
+
+    def __repr__(self):
+        return f'<Modulo {self.nome}>'
+
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'usuarios'
 
@@ -12,16 +27,20 @@ class Usuario(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=True)
     senha_hash = db.Column(db.String(256), nullable=False)
     
-    # Novos Campos de RH
-    cpf = db.Column(db.String(14), unique=True, nullable=True) # Formato 000.000.000-00
+    # Dados RH
+    cpf = db.Column(db.String(14), unique=True, nullable=True)
     telefone = db.Column(db.String(20), nullable=True)
-    salario = db.Column(db.Numeric(10, 2), nullable=True) # Ex: 1500.00 (Numeric é melhor para dinheiro)
+    salario = db.Column(db.Numeric(10, 2), nullable=True)
     
     cargo = db.Column(db.String(20), nullable=False, default='tecnico')
     ativo = db.Column(db.Boolean, default=True)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Hierarquia Invertida (1 é o mais alto)
+    # RELACIONAMENTO: Lista de módulos que este usuário pode acessar
+    permissoes = db.relationship('Modulo', secondary=usuario_modulos, lazy='subquery',
+        backref=db.backref('usuarios', lazy=True))
+
+    # --- LÓGICA HIERÁRQUICA (Restaurada) ---
     NIVEIS_CARGO = {
         'dono': 1,
         'gerente': 2,
@@ -29,24 +48,32 @@ class Usuario(UserMixin, db.Model):
         'tecnico': 4
     }
 
+    @property
+    def nivel_acesso(self):
+        """Retorna o número do nível para comparação matemática (Menor é mais poder)"""
+        return self.NIVEIS_CARGO.get(self.cargo, 99)
+    # ---------------------------------------
+
     def definir_senha(self, senha):
         self.senha_hash = generate_password_hash(senha)
 
     def verificar_senha(self, senha):
         return check_password_hash(self.senha_hash, senha)
 
-    @property
-    def nivel_acesso(self):
-        return self.NIVEIS_CARGO.get(self.cargo, 99)
-
-    def tem_permissao(self, cargo_minimo_necessario):
+    def tem_permissao(self, codigo_modulo):
         """
-        Verifica hierarquia.
-        Agora a lógica é INVERTIDA: Nível menor = Mais poder.
-        Ex: Se exijo 'gerente' (2), o 'dono' (1) passa (1 <= 2).
+        Verifica se o usuário pode acessar um módulo específico.
+        Regra Mestra: O DONO tem acesso a tudo, sempre.
         """
-        nivel_necessario = self.NIVEIS_CARGO.get(cargo_minimo_necessario, 0)
-        return self.nivel_acesso <= nivel_necessario
+        if self.cargo == 'dono':
+            return True
+        
+        # Verifica se o código do módulo está na lista de permissões do usuário
+        for modulo in self.permissoes:
+            if modulo.codigo == codigo_modulo:
+                return True
+        
+        return False
 
     def __repr__(self):
         return f'<Usuario {self.usuario}>'

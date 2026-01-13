@@ -25,22 +25,32 @@ def criar_app(nome_configuracao='desenvolvimento'):
     # Comando CLI para criar Admin
     @app.cli.command("criar-admin")
     def criar_admin():
-        from src.modulos.autenticacao.modelos import Usuario
-        usuario_existente = Usuario.query.filter_by(usuario='admin').first()
-        if usuario_existente:
-            print("AVISO: O Usuário Admin já existe.")
-            return
-            
-        u = Usuario(
-            nome='Dono do Sistema', 
-            usuario='admin', 
-            email='admin@eletromaster.com', 
-            cargo='dono'
-        )
-        u.definir_senha('admin123') 
-        banco_de_dados.session.add(u)
+        from src.modulos.autenticacao.modelos import Usuario, Modulo
+        
+        # 1. Cria Módulos do Sistema
+        modulos = [
+            {'nome': 'RH - Gestão de Equipe', 'codigo': 'rh_equipe'},
+            {'nome': 'RH - Ver Salários', 'codigo': 'rh_salarios'},
+            {'nome': 'Estoque - Visualizar', 'codigo': 'estoque_ver'},
+            {'nome': 'Estoque - Movimentar', 'codigo': 'estoque_mover'},
+            {'nome': 'Financeiro - Acesso Total', 'codigo': 'financeiro_full'}
+        ]
+        
+        for m_data in modulos:
+            if not Modulo.query.filter_by(codigo=m_data['codigo']).first():
+                novo_m = Modulo(nome=m_data['nome'], codigo=m_data['codigo'])
+                banco_de_dados.session.add(novo_m)
+        
         banco_de_dados.session.commit()
-        print("SUCESSO: Usuário Admin criado! Login: admin / Senha: admin123")
+        print("Módulos de sistema criados.")
+
+        # 2. Cria Dono (Igual antes)
+        if not Usuario.query.filter_by(usuario='admin').first():
+            u = Usuario(nome='Dono', usuario='admin', cargo='dono')
+            u.definir_senha('admin123')
+            banco_de_dados.session.add(u)
+            banco_de_dados.session.commit()
+            print("Admin criado.")
 
     # --- ROTA RAIZ (Redirecionamento Inteligente) ---
     @app.route('/')

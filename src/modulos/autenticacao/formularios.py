@@ -1,17 +1,24 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, BooleanField, SelectField, DecimalField
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, SelectField, DecimalField, SelectMultipleField, widgets
 from wtforms.validators import DataRequired, Optional
 
 class FormularioLogin(FlaskForm):
-    # Mudança aqui: Campo Usuario em vez de Email
-    usuario = StringField('Usuário', validators=[
-        DataRequired(message="O usuário é obrigatório")
-    ])
-    senha = PasswordField('Senha', validators=[
-        DataRequired(message="A senha é obrigatória")
-    ])
+    usuario = StringField('Usuário', validators=[DataRequired()])
+    senha = PasswordField('Senha', validators=[DataRequired()])
     lembrar_de_mim = BooleanField('Lembrar de mim')
     botao_submit = SubmitField('Entrar')
+
+# Widget personalizado para transformar SelectMultiple em Checkboxes
+class CheckboxWidget(widgets.ListWidget):
+    template = """
+        <ul class="list-unstyled mb-0">
+        {% for subfield in field %}
+            <li class="form-check form-check-inline">
+                {{ subfield(class_="form-check-input") }} 
+                {{ subfield.label(class_="form-check-label") }}
+            </li>
+        {% endfor %}
+        </ul>"""
 
 class FormularioCadastroUsuario(FlaskForm):
     nome = StringField('Nome Completo', validators=[DataRequired()])
@@ -27,7 +34,14 @@ class FormularioCadastroUsuario(FlaskForm):
         ('dono', 'Dono')
     ], validators=[DataRequired()])
     
-    salario = DecimalField('Salário (R$)', places=2, validators=[Optional()])
+    # NOVOS CHECKBOXES DE PERMISSÃO
+    modulos_acesso = SelectMultipleField(
+        'Permissões de Acesso', 
+        coerce=int, # Envia o ID do módulo
+        widget=CheckboxWidget(), 
+        option_widget=widgets.CheckboxInput()
+    )
     
+    salario = DecimalField('Salário (R$)', places=2, validators=[Optional()])
     senha = PasswordField('Senha Inicial', validators=[DataRequired()])
-    botao_submit = SubmitField('Cadastrar Funcionário')    
+    botao_submit = SubmitField('Salvar Funcionário')
