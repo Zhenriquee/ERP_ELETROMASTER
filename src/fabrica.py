@@ -1,4 +1,5 @@
-from flask import Flask
+from flask import Flask, render_template, redirect, url_for
+from flask_login import login_required, current_user
 from src.configuracao import configuracoes
 from src.extensoes import banco_de_dados, migracao, login_manager
 
@@ -18,30 +19,44 @@ def criar_app(nome_configuracao='desenvolvimento'):
     # app.register_blueprint(bp_estoque)
     
     # --- MÓDULO AUTENTICAÇÃO (ATIVO) ---
-    # Certifique-se que a pasta src/modulos/autenticacao existe e tem o __init__.py
     from src.modulos.autenticacao import bp_autenticacao
     app.register_blueprint(bp_autenticacao)
     
+    # Comando CLI para criar Admin
     @app.cli.command("criar-admin")
     def criar_admin():
         from src.modulos.autenticacao.modelos import Usuario
-        # Verifica se já existe
         usuario_existente = Usuario.query.filter_by(usuario='admin').first()
         if usuario_existente:
             print("AVISO: O Usuário Admin já existe.")
             return
             
-        # Criação atualizada com o campo 'usuario'
         u = Usuario(
             nome='Dono do Sistema', 
-            usuario='admin',  # <--- Login simples
-            email='admin@eletromaster.com', # Opcional, mas bom ter
+            usuario='admin', 
+            email='admin@eletromaster.com', 
             cargo='dono'
         )
         u.definir_senha('admin123') 
         banco_de_dados.session.add(u)
         banco_de_dados.session.commit()
         print("SUCESSO: Usuário Admin criado! Login: admin / Senha: admin123")
+
+    # --- ROTA RAIZ (Redirecionamento Inteligente) ---
+    @app.route('/')
+    def index():
+        # Se o usuário já estiver logado, manda para o Dashboard
+        if current_user.is_authenticated:
+            return redirect(url_for('dashboard'))
+        # Se não estiver logado, manda para o Login
+        else:
+            return redirect(url_for('autenticacao.login'))
+
+    # Rota do Dashboard
+    @app.route('/dashboard')
+    @login_required
+    def dashboard():
+        return render_template('dashboard.html')
 
     @app.route('/saude')
     def verificacao_saude():
