@@ -1,0 +1,18 @@
+# Arquivos de ambiente e segredos
+.env
+
+# Arquivos compilados do Python
+__pycache__/
+*.py[cod]
+
+# Ambiente Virtual
+venv/
+.venv/
+env/
+
+# IDEs
+.vscode/
+.idea/
+
+# Documentação
+Documentacao.txt
