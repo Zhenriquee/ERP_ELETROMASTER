@@ -14,5 +14,6 @@ env/
 .vscode/
 .idea/
 
-# Documentação
+# Arquivos de Documentação Local (Não versionados)
 Documentacao.txt
+*.log

@@ -1,5 +1,0 @@
-1º Precisa instalar o Python versão: 3.14.2 (https://www.python.org/downloads/release/python-3142/)
-2º Precisa instalar o Postgress versão: 18.1 (https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
-3º Precisa instalar as Bibliotecas presentes no arquivo requiriments.txt
-4º Senha do SuperUsuário do Postgress: 9rup019H@
-5º Porta do Banco de Dados: 5432
