@@ -55,17 +55,26 @@ def nova_venda():
         valor_bruto = nova.metragem_total * nova.quantidade_pecas * cor.preco_unitario
         nova.valor_base = valor_bruto
         
+        # 1. Aplica Acréscimo (Novo)
+        acrescimo = Decimal(form.input_acrescimo.data or 0)
+        nova.valor_acrescimo = acrescimo
+        
+        valor_com_acrescimo = valor_bruto + acrescimo
+
+        # 2. Aplica Desconto (Sobre o valor já com acréscimo ou base? Geralmente sobre a base + acréscimo)
         desc_input = Decimal(form.input_desconto.data or 0)
         desconto_reais = Decimal(0)
         
         if form.tipo_desconto.data == 'perc':
-            desconto_reais = valor_bruto * (desc_input / 100)
+            desconto_reais = valor_com_acrescimo * (desc_input / 100)
         elif form.tipo_desconto.data == 'real':
             desconto_reais = desc_input
             
         nova.tipo_desconto = form.tipo_desconto.data
         nova.valor_desconto_aplicado = desconto_reais
-        nova.valor_final = valor_bruto - desconto_reais
+        
+        # 3. Final
+        nova.valor_final = valor_com_acrescimo - desconto_reais
 
         db.session.add(nova)
         db.session.commit()

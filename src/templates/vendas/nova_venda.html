@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 
-{% block conteudo %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/vendas.css') }}">
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vendas.css') }}">
+{% endblock %}
 
+{% block conteudo %}
 <div class="container mx-auto max-w-5xl px-0 sm:px-2">
     
     <div class="mb-6">
@@ -59,7 +61,7 @@
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Solicitante *</label>
-                        {{ form.pj_solicitante(class="input-navy", placeholder="Quem pediu o serviço?") }}
+                        {{ form.pj_solicitante(class="input-navy", placeholder="Quem está pedindo o serviço?") }}
                     </div>
                 </div>
 
@@ -84,7 +86,7 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Descrição do Serviço (Visível no Orçamento) *</label>
-                        {{ form.descricao_servico(class="input-navy h-24", placeholder="Ex: Pintura eletrostática...") }}
+                        {{ form.descricao_servico(class="input-navy h-24", placeholder="Ex: Pintura eletrostática em grade de ferro...") }}
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Observações Internas (Privado)</label>
@@ -94,7 +96,7 @@
             </div>
 
             <div class="wizard-step hidden p-8" data-step="3">
-                <h3 class="text-lg font-bold text-navy-900 mb-4 border-b pb-2">3. Cálculo de Metragem</h3>
+                <h3 class="text-lg font-bold text-navy-900 mb-4 border-b pb-2">3. Medidas Técnicas</h3>
                 
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Medição</label>
@@ -104,21 +106,25 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase">Altura / Comp. (m)</label>
-                        {{ form.dim_1(class="input-navy input-calc", type="number", step="0.01") }}
+                        {{ form.dim_1(class="input-navy input-calc", type="number", step="0.01", min="0") }}
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase">Largura (m)</label>
-                        {{ form.dim_2(class="input-navy input-calc", type="number", step="0.01") }}
+                        {{ form.dim_2(class="input-navy input-calc", type="number", step="0.01", min="0") }}
                     </div>
                     <div id="div-dim-3" class="hidden">
                         <label class="block text-xs font-bold text-gray-500 uppercase">Profundidade (m)</label>
-                        {{ form.dim_3(class="input-navy input-calc", type="number", step="0.01") }}
+                        {{ form.dim_3(class="input-navy input-calc", type="number", step="0.01", min="0") }}
                     </div>
                 </div>
 
                 <div class="mt-4 p-4 bg-navy-900 text-white rounded-lg flex justify-between items-center">
                     <span>Metragem Calculada:</span>
-                    <span class="text-2xl font-bold"><span id="display-metragem">0.00</span> <span id="display-unidade">m²</span></span>
+                    <span class="text-2xl font-bold">
+                        <span id="display-metragem">0.00</span> 
+                        <span id="display-unidade">m²</span>
+                    </span>
+                    {{ form.metragem_calculada() }}
                 </div>
             </div>
 
@@ -128,7 +134,9 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Cor / Acabamento *</label>
                         {{ form.cor_id(class="input-navy", id="select-cor") }}
-                        <p class="text-xs text-gray-500 mt-1">Preço Base: R$ <span id="cor-preco-base">0.00</span></p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Preço Base: R$ <span id="cor-preco-base">0.00</span>
+                        </p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Quantidade de Peças *</label>
@@ -138,62 +146,135 @@
             </div>
 
             <div class="wizard-step hidden p-8" data-step="5">
-                <h3 class="text-lg font-bold text-navy-900 mb-4 border-b pb-2">5. Fechamento</h3>
+                <h3 class="text-lg font-bold text-navy-900 mb-4 border-b pb-2">5. Fechamento Financeiro</h3>
+                
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Aplicar Desconto</label>
-                        <div class="flex gap-2 mb-3">
-                            {% for subfield in form.tipo_desconto %}
-                            <label class="cursor-pointer">
-                                {{ subfield(class="peer sr-only input-calc") }}
-                                <div class="px-3 py-1 rounded border border-gray-300 peer-checked:bg-navy-900 peer-checked:text-white transition-all text-sm">
-                                    {{ subfield.label.text }}
-                                </div>
-                            </label>
-                            {% endfor %}
+                    <div class="space-y-6">
+                        
+                        <div class="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                            <label class="block text-sm font-bold text-navy-900 mb-1">Acréscimo Técnico (Opcional)</label>
+                            <p class="text-xs text-gray-500 mb-2">Utilize para ajustar valores de peças complexas ou pequenas.</p>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 font-bold">R$</span>
+                                {{ form.input_acrescimo(class="input-navy pl-10 input-calc", type="number", step="0.01", min="0") }}
+                            </div>
                         </div>
-                        {{ form.input_desconto(class="input-navy input-calc", type="number", step="0.01") }}
-                        <div id="alert-desconto" class="hidden mt-2 p-2 bg-yellow-100 text-yellow-800 text-xs rounded flex items-center">
-                            <i data-lucide="alert-triangle" class="w-4 h-4 mr-1"></i> Desconto alto (>15%).
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Aplicar Desconto</label>
+                            <div class="flex gap-2 mb-3">
+                                {% for subfield in form.tipo_desconto %}
+                                <label class="cursor-pointer">
+                                    {{ subfield(class="peer sr-only input-calc") }}
+                                    <div class="px-3 py-1 rounded border border-gray-300 peer-checked:bg-navy-900 peer-checked:text-white transition-all text-sm">
+                                        {{ subfield.label.text }}
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            <div class="relative">
+                                {{ form.input_desconto(class="input-navy input-calc", type="number", step="0.01", min="0") }}
+                            </div>
+                            <div id="alert-desconto" class="hidden mt-2 p-2 bg-yellow-100 text-yellow-800 text-xs rounded flex items-center">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 mr-1"></i> Atenção: Desconto acima de 15%.
+                            </div>
                         </div>
                     </div>
-                    <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 space-y-3">
-                        <div class="flex justify-between text-sm text-gray-600"><span>Vl. Unitário:</span><span>R$ <span id="resumo-preco-unit">0.00</span></span></div>
-                        <div class="flex justify-between text-sm text-gray-600"><span>Metragem:</span><span><span id="resumo-metragem">0.00</span></span></div>
-                        <div class="flex justify-between text-base font-bold text-navy-900 border-t pt-2"><span>Base:</span><span>R$ <span id="resumo-base">0.00</span></span></div>
-                        <div class="flex justify-between text-sm text-red-600"><span>Desconto:</span><span>- R$ <span id="resumo-desconto">0.00</span></span></div>
-                        <div class="flex justify-between text-2xl font-bold text-electric-500 border-t border-gray-300 pt-3 mt-2"><span>TOTAL:</span><span>R$ <span id="resumo-total">0.00</span></span></div>
+
+                    <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 space-y-3 h-fit">
+                        <h4 class="text-xs font-bold text-gray-400 uppercase">Cálculo Interno</h4>
+                        
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>Metragem:</span>
+                            <span><span id="resumo-metragem">0.00</span></span>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>Preço Tabela (Base):</span>
+                            <span>R$ <span id="resumo-base">0.00</span></span>
+                        </div>
+                        
+                        <div class="border-t border-gray-200 my-2"></div>
+                        
+                        <div class="flex justify-between text-sm text-blue-600 font-medium">
+                            <span>+ Acréscimo:</span>
+                            <span>R$ <span id="resumo-acrescimo">0.00</span></span>
+                        </div>
+                        <div class="flex justify-between text-sm text-red-600 font-medium">
+                            <span>- Desconto:</span>
+                            <span>R$ <span id="resumo-desconto">0.00</span></span>
+                        </div>
+                        
+                        <div class="flex justify-between text-2xl font-bold text-electric-500 border-t border-gray-300 pt-3 mt-2">
+                            <span>TOTAL:</span>
+                            <span>R$ <span id="resumo-total">0.00</span></span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="wizard-step hidden p-8" data-step="6">
                 <div class="text-center mb-6">
-                    <div class="inline-flex p-3 bg-green-100 text-green-600 rounded-full mb-3"><i data-lucide="check-circle" class="w-8 h-8"></i></div>
-                    <h3 class="text-xl font-bold text-navy-900">Confirmar Venda</h3>
+                    <h3 class="text-xl font-bold text-navy-900">Resumo do Serviço</h3>
+                    <p class="text-gray-500">Confira os dados abaixo para apresentar ao cliente.</p>
                 </div>
-                <div class="bg-gray-50 p-4 rounded border text-sm text-gray-700">
-                    <p><strong>Cliente:</strong> <span id="rev-cliente">--</span></p>
-                    <p><strong>Solicitante:</strong> <span id="rev-solicitante">--</span></p>
-                    <p><strong>Serviço:</strong> <span id="rev-servico">--</span></p>
-                    <p class="text-lg font-bold mt-2">Final: R$ <span id="rev-total">--</span></p>
+                
+                <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase font-bold">Cliente</p>
+                            <p class="text-navy-900 font-medium text-lg" id="rev-cliente">--</p>
+                        </div>
+                        <div id="container-rev-solicitante">
+                            <p class="text-xs text-gray-500 uppercase font-bold">Solicitante</p>
+                            <p class="text-navy-900 font-medium" id="rev-solicitante">--</p>
+                        </div>
+                    </div>
+
+                    <div class="p-6 space-y-6">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase font-bold mb-1">Descrição do Serviço</p>
+                            <p class="text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100" id="rev-servico">--</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="p-3 bg-blue-50 rounded-lg border border-blue-100 text-center">
+                                <p class="text-xs text-blue-800 font-bold uppercase">Acabamento</p>
+                                <p class="text-navy-900 font-bold mt-1" id="rev-cor">--</p>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 text-center">
+                                <p class="text-xs text-gray-500 font-bold uppercase">Quantidade</p>
+                                <p class="text-navy-900 font-bold mt-1" id="rev-qtd">--</p>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 text-center">
+                                <p class="text-xs text-gray-500 font-bold uppercase">Medidas Unit.</p>
+                                <p class="text-navy-900 font-bold mt-1" id="rev-medidas">--</p>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 text-center">
+                                <p class="text-xs text-gray-500 font-bold uppercase">Metragem Total</p>
+                                <p class="text-navy-900 font-bold mt-1" id="rev-metragem-total">--</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-navy-900 px-6 py-4 flex justify-between items-center text-white">
+                        <span class="font-medium text-lg">Valor Total do Orçamento</span>
+                        <span class="text-2xl font-bold">R$ <span id="rev-total">--</span></span>
+                    </div>
                 </div>
             </div>
 
             <div class="bg-gray-50 px-8 py-4 border-t border-gray-100 flex justify-between">
                 <button type="button" id="btn-prev" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-white disabled:opacity-50" disabled>Voltar</button>
-                <button type="button" id="btn-next" class="px-6 py-2 bg-navy-900 text-white rounded-lg hover:bg-navy-800 shadow-lg">Próximo</button>
-                <button type="submit" id="btn-submit" class="hidden px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-lg font-bold">Finalizar</button>
+                <button type="button" id="btn-next" class="px-6 py-2 bg-navy-900 text-white rounded-lg hover:bg-navy-800 shadow-lg transition-transform hover:-translate-y-0.5">Próximo</button>
+                <button type="submit" id="btn-submit" class="hidden px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-lg font-bold transition-transform hover:-translate-y-0.5">Finalizar Venda</button>
             </div>
         </form>
     </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // A única coisa que fica no HTML é a passagem dos dados do backend para o frontend
     const CORES_DB = JSON.parse('{{ cores_json|tojson|safe }}');
 </script>
 

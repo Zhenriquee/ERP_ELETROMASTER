@@ -38,6 +38,7 @@ class FormularioVendaWizard(FlaskForm):
     # Etapa 5
     tipo_desconto = RadioField('Tipo Desconto', choices=[('sem', 'Sem Desconto'), ('perc', '%'), ('real', 'R$')], default='sem')
     input_desconto = DecimalField('Valor Desconto', default=0)
+    input_acrescimo = DecimalField('Acréscimo Técnico (R$)', default=0) # <--- Novo
     
     valor_final_hidden = HiddenField('Valor Final')
 

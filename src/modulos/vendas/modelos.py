@@ -57,6 +57,7 @@ class Venda(db.Model):
     preco_unitario_snapshot = db.Column(db.Numeric(10, 2))
     
     # 4. Financeiro
+    valor_acrescimo = db.Column(db.Numeric(10, 2), default=0.00)
     valor_base = db.Column(db.Numeric(10, 2), nullable=False)
     tipo_desconto = db.Column(db.String(10), nullable=True)
     valor_desconto_aplicado = db.Column(db.Numeric(10, 2), default=0.00)
