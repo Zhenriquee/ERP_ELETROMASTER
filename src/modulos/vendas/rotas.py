@@ -1,33 +1,36 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from src.extensoes import banco_de_dados as db
-from src.modulos.vendas.modelos import Venda, CorServico, HistoricoPrecoCor
-from src.modulos.vendas.formularios import FormularioVendaWizard, FormularioCor
+from src.modulos.vendas.modelos import Venda, CorServico
+from src.modulos.vendas.formularios import FormularioVendaWizard
 from decimal import Decimal
 
 bp_vendas = Blueprint('vendas', __name__, url_prefix='/vendas')
 
-# --- WIZARD DE VENDAS ---
 @bp_vendas.route('/nova', methods=['GET', 'POST'])
 @login_required
 def nova_venda():
     form = FormularioVendaWizard()
+    
+    # Carrega as cores ativas para o SelectField
+    # (Mantemos isso aqui pois a Venda precisa escolher uma cor)
     form.cor_id.choices = [(c.id, f"{c.nome} (R$ {c.preco_unitario}/{c.unidade_medida})") 
                            for c in CorServico.query.filter_by(ativo=True).all()]
 
     if request.method == 'POST':
         cor = CorServico.query.get(form.cor_id.data)
         
-        # Lógica para definir quem é quem baseado no tipo
+        # Define Nome e Documento baseado no tipo (PF/PJ)
         if form.tipo_cliente.data == 'PF':
             nome_final = form.pf_nome.data
             doc_final = form.pf_cpf.data
-            solicitante_final = None # PF não tem solicitante separado
+            solicitante_final = None
         else:
             nome_final = form.pj_fantasia.data
             doc_final = form.pj_cnpj.data
             solicitante_final = form.pj_solicitante.data
 
+        # Cria objeto Venda
         nova = Venda(
             tipo_cliente=form.tipo_cliente.data,
             cliente_nome=nome_final,
@@ -52,16 +55,16 @@ def nova_venda():
             status='orcamento'
         )
 
+        # Cálculos Financeiros
         valor_bruto = nova.metragem_total * nova.quantidade_pecas * cor.preco_unitario
         nova.valor_base = valor_bruto
         
-        # 1. Aplica Acréscimo (Novo)
+        # Acréscimo
         acrescimo = Decimal(form.input_acrescimo.data or 0)
         nova.valor_acrescimo = acrescimo
-        
         valor_com_acrescimo = valor_bruto + acrescimo
 
-        # 2. Aplica Desconto (Sobre o valor já com acréscimo ou base? Geralmente sobre a base + acréscimo)
+        # Desconto
         desc_input = Decimal(form.input_desconto.data or 0)
         desconto_reais = Decimal(0)
         
@@ -72,15 +75,15 @@ def nova_venda():
             
         nova.tipo_desconto = form.tipo_desconto.data
         nova.valor_desconto_aplicado = desconto_reais
-        
-        # 3. Final
         nova.valor_final = valor_com_acrescimo - desconto_reais
 
+        # Salvar no Banco
         db.session.add(nova)
         db.session.commit()
         flash(f'Venda #{nova.id} registrada com sucesso!', 'success')
         return redirect(url_for('dashboard'))
 
+    # JSON para o Frontend (Wizard)
     cores_json = [{
         'id': c.id, 
         'preco': float(c.preco_unitario), 
@@ -88,34 +91,3 @@ def nova_venda():
     } for c in CorServico.query.filter_by(ativo=True).all()]
 
     return render_template('vendas/nova_venda.html', form=form, cores_json=cores_json)
-
-# --- ADMINISTRAÇÃO DE CORES ---
-@bp_vendas.route('/admin/cores', methods=['GET', 'POST'])
-@login_required
-def admin_cores():
-    # Validar permissão de gerente/dono aqui se necessário
-    form = FormularioCor()
-    cores = CorServico.query.all()
-
-    if form.validate_on_submit():
-        nova_cor = CorServico(
-            nome=form.nome.data,
-            unidade_medida=form.unidade.data,
-            preco_unitario=form.preco.data
-        )
-        db.session.add(nova_cor)
-        
-        # Log de Histórico (Governança)
-        # Como é criação, preço anterior é 0
-        log = HistoricoPrecoCor(
-            cor=nova_cor,
-            preco_anterior=0,
-            preco_novo=form.preco.data,
-            usuario_id=current_user.id
-        )
-        db.session.add(log)
-        db.session.commit()
-        flash('Cor adicionada com sucesso!', 'success')
-        return redirect(url_for('vendas.admin_cores'))
-
-    return render_template('vendas/admin_cores.html', form=form, cores=cores)

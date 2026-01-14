@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, DecimalField, TextAreaField, IntegerField, RadioField, HiddenField
+from wtforms import StringField, SelectField, DecimalField, TextAreaField, IntegerField, RadioField, HiddenField, SubmitField
 from wtforms.validators import DataRequired, Optional
 
 class FormularioVendaWizard(FlaskForm):
@@ -41,8 +41,3 @@ class FormularioVendaWizard(FlaskForm):
     input_acrescimo = DecimalField('Acréscimo Técnico (R$)', default=0) # <--- Novo
     
     valor_final_hidden = HiddenField('Valor Final')
-
-class FormularioCor(FlaskForm):
-    nome = StringField('Nome da Cor', validators=[DataRequired()])
-    unidade = SelectField('Unidade', choices=[('m2', 'm²'), ('m3', 'm³')])
-    preco = DecimalField('Preço Unitário (R$)', places=2, validators=[DataRequired()])

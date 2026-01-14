@@ -64,6 +64,16 @@
                 </a>
                 {% endif %}
 
+                {% if current_user.tem_permissao('produtos_gerir') %}
+                    {% set ativo_prod = request.endpoint in ['produtos.gerenciar'] %}
+                    <a href="{{ url_for('produtos.gerenciar') }}" 
+                       class="flex items-center px-4 py-3 rounded-lg group transition-colors shadow-sm
+                       {{ 'bg-navy-800 text-white border-l-4 border-electric-500' if ativo_prod else 'text-gray-400 hover:text-white hover:bg-navy-800' }}">
+                        <i data-lucide="tag" class="w-5 h-5 mr-3 {{ 'text-electric-500' if ativo_prod }}"></i>
+                        <span>Catálogo</span>
+                    </a>
+                {% endif %}
+
                 {% if current_user.tem_permissao('vendas_operar') %}
                     {% set ativo_vendas = request.endpoint in ['vendas.nova_venda'] %}
                     <a href="{{ url_for('vendas.nova_venda') }}" 

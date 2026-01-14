@@ -17,16 +17,25 @@ def criar_app(nome_configuracao='desenvolvimento'):
     # 1. Autenticação (Login, Users)
     from src.modulos.autenticacao import bp_autenticacao
     app.register_blueprint(bp_autenticacao)
+
+    
     
     # 2. Vendas (Novo Módulo)
     from src.modulos.vendas.rotas import bp_vendas
     app.register_blueprint(bp_vendas)
+
+    # 3. Produtos (Catálogo)
+    from src.modulos.produtos.rotas import bp_produtos
+    app.register_blueprint(bp_produtos)
+
+    
     
     # --- COMANDOS CLI (Terminal) ---
 
     @app.cli.command("criar-admin")
     def criar_admin():
         from src.modulos.autenticacao.modelos import Usuario, Modulo
+        
         
         # 1. Cria Módulos do Sistema
         modulos = [
@@ -35,7 +44,8 @@ def criar_app(nome_configuracao='desenvolvimento'):
             {'nome': 'Estoque - Visualizar', 'codigo': 'estoque_ver'},
             {'nome': 'Estoque - Movimentar', 'codigo': 'estoque_mover'},
             {'nome': 'Vendas - Operar', 'codigo': 'vendas_operar'},     # <-- Novo
-            {'nome': 'Vendas - Gestão Preços', 'codigo': 'vendas_admin'} # <-- Novo
+            {'nome': 'Vendas - Gestão Preços', 'codigo': 'vendas_admin'}, # <-- Novo
+            {'nome': 'Catálogo - Gestão', 'codigo': 'produtos_gerir'}
         ]
         
         for m_data in modulos:
@@ -80,6 +90,8 @@ def criar_app(nome_configuracao='desenvolvimento'):
         
         banco_de_dados.session.commit()
         print(f"Sucesso! {count} novas cores/serviços adicionados.")
+
+
 
     # --- ROTAS GERAIS ---
 
