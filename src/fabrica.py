@@ -12,17 +12,18 @@ def criar_app(nome_configuracao='desenvolvimento'):
     migracao.init_app(app, banco_de_dados)
     login_manager.init_app(app)
     
-    # Registrar Blueprints
+    # --- REGISTRO DE BLUEPRINTS ---
     
-    # --- MÓDULO ESTOQUE (DESATIVADO TEMPORARIAMENTE) ---
-    # from src.modulos.estoque import bp_estoque
-    # app.register_blueprint(bp_estoque)
-    
-    # --- MÓDULO AUTENTICAÇÃO (ATIVO) ---
+    # 1. Autenticação (Login, Users)
     from src.modulos.autenticacao import bp_autenticacao
     app.register_blueprint(bp_autenticacao)
     
-    # Comando CLI para criar Admin
+    # 2. Vendas (Novo Módulo)
+    from src.modulos.vendas.rotas import bp_vendas
+    app.register_blueprint(bp_vendas)
+    
+    # --- COMANDOS CLI (Terminal) ---
+
     @app.cli.command("criar-admin")
     def criar_admin():
         from src.modulos.autenticacao.modelos import Usuario, Modulo
@@ -33,7 +34,8 @@ def criar_app(nome_configuracao='desenvolvimento'):
             {'nome': 'RH - Ver Salários', 'codigo': 'rh_salarios'},
             {'nome': 'Estoque - Visualizar', 'codigo': 'estoque_ver'},
             {'nome': 'Estoque - Movimentar', 'codigo': 'estoque_mover'},
-            {'nome': 'Financeiro - Acesso Total', 'codigo': 'financeiro_full'}
+            {'nome': 'Vendas - Operar', 'codigo': 'vendas_operar'},     # <-- Novo
+            {'nome': 'Vendas - Gestão Preços', 'codigo': 'vendas_admin'} # <-- Novo
         ]
         
         for m_data in modulos:
@@ -42,9 +44,9 @@ def criar_app(nome_configuracao='desenvolvimento'):
                 banco_de_dados.session.add(novo_m)
         
         banco_de_dados.session.commit()
-        print("Módulos de sistema criados.")
+        print("Módulos de sistema atualizados.")
 
-        # 2. Cria Dono (Igual antes)
+        # 2. Cria Dono
         if not Usuario.query.filter_by(usuario='admin').first():
             u = Usuario(nome='Dono', usuario='admin', cargo='dono')
             u.definir_senha('admin123')
@@ -52,24 +54,45 @@ def criar_app(nome_configuracao='desenvolvimento'):
             banco_de_dados.session.commit()
             print("Admin criado.")
 
-    # --- ROTA RAIZ (Redirecionamento Inteligente) ---
+    @app.cli.command("seed-vendas")
+    def seed_vendas():
+        """Popula o banco com cores iniciais para teste"""
+        from src.modulos.vendas.modelos import CorServico
+        
+        cores_iniciais = [
+            {'nome': 'Branco Pintura Eletrostática', 'unidade': 'm2', 'preco': 45.00},
+            {'nome': 'Preto Fosco', 'unidade': 'm2', 'preco': 55.00},
+            {'nome': 'Cinza Industrial', 'unidade': 'm2', 'preco': 50.00},
+            {'nome': 'Tanque (Imersão)', 'unidade': 'm3', 'preco': 120.00},
+            {'nome': 'Verniz Protetor', 'unidade': 'm2', 'preco': 30.00},
+        ]
+
+        count = 0
+        for c in cores_iniciais:
+            if not CorServico.query.filter_by(nome=c['nome']).first():
+                nova = CorServico(
+                    nome=c['nome'], 
+                    unidade_medida=c['unidade'], 
+                    preco_unitario=c['preco']
+                )
+                banco_de_dados.session.add(nova)
+                count += 1
+        
+        banco_de_dados.session.commit()
+        print(f"Sucesso! {count} novas cores/serviços adicionados.")
+
+    # --- ROTAS GERAIS ---
+
     @app.route('/')
     def index():
-        # Se o usuário já estiver logado, manda para o Dashboard
         if current_user.is_authenticated:
             return redirect(url_for('dashboard'))
-        # Se não estiver logado, manda para o Login
         else:
             return redirect(url_for('autenticacao.login'))
 
-    # Rota do Dashboard
     @app.route('/dashboard')
     @login_required
     def dashboard():
         return render_template('dashboard.html')
-
-    @app.route('/saude')
-    def verificacao_saude():
-        return {"status": "operacional", "ambiente": nome_configuracao}
         
     return app

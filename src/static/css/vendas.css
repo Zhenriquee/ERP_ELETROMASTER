@@ -1,0 +1,38 @@
+/* Estilo personalizado para os inputs (Substituindo o @apply) */
+.input-navy {
+    width: 100%;
+    padding: 0.5rem 1rem; /* px-4 py-2 */
+    background-color: #ffffff;
+    border: 1px solid #d1d5db; /* border-gray-300 */
+    border-radius: 0.5rem; /* rounded-lg */
+    outline: none;
+    transition: all 0.2s ease-in-out;
+}
+
+.input-navy:focus {
+    border-color: transparent;
+    box-shadow: 0 0 0 2px #0a192f; /* focus:ring-navy-900 */
+}
+
+/* Inputs de cálculo (para garantir alinhamento) */
+.input-calc {
+    font-family: monospace;
+    font-weight: 500;
+}
+
+/* Ajuste visual para os passos do Wizard */
+.wizard-step {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Ajuste do indicador de progresso */
+.step-indicator {
+    min-width: 60px;
+    background-color: #f3f4f6; /* gray-100 */
+    z-index: 10;
+}

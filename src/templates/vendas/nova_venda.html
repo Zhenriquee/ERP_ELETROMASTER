@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/vendas.css') }}">
+
+<div class="container mx-auto max-w-5xl px-0 sm:px-2">
+    
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-navy-900">Nova Venda / Orçamento</h2>
+        
+        <div class="mt-4 flex items-center justify-between relative">
+            <div class="absolute left-0 top-1/2 -z-10 w-full h-1 bg-gray-200 rounded"></div>
+            {% for step in ['Cliente', 'Serviço', 'Medidas', 'Produto', 'Valores', 'Revisão'] %}
+            <div class="step-indicator flex flex-col items-center bg-gray-100 p-2 rounded-full border-2 border-gray-200 transition-colors" data-step="{{ loop.index }}">
+                <span class="text-xs font-bold text-gray-500">{{ step }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <form method="POST" id="formVenda">
+            {{ form.hidden_tag() }}
+            
+            <div class="wizard-step p-8" data-step="1">
+                <h3 class="text-lg font-bold text-navy-900 mb-6 border-b pb-2">1. Dados do Cliente</h3>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Cliente</label>
+                    <div class="flex gap-4">
+                        {% for subfield in form.tipo_cliente %}
+                        <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors w-full has-[:checked]:bg-blue-50 has-[:checked]:border-navy-900">
+                            {{ subfield(class="text-navy-900 focus:ring-navy-900") }}
+                            <span class="ml-2 font-medium">{{ subfield.label.text }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div id="bloco-pf" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo *</label>
+                        {{ form.pf_nome(class="input-navy") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">CPF</label>
+                        {{ form.pf_cpf(class="input-navy") }}
+                    </div>
+                </div>
+
+                <div id="bloco-pj" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome Fantasia *</label>
+                        {{ form.pj_fantasia(class="input-navy") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">CNPJ</label>
+                        {{ form.pj_cnpj(class="input-navy") }}
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Solicitante *</label>
+                        {{ form.pj_solicitante(class="input-navy", placeholder="Quem pediu o serviço?") }}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-100">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Telefone / WhatsApp *</label>
+                        {{ form.telefone(class="input-navy") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                        {{ form.email(class="input-navy") }}
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Endereço Completo</label>
+                        {{ form.endereco(class="input-navy") }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="wizard-step hidden p-8" data-step="2">
+                <h3 class="text-lg font-bold text-navy-900 mb-4 border-b pb-2">2. Detalhes do Serviço</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Descrição do Serviço (Visível no Orçamento) *</label>
+                        {{ form.descricao_servico(class="input-navy h-24", placeholder="Ex: Pintura eletrostática...") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Observações Internas (Privado)</label>
+                        {{ form.observacoes_internas(class="input-navy h-24 bg-yellow-50 border-yellow-200") }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="wizard-step hidden p-8" data-step="3">
+                <h3 class="text-lg font-bold text-navy-900 mb-4 border-b pb-2">3. Cálculo de Metragem</h3>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Medição</label>
+                    {{ form.tipo_medida(class="input-navy", id="select-medida") }}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Altura / Comp. (m)</label>
+                        {{ form.dim_1(class="input-navy input-calc", type="number", step="0.01") }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Largura (m)</label>
+                        {{ form.dim_2(class="input-navy input-calc", type="number", step="0.01") }}
+                    </div>
+                    <div id="div-dim-3" class="hidden">
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Profundidade (m)</label>
+                        {{ form.dim_3(class="input-navy input-calc", type="number", step="0.01") }}
+                    </div>
+                </div>
+
+                <div class="mt-4 p-4 bg-navy-900 text-white rounded-lg flex justify-between items-center">
+                    <span>Metragem Calculada:</span>
+                    <span class="text-2xl font-bold"><span id="display-metragem">0.00</span> <span id="display-unidade">m²</span></span>
+                </div>
+            </div>
+
+            <div class="wizard-step hidden p-8" data-step="4">
+                <h3 class="text-lg font-bold text-navy-900 mb-4 border-b pb-2">4. Seleção de Produto</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cor / Acabamento *</label>
+                        {{ form.cor_id(class="input-navy", id="select-cor") }}
+                        <p class="text-xs text-gray-500 mt-1">Preço Base: R$ <span id="cor-preco-base">0.00</span></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantidade de Peças *</label>
+                        {{ form.qtd_pecas(class="input-navy input-calc", type="number", min="1") }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="wizard-step hidden p-8" data-step="5">
+                <h3 class="text-lg font-bold text-navy-900 mb-4 border-b pb-2">5. Fechamento</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Aplicar Desconto</label>
+                        <div class="flex gap-2 mb-3">
+                            {% for subfield in form.tipo_desconto %}
+                            <label class="cursor-pointer">
+                                {{ subfield(class="peer sr-only input-calc") }}
+                                <div class="px-3 py-1 rounded border border-gray-300 peer-checked:bg-navy-900 peer-checked:text-white transition-all text-sm">
+                                    {{ subfield.label.text }}
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        {{ form.input_desconto(class="input-navy input-calc", type="number", step="0.01") }}
+                        <div id="alert-desconto" class="hidden mt-2 p-2 bg-yellow-100 text-yellow-800 text-xs rounded flex items-center">
+                            <i data-lucide="alert-triangle" class="w-4 h-4 mr-1"></i> Desconto alto (>15%).
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 space-y-3">
+                        <div class="flex justify-between text-sm text-gray-600"><span>Vl. Unitário:</span><span>R$ <span id="resumo-preco-unit">0.00</span></span></div>
+                        <div class="flex justify-between text-sm text-gray-600"><span>Metragem:</span><span><span id="resumo-metragem">0.00</span></span></div>
+                        <div class="flex justify-between text-base font-bold text-navy-900 border-t pt-2"><span>Base:</span><span>R$ <span id="resumo-base">0.00</span></span></div>
+                        <div class="flex justify-between text-sm text-red-600"><span>Desconto:</span><span>- R$ <span id="resumo-desconto">0.00</span></span></div>
+                        <div class="flex justify-between text-2xl font-bold text-electric-500 border-t border-gray-300 pt-3 mt-2"><span>TOTAL:</span><span>R$ <span id="resumo-total">0.00</span></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="wizard-step hidden p-8" data-step="6">
+                <div class="text-center mb-6">
+                    <div class="inline-flex p-3 bg-green-100 text-green-600 rounded-full mb-3"><i data-lucide="check-circle" class="w-8 h-8"></i></div>
+                    <h3 class="text-xl font-bold text-navy-900">Confirmar Venda</h3>
+                </div>
+                <div class="bg-gray-50 p-4 rounded border text-sm text-gray-700">
+                    <p><strong>Cliente:</strong> <span id="rev-cliente">--</span></p>
+                    <p><strong>Solicitante:</strong> <span id="rev-solicitante">--</span></p>
+                    <p><strong>Serviço:</strong> <span id="rev-servico">--</span></p>
+                    <p class="text-lg font-bold mt-2">Final: R$ <span id="rev-total">--</span></p>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 px-8 py-4 border-t border-gray-100 flex justify-between">
+                <button type="button" id="btn-prev" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-white disabled:opacity-50" disabled>Voltar</button>
+                <button type="button" id="btn-next" class="px-6 py-2 bg-navy-900 text-white rounded-lg hover:bg-navy-800 shadow-lg">Próximo</button>
+                <button type="submit" id="btn-submit" class="hidden px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-lg font-bold">Finalizar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // A única coisa que fica no HTML é a passagem dos dados do backend para o frontend
+    const CORES_DB = JSON.parse('{{ cores_json|tojson|safe }}');
+</script>
+
+<script src="{{ url_for('static', filename='js/vendas.js') }}"></script>
+{% endblock %}

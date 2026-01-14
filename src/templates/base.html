@@ -61,10 +61,15 @@
                 </a>
                 {% endif %}
 
-                <a href="#" class="flex items-center px-4 py-3 text-gray-400 hover:text-white hover:bg-navy-800 rounded-lg group transition-colors opacity-50 cursor-not-allowed">
-                    <i data-lucide="shopping-cart" class="w-5 h-5 mr-3"></i>
-                    <span>Vendas</span>
-                </a>
+                {% if current_user.tem_permissao('vendas_operar') %}
+                    {% set ativo_vendas = request.endpoint in ['vendas.nova_venda'] %}
+                    <a href="{{ url_for('vendas.nova_venda') }}" 
+                       class="flex items-center px-4 py-3 rounded-lg group transition-colors shadow-sm
+                       {{ 'bg-navy-800 text-white border-l-4 border-electric-500' if ativo_vendas else 'text-gray-400 hover:text-white hover:bg-navy-800' }}">
+                        <i data-lucide="shopping-cart" class="w-5 h-5 mr-3 {{ 'text-electric-500' if ativo_vendas }}"></i>
+                        <span>Nova Venda</span>
+                    </a>
+                {% endif %}
 
             </nav>
 
