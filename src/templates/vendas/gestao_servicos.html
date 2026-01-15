@@ -89,7 +89,7 @@
                         <th class="px-6 py-4">#ID / Cliente</th>
                         <th class="px-6 py-4">Serviço</th>
                         <th class="px-6 py-4">Status</th>
-                        <th class="px-6 py-4">Vendedor / Data</th>
+                        <th class="px-6 py-4">Financeiro</th> <th class="px-6 py-4">Vendedor / Data</th>
                         <th class="px-6 py-4 text-right">Ações</th>
                     </tr>
                 </thead>
@@ -125,6 +125,15 @@
                                 <span class="px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-bold">Cancelado</span>
                             {% endif %}
                         </td>
+                        
+                        <td class="px-6 py-4">
+                            <div class="flex flex-col">
+                                <span class="font-bold text-navy-900">R$ {{ s.valor_final }}</span>
+                                <span class="text-xs {{ 'text-red-500' if s.valor_restante > 0 else 'text-green-500' }}">
+                                    Restante: R$ {{ s.valor_restante }}
+                                </span>
+                            </div>
+                        </td>
                         <td class="px-6 py-4">
                             <span class="block text-navy-900 font-medium">{{ s.vendedor.nome }}</span>
                             <span class="text-xs text-gray-400">{{ s.criado_em.strftime('%d/%m/%Y') }}</span>
@@ -148,7 +157,8 @@
                                 title="Gerenciar"
                                 data-id="{{ s.id }}"
                                 data-cliente="{{ s.cliente_nome }}"
-                                data-contato="{{ s.cliente_contato }}"  data-descricao="{{ s.descricao_servico }}"
+                                data-contato="{{ s.cliente_contato }}"
+                                data-descricao="{{ s.descricao_servico }}"
                                 data-restante="{{ s.valor_restante }}"
                                 data-status="{{ s.status }}"
                                 data-historico="{{ historico|tojson|forceescape }}">
@@ -158,7 +168,7 @@
                     </tr>
                     {% endfor %}
                     <tr id="semResultados" class="hidden">
-                        <td colspan="5" class="px-6 py-8 text-center text-gray-400">Nenhum serviço encontrado.</td>
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-400">Nenhum serviço encontrado.</td>
                     </tr>
                 </tbody>
             </table>
@@ -176,6 +186,7 @@
         </div>
 
         <div class="p-6 overflow-y-auto">
+            
             <div class="flex items-center justify-between bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 mb-4">
                 <div class="flex items-center text-blue-900">
                     <i data-lucide="phone" class="w-4 h-4 mr-2"></i>
@@ -185,10 +196,7 @@
                     WhatsApp <i data-lucide="external-link" class="w-3 h-3 ml-1"></i>
                 </a>
             </div>
-            <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <p class="text-xs text-gray-500 uppercase font-bold mb-1">Descrição</p>
-                <p class="text-navy-900 text-sm" id="modalDescricao">--</p>
-            </div>
+
             <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
                 <p class="text-xs text-gray-500 uppercase font-bold mb-1">Descrição</p>
                 <p class="text-navy-900 text-sm" id="modalDescricao">--</p>
