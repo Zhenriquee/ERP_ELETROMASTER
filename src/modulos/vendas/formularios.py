@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, DecimalField, TextAreaField, IntegerField, RadioField, HiddenField, SubmitField
+from wtforms import StringField, SelectField, DecimalField, TextAreaField, IntegerField, RadioField, HiddenField, SubmitField, DateField
 from wtforms.validators import DataRequired, Optional
 
 class FormularioVendaWizard(FlaskForm):
@@ -41,3 +41,10 @@ class FormularioVendaWizard(FlaskForm):
     input_acrescimo = DecimalField('Acréscimo Técnico (R$)', default=0) # <--- Novo
     
     valor_final_hidden = HiddenField('Valor Final')
+
+class FormularioPagamento(FlaskForm):
+    tipo_recebimento = RadioField('Tipo', choices=[('parcial', 'Recebimento Parcial'), ('total', 'Quitar Restante')], default='parcial')
+    valor = DecimalField('Valor Recebido (R$)', places=2, validators=[Optional()])
+    data_pagamento = DateField('Data do Recebimento', format='%Y-%m-%d', validators=[DataRequired()])
+    # Campo oculto para controle
+    valor_restante_hidden = HiddenField()

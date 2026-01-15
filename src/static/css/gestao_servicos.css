@@ -1,0 +1,50 @@
+/* Animação suave para o Modal */
+#modalServico {
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Estilização da Timeline (Linha do Tempo) */
+.timeline-container {
+    position: relative;
+    padding-left: 1.5rem; /* Espaço para a linha */
+    border-left: 2px solid #e5e7eb; /* border-gray-200 */
+    margin-left: 0.5rem;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: -1.6rem; /* Ajuste para centralizar na linha */
+    top: 0.35rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.timeline-dot.active {
+    background-color: #0a192f; /* navy-900 */
+}
+
+.timeline-dot.inactive {
+    background-color: #d1d5db; /* gray-300 */
+}
+
+/* Status Badges Específicos */
+.badge-producao {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .7; }
+}

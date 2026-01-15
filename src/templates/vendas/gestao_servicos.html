@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/gestao_servicos.css') }}">
+{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto px-0 sm:px-4">
+    
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-navy-900">Gestão de Serviços</h2>
+        <p class="text-sm text-gray-500">Painel de controle de produção e entregas.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-l-4 border-navy-900">
+                <p class="text-xs text-gray-400 font-bold uppercase">A Receber</p>
+                <h3 class="text-xl font-bold text-navy-900 mt-1">R$ {{ kpi_receber|round(2) }}</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-l-4 border-green-500">
+                <p class="text-xs text-gray-400 font-bold uppercase">Recebido (Mês)</p>
+                <h3 class="text-xl font-bold text-green-600 mt-1">R$ {{ kpi_recebido_mes|round(2) }}</h3>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-2">
+            <div class="bg-white p-3 rounded-lg border border-gray-100 text-center">
+                <p class="text-[10px] text-gray-400 font-bold uppercase">Fila</p>
+                <h3 class="text-lg font-bold text-gray-700">{{ qtd_pendente }}</h3>
+            </div>
+            <div class="bg-white p-3 rounded-lg border border-gray-100 text-center border-b-4 border-blue-500">
+                <p class="text-[10px] text-gray-400 font-bold uppercase">Produção</p>
+                <h3 class="text-lg font-bold text-blue-600">{{ qtd_producao }}</h3>
+            </div>
+            <div class="bg-white p-3 rounded-lg border border-gray-100 text-center border-b-4 border-yellow-400">
+                <p class="text-[10px] text-gray-400 font-bold uppercase">Pronto</p>
+                <h3 class="text-lg font-bold text-yellow-600">{{ qtd_pronto }}</h3>
+            </div>
+            <div class="bg-white p-3 rounded-lg border border-gray-100 text-center border-b-4 border-red-500">
+                <p class="text-[10px] text-gray-400 font-bold uppercase">Cancelados (30d)</p>
+                <h3 class="text-lg font-bold text-red-600">{{ qtd_cancelados }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
+        <h4 class="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center">
+            <i data-lucide="filter" class="w-3 h-3 mr-1"></i> Filtros
+        </h4>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div class="md:col-span-2">
+                <input type="text" id="filtroTexto" placeholder="Buscar ID, Cliente ou Serviço..." 
+                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none">
+            </div>
+            
+            <div>
+                <select id="filtroStatus" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none bg-white">
+                    <option value="">Status: Todos</option>
+                    <option value="pendente">Pendente</option>
+                    <option value="producao">Em Produção</option>
+                    <option value="pronto">Pronto</option>
+                    <option value="entregue">Entregue</option>
+                    <option value="cancelado">Cancelado</option>
+                </select>
+            </div>
+
+            <div>
+                <select id="filtroVendedor" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none bg-white">
+                    <option value="">Vendedor: Todos</option>
+                    {% for v in vendedores %}
+                    <option value="{{ v }}">{{ v }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <input type="date" id="filtroData" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none text-gray-500">
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-gray-600" id="tabelaServicos">
+                <thead class="bg-gray-50 text-xs uppercase text-gray-500 font-semibold">
+                    <tr>
+                        <th class="px-6 py-4">#ID / Cliente</th>
+                        <th class="px-6 py-4">Serviço</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4">Vendedor / Data</th>
+                        <th class="px-6 py-4 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for s in servicos %}
+                    <tr class="hover:bg-gray-50 transition-colors linha-tabela"
+                        data-texto="{{ s.id }} {{ s.cliente_nome }} {{ s.descricao_servico }} {{ s.cor.nome }}"
+                        data-status="{{ s.status }}"
+                        data-vendedor="{{ s.vendedor.nome }}"
+                        data-data="{{ s.criado_em.strftime('%Y-%m-%d') }}">
+                        
+                        <td class="px-6 py-4">
+                            <span class="font-bold text-navy-900">#{{ s.id }}</span><br>
+                            {{ s.cliente_nome }}
+                            <div class="flex items-center text-xs text-gray-500 mt-1">
+                                <i data-lucide="phone" class="w-3 h-3 mr-1"></i>
+                                {{ s.cliente_contato }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 max-w-xs truncate">
+                            {{ s.cor.nome }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if s.status == 'pendente' %}
+                                <span class="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs font-bold">Pendente</span>
+                            {% elif s.status == 'producao' %}
+                                <span class="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-bold animate-pulse">Em Produção</span>
+                            {% elif s.status == 'pronto' %}
+                                <span class="px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-xs font-bold">Pronto</span>
+                            {% elif s.status == 'entregue' %}
+                                <span class="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold">Entregue</span>
+                            {% elif s.status == 'cancelado' %}
+                                <span class="px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-bold">Cancelado</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="block text-navy-900 font-medium">{{ s.vendedor.nome }}</span>
+                            <span class="text-xs text-gray-400">{{ s.criado_em.strftime('%d/%m/%Y') }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            {% set historico = {
+                                'criado_em': s.criado_em.isoformat() if s.criado_em else None,
+                                'vendedor': s.vendedor.nome,
+                                'data_producao': s.data_inicio_producao.isoformat() if s.data_inicio_producao else None,
+                                'user_producao': s.usuario_producao.nome if s.usuario_producao else None,
+                                'data_pronto': s.data_pronto.isoformat() if s.data_pronto else None,
+                                'user_pronto': s.usuario_pronto.nome if s.usuario_pronto else None,
+                                'data_entrega': s.data_entrega.isoformat() if s.data_entrega else None,
+                                'user_entrega': s.usuario_entrega.nome if s.usuario_entrega else None,
+                                'data_cancelamento': s.data_cancelamento.isoformat() if s.data_cancelamento else None,
+                                'user_cancelamento': s.usuario_cancelamento.nome if s.usuario_cancelamento else None,
+                                'motivo_cancelamento': s.motivo_cancelamento
+                            } %}
+                            
+                            <button class="btn-abrir-modal p-2 bg-navy-50 text-navy-900 rounded hover:bg-navy-100"
+                                title="Gerenciar"
+                                data-id="{{ s.id }}"
+                                data-cliente="{{ s.cliente_nome }}"
+                                data-contato="{{ s.cliente_contato }}"  data-descricao="{{ s.descricao_servico }}"
+                                data-restante="{{ s.valor_restante }}"
+                                data-status="{{ s.status }}"
+                                data-historico="{{ historico|tojson|forceescape }}">
+                                <i data-lucide="settings-2" class="w-4 h-4"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr id="semResultados" class="hidden">
+                        <td colspan="5" class="px-6 py-8 text-center text-gray-400">Nenhum serviço encontrado.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modalServico" class="fixed inset-0 z-50 hidden">
+    <div id="modalOverlay" class="absolute inset-0 bg-gray-900 bg-opacity-50 transition-opacity cursor-pointer"></div>
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        
+        <div class="bg-navy-900 px-6 py-4 flex justify-between items-center shrink-0">
+            <h3 class="text-white font-bold" id="modalTitulo">Gerenciar Serviço</h3>
+            <button id="btnFecharModal" class="text-white hover:text-gray-300"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="p-6 overflow-y-auto">
+            <div class="flex items-center justify-between bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 mb-4">
+                <div class="flex items-center text-blue-900">
+                    <i data-lucide="phone" class="w-4 h-4 mr-2"></i>
+                    <span class="text-sm font-bold" id="modalContato">--</span>
+                </div>
+                <a id="btnWhatsapp" href="#" target="_blank" class="text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full font-bold flex items-center transition-colors">
+                    WhatsApp <i data-lucide="external-link" class="w-3 h-3 ml-1"></i>
+                </a>
+            </div>
+            <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <p class="text-xs text-gray-500 uppercase font-bold mb-1">Descrição</p>
+                <p class="text-navy-900 text-sm" id="modalDescricao">--</p>
+            </div>
+            <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <p class="text-xs text-gray-500 uppercase font-bold mb-1">Descrição</p>
+                <p class="text-navy-900 text-sm" id="modalDescricao">--</p>
+            </div>
+
+            <div class="mb-8 px-2">
+                <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Histórico</h4>
+                <div class="timeline-container" id="timelineContainer"></div>
+            </div>
+
+            <div id="divStatusActions" class="mb-8">
+                <h4 class="text-sm font-bold text-navy-900 mb-3 border-b pb-1">Ações</h4>
+                <div id="botoesStatus" class="flex flex-wrap gap-2"></div>
+                
+                <div class="mt-4 pt-4 border-t border-gray-100 text-center">
+                    <button id="btnShowCancelar" class="text-xs text-red-400 hover:text-red-600 hover:underline">
+                        Cancelar Serviço
+                    </button>
+                </div>
+            </div>
+
+            <div id="areaPagamento" class="bg-blue-50 p-5 rounded-xl border border-blue-100 mb-4">
+                <h4 class="text-sm font-bold text-navy-900 mb-3 flex items-center">
+                    <i data-lucide="dollar-sign" class="w-4 h-4 mr-1"></i> Recebimento
+                </h4>
+                <form method="POST" id="formPagamento">
+                    {{ form_pgto.hidden_tag() }}
+                    <div class="mb-4 flex gap-4">
+                        {% for subfield in form_pgto.tipo_recebimento %}
+                        <label class="flex items-center cursor-pointer">
+                            {{ subfield(class="text-navy-900 focus:ring-navy-900") }}
+                            <span class="ml-2 text-sm font-medium">{{ subfield.label.text }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <div id="divValorInput" class="mb-4">
+                        {{ form_pgto.valor(class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-navy-900 outline-none bg-white", placeholder="Valor R$") }}
+                        <p class="text-xs text-gray-500 mt-1">Restante: R$ <span id="modalRestanteDisplay"></span></p>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Data</label>
+                        {{ form_pgto.data_pagamento(class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-navy-900 outline-none bg-white") }}
+                    </div>
+                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded shadow">Confirmar</button>
+                </form>
+            </div>
+            
+            <div id="msgPago" class="hidden bg-green-100 text-green-800 p-4 rounded text-center font-bold mb-4">
+                Totalmente Pago.
+            </div>
+
+            <div id="areaCancelamento" class="hidden bg-red-50 p-5 rounded-xl border border-red-200">
+                <h4 class="text-sm font-bold text-red-800 mb-2 flex items-center">
+                    <i data-lucide="alert-circle" class="w-4 h-4 mr-1"></i> Cancelar Serviço
+                </h4>
+                <form method="POST" id="formCancelar">
+                    <label class="block text-xs text-red-700 font-bold mb-1">Motivo do Cancelamento *</label>
+                    <textarea name="motivo_cancelamento" rows="3" class="w-full px-3 py-2 border border-red-300 rounded focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="Descreva o motivo..." required minlength="5"></textarea>
+                    
+                    <div class="flex gap-2 mt-3">
+                        <button type="button" id="btnAbortarCancelamento" class="flex-1 py-2 border border-gray-300 bg-white text-gray-700 rounded text-sm font-bold">Voltar</button>
+                        <button type="submit" class="flex-1 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-bold">Confirmar Cancelamento</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/gestao_servicos.js') }}"></script>
+{% endblock %}

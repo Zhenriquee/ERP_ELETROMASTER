@@ -84,6 +84,16 @@
                     </a>
                 {% endif %}
 
+                {% if current_user.tem_permissao('vendas_operar') %}
+                    {% set ativo_serv = request.endpoint == 'vendas.gestao_servicos' %}
+                    <a href="{{ url_for('vendas.gestao_servicos') }}" 
+                       class="flex items-center px-4 py-3 rounded-lg group transition-colors shadow-sm
+                       {{ 'bg-navy-800 text-white border-l-4 border-electric-500' if ativo_serv else 'text-gray-400 hover:text-white hover:bg-navy-800' }}">
+                        <i data-lucide="clipboard-list" class="w-5 h-5 mr-3 {{ 'text-electric-500' if ativo_serv }}"></i>
+                        <span>Gestão de Serviços</span>
+                    </a>
+                {% endif %}
+
             </nav>
 
             <div class="p-4 border-t border-navy-700 bg-navy-800">
