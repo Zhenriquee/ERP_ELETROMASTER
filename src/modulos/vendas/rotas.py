@@ -389,21 +389,22 @@ def mudar_status_item(id, novo_status):
     if novo_status in mapa_status:
         item.status = novo_status
         
-        # Salva Data E Usuário
+        # --- CORREÇÃO: GRAVAR QUEM FEZ A AÇÃO ---
         if novo_status == 'producao':
             item.data_inicio_producao = agora
-            item.usuario_producao_id = current_user.id
+            item.usuario_producao_id = current_user.id  # <--- LINHA ADICIONADA
         elif novo_status == 'pronto':
             item.data_pronto = agora
-            item.usuario_pronto_id = current_user.id
+            item.usuario_pronto_id = current_user.id    # <--- LINHA ADICIONADA
         elif novo_status == 'entregue':
             item.data_entregue = agora
-            item.usuario_entrega_id = current_user.id
+            item.usuario_entrega_id = current_user.id   # <--- LINHA ADICIONADA
             
-        # Lógica Venda Pai (Mantida igual)
+        # Lógica da Venda Pai (Macro Status) - Mantém igual
         todos_itens = ItemVenda.query.filter_by(venda_id=venda_pai.id).all()
         status_set = set(i.status for i in todos_itens)
         
+        # ... (Resto da lógica da venda pai permanece igual) ...
         if status_set == {'entregue'}:
             if venda_pai.status != 'entregue':
                 venda_pai.status = 'entregue'
@@ -421,6 +422,6 @@ def mudar_status_item(id, novo_status):
                 venda_pai.usuario_producao_id = current_user.id
 
         db.session.commit()
-        flash(f'Item atualizado com sucesso.', 'success')
+        flash(f'Item "{item.descricao}" atualizado com sucesso.', 'success')
     
     return redirect(url_for('vendas.gestao_servicos'))

@@ -124,7 +124,13 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modalTitulo').innerText = `Serviço #${id} - ${cliente}`;
         document.getElementById('modalDescricao').innerText = descricao;
         document.getElementById('modalRestanteDisplay').innerText = restante.toFixed(2);
+         // --- ATUALIZAÇÃO AQUI: PREENCHER DATA E VENDEDOR ---
+        // Usa a função formatData para garantir que fique dd/mm/aaaa hh:mm
+        document.getElementById('modalDataVenda').innerText = formatData(historico.criado_em) || '--';
+        document.getElementById('modalVendedor').innerText = historico.vendedor || '--';
         document.getElementById('modalContato').innerText = contato || '--';
+       
+        // ---------------------------------------------------
         
         if(contato) {
             const zapNumero = contato.replace(/\D/g, '');
@@ -277,13 +283,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Monta o mini-histórico (badges de data)
                 if (item.hist_producao) {
-                    htmlHistorico += `<div class="flex items-center text-[10px] text-blue-600 mt-1" title="Início Produção"><i data-lucide="hammer" class="w-3 h-3 mr-1"></i> ${item.hist_producao}</div>`;
+                    htmlHistorico += `<div class="flex items-center text-[10px] text-blue-600 mt-1">
+                        <i data-lucide="hammer" class="w-3 h-3 mr-1"></i> ${item.hist_producao} 
+                        <span class="ml-1 text-gray-400 font-bold">(${item.user_producao || '?'})</span>
+                    </div>`;
                 }
                 if (item.hist_pronto) {
-                    htmlHistorico += `<div class="flex items-center text-[10px] text-yellow-600 mt-0.5" title="Finalizado"><i data-lucide="package-check" class="w-3 h-3 mr-1"></i> ${item.hist_pronto}</div>`;
+                    htmlHistorico += `<div class="flex items-center text-[10px] text-yellow-600 mt-0.5">
+                        <i data-lucide="package-check" class="w-3 h-3 mr-1"></i> ${item.hist_pronto}
+                        <span class="ml-1 text-gray-400 font-bold">(${item.user_pronto || '?'})</span>
+                    </div>`;
                 }
                 if (item.hist_entregue) {
-                    htmlHistorico += `<div class="flex items-center text-[10px] text-green-600 mt-0.5" title="Entregue"><i data-lucide="truck" class="w-3 h-3 mr-1"></i> ${item.hist_entregue}</div>`;
+                    htmlHistorico += `<div class="flex items-center text-[10px] text-green-600 mt-0.5">
+                        <i data-lucide="truck" class="w-3 h-3 mr-1"></i> ${item.hist_entregue}
+                        <span class="ml-1 text-gray-400 font-bold">(${item.user_entregue || '?'})</span>
+                    </div>`;
                 }
 
 
