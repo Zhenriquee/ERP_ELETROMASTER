@@ -48,14 +48,23 @@ class ItemVenda(db.Model):
     valor_unitario = db.Column(db.Numeric(10, 2), nullable=False)
     valor_total = db.Column(db.Numeric(10, 2), nullable=False)
     
-    # --- NOVOS CAMPOS DE CONTROLE POR ITEM ---
-    status = db.Column(db.String(20), default='pendente') # pendente, producao, pronto, entregue
+    status = db.Column(db.String(20), default='pendente')
     
+    # Datas e Usuários Responsáveis
     data_inicio_producao = db.Column(db.DateTime, nullable=True)
-    data_pronto = db.Column(db.DateTime, nullable=True)
-    data_entregue = db.Column(db.DateTime, nullable=True)
+    usuario_producao_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     
+    data_pronto = db.Column(db.DateTime, nullable=True)
+    usuario_pronto_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    
+    data_entregue = db.Column(db.DateTime, nullable=True)
+    usuario_entrega_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    
+    # Relacionamentos
     cor = db.relationship('CorServico')
+    usuario_producao = db.relationship('Usuario', foreign_keys=[usuario_producao_id])
+    usuario_pronto = db.relationship('Usuario', foreign_keys=[usuario_pronto_id])
+    usuario_entrega = db.relationship('Usuario', foreign_keys=[usuario_entrega_id])
 
 class Venda(db.Model):
     __tablename__ = 'vendas'

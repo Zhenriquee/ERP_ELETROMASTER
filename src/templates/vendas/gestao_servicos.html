@@ -81,7 +81,7 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm text-gray-600" id="tabelaServicos">
                 <thead class="bg-gray-50 text-xs uppercase text-gray-500 font-semibold">
@@ -89,7 +89,8 @@
                         <th class="px-6 py-4">#ID / Cliente</th>
                         <th class="px-6 py-4">Serviço</th>
                         <th class="px-6 py-4">Status</th>
-                        <th class="px-6 py-4">Financeiro</th> <th class="px-6 py-4">Vendedor / Data</th>
+                        <th class="px-6 py-4">Financeiro</th>
+                        <th class="px-6 py-4">Vendedor / Data</th>
                         <th class="px-6 py-4 text-right">Ações</th>
                     </tr>
                 </thead>
@@ -129,7 +130,6 @@
                                 <span class="px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-bold">Cancelado</span>
                             {% endif %}
                         </td>
-                        
                         <td class="px-6 py-4">
                             <div class="flex flex-col">
                                 <span class="font-bold text-navy-900">R$ {{ s.valor_final }}</span>
@@ -138,12 +138,10 @@
                                 </span>
                             </div>
                         </td>
-
                         <td class="px-6 py-4">
                             <span class="block text-navy-900 font-medium">{{ s.vendedor.nome }}</span>
-                            <span class="text-xs text-gray-400">{{ s.criado_em.strftime('%d/%m/%Y') }}</span>
+                            <span class="text-xs text-gray-400">{{ s.criado_em.strftime('%d/%m/%Y %H:%M') }}</span>
                         </td>
-                        
                         <td class="px-6 py-4 text-right">
                             
                             {% set lista_itens_dados = [] %}
@@ -155,9 +153,14 @@
                                     'qtd': item.quantidade,
                                     'descricao': item.descricao,
                                     'cor': item.cor.nome,
-                                    'status': item.status
+                                    'status': item.status,
+                                    'hist_producao': item.data_inicio_producao.strftime('%d/%m/%Y %H:%M') if item.data_inicio_producao else None,
+                                    'user_producao': item.usuario_producao.nome if item.usuario_producao else None,
+                                    'hist_pronto': item.data_pronto.strftime('%d/%m/%Y %H:%M') if item.data_pronto else None,
+                                    'user_pronto': item.usuario_pronto.nome if item.usuario_pronto else None,
+                                    'hist_entregue': item.data_entregue.strftime('%d/%m/%Y %H:%M') if item.data_entregue else None,
+                                    'user_entregue': item.usuario_entrega.nome if item.usuario_entrega else None
                                 }) %}
-                                
                                 {% set _ = lista_descricoes.append(item.quantidade ~ 'x ' ~ item.descricao ~ ' (' ~ item.cor.nome ~ ')') %}
                             {% endfor %}
 
@@ -168,15 +171,15 @@
                             {% endif %}
                             
                             {% set historico = {
-                                'criado_em': s.criado_em.isoformat() if s.criado_em else None,
+                                'criado_em': s.criado_em.strftime('%Y-%m-%d %H:%M') if s.criado_em else None,
                                 'vendedor': s.vendedor.nome,
-                                'data_producao': s.data_inicio_producao.isoformat() if s.data_inicio_producao else None,
+                                'data_producao': s.data_inicio_producao.strftime('%Y-%m-%d %H:%M') if s.data_inicio_producao else None,
                                 'user_producao': s.usuario_producao.nome if s.usuario_producao else None,
-                                'data_pronto': s.data_pronto.isoformat() if s.data_pronto else None,
+                                'data_pronto': s.data_pronto.strftime('%Y-%m-%d %H:%M') if s.data_pronto else None,
                                 'user_pronto': s.usuario_pronto.nome if s.usuario_pronto else None,
-                                'data_entrega': s.data_entrega.isoformat() if s.data_entrega else None,
+                                'data_entrega': s.data_entrega.strftime('%Y-%m-%d %H:%M') if s.data_entrega else None,
                                 'user_entrega': s.usuario_entrega.nome if s.usuario_entrega else None,
-                                'data_cancelamento': s.data_cancelamento.isoformat() if s.data_cancelamento else None,
+                                'data_cancelamento': s.data_cancelamento.strftime('%Y-%m-%d %H:%M') if s.data_cancelamento else None,
                                 'user_cancelamento': s.usuario_cancelamento.nome if s.usuario_cancelamento else None,
                                 'motivo_cancelamento': s.motivo_cancelamento
                             } %}
@@ -202,6 +205,20 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+            <span class="text-sm text-gray-500">
+                Página <strong>{{ paginacao.page }}</strong> de <strong>{{ paginacao.pages }}</strong>
+            </span>
+            <div class="flex gap-2">
+                {% if paginacao.has_prev %}
+                    <a href="{{ url_for('vendas.gestao_servicos', page=paginacao.prev_num) }}" class="px-4 py-2 bg-white border border-gray-300 rounded hover:bg-gray-100 text-sm font-medium text-gray-700">Anterior</a>
+                {% endif %}
+                {% if paginacao.has_next %}
+                    <a href="{{ url_for('vendas.gestao_servicos', page=paginacao.next_num) }}" class="px-4 py-2 bg-navy-900 text-white rounded hover:bg-navy-800 text-sm font-medium">Próximo</a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

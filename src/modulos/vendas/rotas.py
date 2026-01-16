@@ -89,15 +89,22 @@ def nova_venda():
 @bp_vendas.route('/servicos', methods=['GET'])
 @login_required
 def gestao_servicos():
-    # Recupera vendas que não são orçamento
-    servicos = Venda.query.filter(Venda.status != 'orcamento').order_by(Venda.criado_em.desc()).all()
+    # Paginação e Ordenação
+    page = request.args.get('page', 1, type=int)
+    per_page = 10 # Quantidade por página
     
-    # --- CÁLCULO DE KPIS ---
+    # Filtra (não orçamentos) e Ordena por ID Decrescente (Mais novo primeiro)
+    query = Venda.query.filter(Venda.status != 'orcamento').order_by(Venda.id.desc())
+    
+    # Cria o objeto de paginação
+    paginacao = query.paginate(page=page, per_page=per_page, error_out=False)
+    servicos = paginacao.items # Lista de serviços da página atual
+    
+    # --- CÁLCULO DE KPIS (Mantido) ---
     hoje = hora_brasilia().date()
     inicio_mes = hoje.replace(day=1)
     data_30_dias_atras = hora_brasilia() - timedelta(days=30)
     
-    # Financeiro
     total_vendido = db.session.query(func.sum(Venda.valor_final)).filter(Venda.status != 'orcamento', Venda.status != 'cancelado').scalar() or 0
     total_recebido_geral = db.session.query(func.sum(Pagamento.valor)).scalar() or 0
     a_receber = total_vendido - total_recebido_geral
@@ -105,24 +112,21 @@ def gestao_servicos():
     
     recebido_mes = db.session.query(func.sum(Pagamento.valor)).filter(Pagamento.data_pagamento >= inicio_mes).scalar() or 0
     
-    # Operacional
     qtd_pendente = Venda.query.filter_by(status='pendente').count()
     qtd_producao = Venda.query.filter_by(status='producao').count()
     qtd_pronto = Venda.query.filter_by(status='pronto').count()
-    
-    # Novo KPI: Cancelados (Últimos 30 dias)
-    qtd_cancelados_30d = Venda.query.filter(
-        Venda.status == 'cancelado',
-        Venda.data_cancelamento >= data_30_dias_atras
-    ).count()
+    qtd_cancelados_30d = Venda.query.filter(Venda.status == 'cancelado', Venda.data_cancelamento >= data_30_dias_atras).count()
 
     form_pgto = FormularioPagamento()
     
-    # Passamos lista de vendedores para o filtro no HTML
-    vendedores = set(s.vendedor.nome for s in servicos)
+    # Carrega vendedores únicos para o filtro (pode ser otimizado no futuro)
+    todos_vendedores = db.session.query(Venda.vendedor_id).distinct()
+    # Logica simplificada para vendedores no filtro (opcional, mantendo compatibilidade)
+    vendedores = set(s.vendedor.nome for s in servicos) 
 
     return render_template('vendas/gestao_servicos.html', 
-                           servicos=servicos,
+                           servicos=servicos, # Agora é a lista paginada
+                           paginacao=paginacao, # Objeto para criar os botões prev/next
                            vendedores=vendedores,
                            kpi_receber=a_receber,
                            kpi_recebido_mes=recebido_mes,
@@ -280,7 +284,8 @@ def salvar_venda_multipla():
             observacoes_internas=request.form.get('obs_internas'),
             descricao_servico="Serviço com Múltiplos Itens (Ver Detalhes)", # Texto padrão
             vendedor_id=current_user.id,
-            status='pendente' # Já entra como pendente pois foi "fechada" na tela
+            status='pendente', # Já entra como pendente pois foi "fechada" na tela
+            criado_em=hora_brasilia()  # <--- FORÇAR AQUI
         )
 
         # 3. Processa os Itens do Grid
@@ -365,11 +370,14 @@ def salvar_venda_multipla():
         flash(f'Erro ao salvar venda: {str(e)}', 'error')
         return redirect(url_for('vendas.nova_venda_multipla'))
     
+# Em src/modulos/vendas/rotas.py
+
 @bp_vendas.route('/itens/<int:id>/status/<novo_status>')
 @login_required
 def mudar_status_item(id, novo_status):
     item = ItemVenda.query.get_or_404(id)
     venda_pai = Venda.query.get(item.venda_id)
+    agora = hora_brasilia()
     
     mapa_status = {
         'pendente': 'Pendente',
@@ -380,24 +388,39 @@ def mudar_status_item(id, novo_status):
     
     if novo_status in mapa_status:
         item.status = novo_status
-        agora = hora_brasilia() # Garante data/hora correta (Brasília)
         
-        # Atualiza data específica do item
+        # Salva Data E Usuário
         if novo_status == 'producao':
             item.data_inicio_producao = agora
-            # Opcional: Se um item entrou em produção, a Venda pai também entra
+            item.usuario_producao_id = current_user.id
+        elif novo_status == 'pronto':
+            item.data_pronto = agora
+            item.usuario_pronto_id = current_user.id
+        elif novo_status == 'entregue':
+            item.data_entregue = agora
+            item.usuario_entrega_id = current_user.id
+            
+        # Lógica Venda Pai (Mantida igual)
+        todos_itens = ItemVenda.query.filter_by(venda_id=venda_pai.id).all()
+        status_set = set(i.status for i in todos_itens)
+        
+        if status_set == {'entregue'}:
+            if venda_pai.status != 'entregue':
+                venda_pai.status = 'entregue'
+                venda_pai.data_entrega = agora
+                venda_pai.usuario_entrega_id = current_user.id
+        elif all(s in ['pronto', 'entregue'] for s in status_set):
+            if venda_pai.status != 'pronto':
+                venda_pai.status = 'pronto'
+                venda_pai.data_pronto = agora
+                venda_pai.usuario_pronto_id = current_user.id
+        elif 'producao' in status_set or 'pronto' in status_set or 'entregue' in status_set:
             if venda_pai.status == 'pendente':
                 venda_pai.status = 'producao'
                 venda_pai.data_inicio_producao = agora
                 venda_pai.usuario_producao_id = current_user.id
-                
-        elif novo_status == 'pronto':
-            item.data_pronto = agora
-            
-        elif novo_status == 'entregue':
-            item.data_entregue = agora
 
         db.session.commit()
-        flash(f'Item "{item.descricao}" atualizado para: {mapa_status[novo_status]}', 'success')
+        flash(f'Item atualizado com sucesso.', 'success')
     
-    return redirect(url_for('vendas.gestao_servicos'))    
+    return redirect(url_for('vendas.gestao_servicos'))
