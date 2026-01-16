@@ -1,224 +1,259 @@
 {% extends "base.html" %}
 
-{% block styles %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/vendas.css') }}">
-{% endblock %}
-
 {% block conteudo %}
-<div class="container mx-auto max-w-5xl px-0 sm:px-2">
+<div class="container mx-auto max-w-4xl px-0 sm:px-2">
     
-    <div class="mb-6">
+    <div class="mb-6 flex justify-between items-center">
         <h2 class="text-2xl font-bold text-navy-900">Nova Venda / Orçamento</h2>
         
-        <div class="mt-4 flex items-center justify-between relative">
-            <div class="absolute left-0 top-1/2 -z-10 w-full h-1 bg-gray-200 rounded"></div>
-            {% for step in ['Cliente', 'Serviço', 'Medidas', 'Produto', 'Valores', 'Revisão'] %}
-            <div class="step-indicator flex flex-col items-center bg-gray-100 p-2 rounded-full border-2 border-gray-200 transition-colors" data-step="{{ loop.index }}">
-                <span class="text-xs font-bold text-gray-500">{{ step }}</span>
-            </div>
-            {% endfor %}
-        </div>
+        <a href="{{ url_for('vendas.nova_venda_multipla') }}" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 text-sm font-bold flex items-center transition-colors">
+            <i data-lucide="list-plus" class="w-4 h-4 mr-2"></i>
+            Modo Múltiplos Itens
+        </a>
     </div>
 
-    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-        <form method="POST" id="formVenda">
-            {{ form.hidden_tag() }}
-            
-            <div class="wizard-step p-8" data-step="1">
-                <h3 class="text-lg font-bold text-navy-900 mb-6 border-b pb-2">1. Dados do Cliente</h3>
+    <form method="POST" id="formVenda" action="{{ url_for('vendas.nova_venda') }}" class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden relative min-h-[500px]">
+        {{ form.hidden_tag() }}
+
+        <div class="bg-navy-900 text-white px-6 py-4">
+            <div class="flex justify-between items-center relative">
+                <div class="absolute left-0 top-1/2 w-full h-1 bg-navy-700 -z-0 transform -translate-y-1/2"></div>
+                
+                <div class="relative z-10 flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-green-500 text-white border-2 border-green-500 step-indicator transition-all" data-step="1">1</div>
+                    <span class="text-xs mt-1 font-medium text-green-400">Cliente</span>
+                </div>
+                <div class="relative z-10 flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-gray-100 text-gray-500 border-2 border-gray-100 step-indicator transition-all" data-step="2">2</div>
+                    <span class="text-xs mt-1 font-medium text-gray-300">Serviço</span>
+                </div>
+                <div class="relative z-10 flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-gray-100 text-gray-500 border-2 border-gray-100 step-indicator transition-all" data-step="3">3</div>
+                    <span class="text-xs mt-1 font-medium text-gray-300">Medidas</span>
+                </div>
+                <div class="relative z-10 flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-gray-100 text-gray-500 border-2 border-gray-100 step-indicator transition-all" data-step="4">4</div>
+                    <span class="text-xs mt-1 font-medium text-gray-300">Acabamento</span>
+                </div>
+                <div class="relative z-10 flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-gray-100 text-gray-500 border-2 border-gray-100 step-indicator transition-all" data-step="5">5</div>
+                    <span class="text-xs mt-1 font-medium text-gray-300">Valores</span>
+                </div>
+                <div class="relative z-10 flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-gray-100 text-gray-500 border-2 border-gray-100 step-indicator transition-all" data-step="6">6</div>
+                    <span class="text-xs mt-1 font-medium text-gray-300">Revisão</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 md:p-8">
+
+            <div class="wizard-step" data-step="1">
+                <h3 class="text-xl font-bold text-navy-900 mb-6 flex items-center">
+                    <i data-lucide="user" class="w-5 h-5 mr-2"></i> Identificação do Cliente
+                </h3>
                 
                 <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Cliente</label>
-                    <div class="flex gap-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Tipo de Pessoa</label>
+                    <div class="flex gap-6">
                         {% for subfield in form.tipo_cliente %}
-                        <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors w-full has-[:checked]:bg-blue-50 has-[:checked]:border-navy-900">
-                            {{ subfield(class="text-navy-900 focus:ring-navy-900") }}
-                            <span class="ml-2 font-medium">{{ subfield.label.text }}</span>
+                        <label class="flex items-center cursor-pointer group">
+                            <div class="relative">
+                                {{ subfield(class="peer sr-only") }}
+                                <div class="w-5 h-5 border-2 border-gray-300 rounded-full peer-checked:border-navy-900 peer-checked:bg-navy-900 transition-all"></div>
+                            </div>
+                            <span class="ml-2 text-gray-700 font-medium group-hover:text-navy-900">{{ subfield.label.text }}</span>
                         </label>
                         {% endfor %}
                     </div>
                 </div>
 
-                <div id="bloco-pf" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div id="bloco-pf" class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo *</label>
-                        {{ form.pf_nome(class="input-navy") }}
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Nome Completo *</label>
+                        {{ form.pf_nome(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="Ex: João da Silva") }}
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">CPF</label>
-                        {{ form.pf_cpf(class="input-navy") }}
+                        <label class="block text-sm font-bold text-gray-700 mb-1">CPF</label>
+                        {{ form.pf_cpf(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="000.000.000-00") }}
                     </div>
                 </div>
 
-                <div id="bloco-pj" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+                <div id="bloco-pj" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden animate-fade-in">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome Fantasia *</label>
-                        {{ form.pj_fantasia(class="input-navy") }}
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Nome Fantasia *</label>
+                        {{ form.pj_fantasia(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="Ex: Empresa X") }}
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">CNPJ</label>
-                        {{ form.pj_cnpj(class="input-navy") }}
+                        <label class="block text-sm font-bold text-gray-700 mb-1">CNPJ</label>
+                        {{ form.pj_cnpj(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="00.000.000/0000-00") }}
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Solicitante *</label>
-                        {{ form.pj_solicitante(class="input-navy", placeholder="Quem está pedindo o serviço?") }}
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Solicitante (Responsável) *</label>
+                        {{ form.pj_solicitante(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="Quem pediu o serviço?") }}
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-100">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Telefone / WhatsApp *</label>
-                        {{ form.telefone(class="input-navy") }}
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Telefone / WhatsApp *</label>
+                        {{ form.telefone(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="(00) 00000-0000") }}
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-                        {{ form.email(class="input-navy") }}
+                        <label class="block text-sm font-bold text-gray-700 mb-1">E-mail</label>
+                        {{ form.email(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="cliente@email.com") }}
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Endereço Completo</label>
-                        {{ form.endereco(class="input-navy") }}
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Endereço Completo</label>
+                        {{ form.endereco(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="Rua, Número, Bairro, Cidade") }}
                     </div>
                 </div>
             </div>
 
-            <div class="wizard-step hidden p-8" data-step="2">
-                <h3 class="text-lg font-bold text-navy-900 mb-4 border-b pb-2">2. Detalhes do Serviço</h3>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Descrição do Serviço (Visível no Orçamento) *</label>
-                        {{ form.descricao_servico(class="input-navy h-24", placeholder="Ex: Pintura eletrostática em grade de ferro...") }}
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Observações Internas (Privado)</label>
-                        {{ form.observacoes_internas(class="input-navy h-24 bg-yellow-50 border-yellow-200") }}
-                    </div>
-                </div>
-            </div>
-
-            <div class="wizard-step hidden p-8" data-step="3">
-                <h3 class="text-lg font-bold text-navy-900 mb-4 border-b pb-2">3. Medidas Técnicas</h3>
+            <div class="wizard-step hidden" data-step="2">
+                <h3 class="text-xl font-bold text-navy-900 mb-6 flex items-center">
+                    <i data-lucide="wrench" class="w-5 h-5 mr-2"></i> Detalhes do Serviço
+                </h3>
                 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Medição</label>
-                    {{ form.tipo_medida(class="input-navy", id="select-medida") }}
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Descrição do Item/Serviço *</label>
+                    {{ form.descricao_servico(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none h-32 resize-none", placeholder="Ex: Pintura de Portão de Ferro com detalhes...") }}
+                    <p class="text-xs text-gray-400 mt-1">Descreva o que será feito com detalhes para o cliente.</p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Observações Internas</label>
+                    {{ form.observacoes_internas(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none h-24 resize-none bg-yellow-50", placeholder="Anotações para a equipe (não sai na via do cliente)") }}
+                </div>
+            </div>
+
+            <div class="wizard-step hidden" data-step="3">
+                <h3 class="text-xl font-bold text-navy-900 mb-6 flex items-center">
+                    <i data-lucide="ruler" class="w-5 h-5 mr-2"></i> Dimensões
+                </h3>
+
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6 flex items-start gap-3">
+                    <i data-lucide="info" class="w-5 h-5 text-blue-600 mt-0.5"></i>
+                    <p class="text-sm text-blue-800">Selecione a unidade de medida correta. Para <strong>M²</strong> use Altura e Largura. Para <strong>M³</strong> inclua a Profundidade.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Altura / Comp. (m)</label>
-                        {{ form.dim_1(class="input-navy input-calc", type="number", step="0.01", min="0") }}
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Tipo de Medida</label>
+                        {{ form.tipo_medida(id="select-medida", class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none bg-white") }}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Dimensão 1 (m)</label>
+                        {{ form.dim_1(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none input-calc", placeholder="0.00", type="number", step="0.01") }}
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Largura (m)</label>
-                        {{ form.dim_2(class="input-navy input-calc", type="number", step="0.01", min="0") }}
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Dimensão 2 (m)</label>
+                        {{ form.dim_2(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none input-calc", placeholder="0.00", type="number", step="0.01") }}
                     </div>
                     <div id="div-dim-3" class="hidden">
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Profundidade (m)</label>
-                        {{ form.dim_3(class="input-navy input-calc", type="number", step="0.01", min="0") }}
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Dimensão 3 (m)</label>
+                        {{ form.dim_3(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none input-calc", placeholder="0.00", type="number", step="0.01") }}
                     </div>
                 </div>
 
-                <div class="mt-4 p-4 bg-navy-900 text-white rounded-lg flex justify-between items-center">
-                    <span>Metragem Calculada:</span>
-                    <span class="text-2xl font-bold">
-                        <span id="display-metragem">0.00</span> 
-                        <span id="display-unidade">m²</span>
-                    </span>
-                    {{ form.metragem_calculada() }}
+                <div class="mt-8 bg-gray-50 p-6 rounded-xl border border-gray-200 text-center">
+                    <p class="text-gray-500 uppercase text-xs font-bold tracking-wider mb-2">Metragem Total Calculada</p>
+                    <div class="text-4xl font-black text-navy-900 flex justify-center items-end gap-2">
+                        <span id="display-metragem">0.00</span>
+                        <span id="display-unidade" class="text-lg text-gray-400 mb-1 font-bold">m²</span>
+                    </div>
+                    {{ form.metragem_calculada(type="hidden") }}
                 </div>
             </div>
 
-            <div class="wizard-step hidden p-8" data-step="4">
-                <h3 class="text-lg font-bold text-navy-900 mb-4 border-b pb-2">4. Seleção de Produto</h3>
+            <div class="wizard-step hidden" data-step="4">
+                <h3 class="text-xl font-bold text-navy-900 mb-6 flex items-center">
+                    <i data-lucide="paint-bucket" class="w-5 h-5 mr-2"></i> Acabamento e Quantidade
+                </h3>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Cor / Acabamento *</label>
-                        {{ form.cor_id(class="input-navy", id="select-cor") }}
-                        <p class="text-xs text-gray-500 mt-1">
-                            Preço Base: R$ <span id="cor-preco-base">0.00</span>
-                        </p>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Cor / Acabamento</label>
+                        {{ form.cor_id(id="select-cor", class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none bg-white") }}
+                        <div class="mt-2 text-xs text-gray-500 flex justify-between">
+                            <span>Preço Base:</span>
+                            <span class="font-bold text-navy-900">R$ <span id="cor-preco-base">0.00</span></span>
+                        </div>
                     </div>
+                    
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantidade de Peças *</label>
-                        {{ form.qtd_pecas(class="input-navy input-calc", type="number", min="1") }}
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Quantidade de Peças</label>
+                        <div class="flex items-center">
+                            <button type="button" onclick="document.querySelector('[name=\'qtd_pecas\']').stepDown(); calculateAll();" class="w-10 h-11 bg-gray-100 border border-gray-300 rounded-l-lg hover:bg-gray-200 font-bold">-</button>
+                            {{ form.qtd_pecas(class="w-full h-11 border-y border-gray-300 text-center focus:ring-0 outline-none input-calc", type="number", min="1") }}
+                            <button type="button" onclick="document.querySelector('[name=\'qtd_pecas\']').stepUp(); calculateAll();" class="w-10 h-11 bg-gray-100 border border-gray-300 rounded-r-lg hover:bg-gray-200 font-bold">+</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="wizard-step hidden p-8" data-step="5">
-                <h3 class="text-lg font-bold text-navy-900 mb-4 border-b pb-2">5. Fechamento Financeiro</h3>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="space-y-6">
-                        
-                        <div class="p-4 bg-blue-50 rounded-lg border border-blue-100">
-                            <label class="block text-sm font-bold text-navy-900 mb-1">Acréscimo Técnico (Opcional)</label>
-                            <p class="text-xs text-gray-500 mb-2">Utilize para ajustar valores de peças complexas ou pequenas.</p>
-                            <div class="relative">
-                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 font-bold">R$</span>
-                                {{ form.input_acrescimo(class="input-navy pl-10 input-calc", type="number", step="0.01", min="0") }}
-                            </div>
-                        </div>
+            <div class="wizard-step hidden" data-step="5">
+                <h3 class="text-xl font-bold text-navy-900 mb-6 flex items-center">
+                    <i data-lucide="dollar-sign" class="w-5 h-5 mr-2"></i> Fechamento Financeiro
+                </h3>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Aplicar Desconto</label>
-                            <div class="flex gap-2 mb-3">
-                                {% for subfield in form.tipo_desconto %}
-                                <label class="cursor-pointer">
-                                    {{ subfield(class="peer sr-only input-calc") }}
-                                    <div class="px-3 py-1 rounded border border-gray-300 peer-checked:bg-navy-900 peer-checked:text-white transition-all text-sm">
-                                        {{ subfield.label.text }}
-                                    </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-8 grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-500 block text-xs uppercase font-bold">Metragem</span>
+                        <span id="resumo-metragem" class="font-bold text-navy-900">--</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 block text-xs uppercase font-bold">Valor Base Calculado</span>
+                        <span class="font-bold text-navy-900">R$ <span id="resumo-base">0.00</span></span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Acréscimo / Extra (R$)</label>
+                        {{ form.input_acrescimo(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none text-right font-mono font-bold text-blue-600 input-calc", placeholder="0.00", type="number", step="0.01") }}
+                        <p class="text-xs text-gray-400 mt-1">Taxas extras, urgência, transporte, etc.</p>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <label class="block text-sm font-bold text-gray-700">Desconto</label>
+                            <div class="flex gap-3 text-xs">
+                                {% for sub in form.tipo_desconto %}
+                                <label class="flex items-center cursor-pointer">
+                                    {{ sub(class="mr-1") }} {{ sub.label.text }}
                                 </label>
                                 {% endfor %}
                             </div>
-                            <div class="relative">
-                                {{ form.input_desconto(class="input-navy input-calc", type="number", step="0.01", min="0") }}
-                            </div>
-                            <div id="alert-desconto" class="hidden mt-2 p-2 bg-yellow-100 text-yellow-800 text-xs rounded flex items-center">
-                                <i data-lucide="alert-triangle" class="w-4 h-4 mr-1"></i> Atenção: Desconto acima de 15%.
-                            </div>
                         </div>
+                        {{ form.input_desconto(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none text-right font-mono font-bold text-red-500 input-calc", placeholder="0.00", type="number", step="0.01") }}
                     </div>
+                </div>
 
-                    <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 space-y-3 h-fit">
-                        <h4 class="text-xs font-bold text-gray-400 uppercase">Cálculo Interno</h4>
-                        
-                        <div class="flex justify-between text-sm text-gray-600">
-                            <span>Metragem:</span>
-                            <span><span id="resumo-metragem">0.00</span></span>
-                        </div>
-                        <div class="flex justify-between text-sm text-gray-600">
-                            <span>Preço Tabela (Base):</span>
-                            <span>R$ <span id="resumo-base">0.00</span></span>
-                        </div>
-                        
-                        <div class="border-t border-gray-200 my-2"></div>
-                        
-                        <div class="flex justify-between text-sm text-blue-600 font-medium">
-                            <span>+ Acréscimo:</span>
-                            <span>R$ <span id="resumo-acrescimo">0.00</span></span>
-                        </div>
-                        <div class="flex justify-between text-sm text-red-600 font-medium">
-                            <span>- Desconto:</span>
-                            <span>R$ <span id="resumo-desconto">0.00</span></span>
-                        </div>
-                        
-                        <div class="flex justify-between text-2xl font-bold text-electric-500 border-t border-gray-300 pt-3 mt-2">
-                            <span>TOTAL:</span>
-                            <span>R$ <span id="resumo-total">0.00</span></span>
-                        </div>
+                <div class="mt-8 bg-navy-900 text-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center">
+                    <span class="text-gray-400 text-xs uppercase font-bold tracking-widest mb-1">Valor Total Final</span>
+                    <div class="text-5xl font-black tracking-tight">
+                        R$ <span id="resumo-total">0.00</span>
+                    </div>
+                    <div id="alert-desconto" class="hidden mt-2 bg-red-500/20 text-red-200 px-3 py-1 rounded-full text-xs font-bold border border-red-500/50">
+                        Desconto acima de 15% aplicado
+                    </div>
+                    <div class="hidden">
+                        <span id="resumo-acrescimo">0</span>
+                        <span id="resumo-desconto">0</span>
                     </div>
                 </div>
             </div>
 
-            <div class="wizard-step hidden p-8" data-step="6">
-                <div class="text-center mb-6">
-                    <h3 class="text-xl font-bold text-navy-900">Resumo do Serviço</h3>
-                    <p class="text-gray-500">Confira os dados abaixo para apresentar ao cliente.</p>
-                </div>
-                
-                <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+            <div class="wizard-step hidden" data-step="6">
+                <h3 class="text-xl font-bold text-navy-900 mb-6 flex items-center">
+                    <i data-lucide="clipboard-check" class="w-5 h-5 mr-2"></i> Revisão Final
+                </h3>
+
+                <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                     <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <p class="text-xs text-gray-500 uppercase font-bold">Cliente</p>
@@ -229,54 +264,62 @@
                             <p class="text-navy-900 font-medium" id="rev-solicitante">--</p>
                         </div>
                     </div>
-
-                    <div class="p-6 space-y-6">
+                    
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2">
+                            <p class="text-xs text-gray-500 uppercase font-bold">Descrição do Serviço</p>
+                            <p class="text-gray-700 mt-1" id="rev-servico">--</p>
+                        </div>
+                        
                         <div>
-                            <p class="text-xs text-gray-500 uppercase font-bold mb-1">Descrição do Serviço</p>
-                            <p class="text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100" id="rev-servico">--</p>
+                            <p class="text-xs text-gray-500 uppercase font-bold">Cor / Acabamento</p>
+                            <p class="text-navy-900 font-bold text-lg mt-1" id="rev-cor">--</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase font-bold">Quantidade</p>
+                            <p class="text-navy-900 font-bold text-lg mt-1"><span id="rev-qtd">0</span> peças</p>
                         </div>
 
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div class="p-3 bg-blue-50 rounded-lg border border-blue-100 text-center">
-                                <p class="text-xs text-blue-800 font-bold uppercase">Acabamento</p>
-                                <p class="text-navy-900 font-bold mt-1" id="rev-cor">--</p>
-                            </div>
-                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 text-center">
-                                <p class="text-xs text-gray-500 font-bold uppercase">Quantidade</p>
-                                <p class="text-navy-900 font-bold mt-1" id="rev-qtd">--</p>
-                            </div>
-                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 text-center">
-                                <p class="text-xs text-gray-500 font-bold uppercase">Medidas Unit.</p>
-                                <p class="text-navy-900 font-bold mt-1" id="rev-medidas">--</p>
-                            </div>
-                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 text-center">
-                                <p class="text-xs text-gray-500 font-bold uppercase">Metragem Total</p>
-                                <p class="text-navy-900 font-bold mt-1" id="rev-metragem-total">--</p>
-                            </div>
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase font-bold">Medidas Unitárias</p>
+                            <p class="text-gray-700 font-mono mt-1" id="rev-medidas">--</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase font-bold">Metragem Total</p>
+                            <p class="text-gray-700 font-mono mt-1 font-bold" id="rev-metragem-total">--</p>
                         </div>
                     </div>
 
                     <div class="bg-navy-900 px-6 py-4 flex justify-between items-center text-white">
-                        <span class="font-medium text-lg">Valor Total do Orçamento</span>
-                        <span class="text-2xl font-bold">R$ <span id="rev-total">--</span></span>
+                        <span class="text-sm font-bold uppercase tracking-wider text-gray-400">Total Final</span>
+                        <span class="text-2xl font-black">R$ <span id="rev-total">0.00</span></span>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-gray-50 px-8 py-4 border-t border-gray-100 flex justify-between">
-                <button type="button" id="btn-prev" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-white disabled:opacity-50" disabled>Voltar</button>
-                <button type="button" id="btn-next" class="px-6 py-2 bg-navy-900 text-white rounded-lg hover:bg-navy-800 shadow-lg transition-transform hover:-translate-y-0.5">Próximo</button>
-                <button type="submit" id="btn-submit" class="hidden px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-lg font-bold transition-transform hover:-translate-y-0.5">Finalizar Venda</button>
+            <div class="mt-8 flex justify-between pt-6 border-t border-gray-100">
+                <button type="button" id="btn-prev" class="px-6 py-2 rounded-lg border border-gray-300 text-gray-600 font-bold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
+                    Voltar
+                </button>
+                
+                <button type="button" id="btn-next" class="px-8 py-2 rounded-lg bg-navy-900 text-white font-bold hover:bg-navy-800 shadow-lg shadow-navy-900/20 transition-all transform hover:-translate-y-0.5">
+                    Próximo
+                </button>
+                
+                <button type="submit" id="btn-submit" class="hidden px-8 py-2 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 shadow-lg shadow-green-600/20 transition-all transform hover:-translate-y-0.5">
+                    Confirmar Venda
+                </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-    const CORES_DB = JSON.parse('{{ cores_json|tojson|safe }}');
-</script>
-
-<script src="{{ url_for('static', filename='js/vendas.js') }}"></script>
+    <script>
+        const CORES_DB = JSON.parse('{{ cores_json|tojson|safe }}');
+    </script>
+    <script src="{{ url_for('static', filename='js/vendas.js') }}"></script>
 {% endblock %}

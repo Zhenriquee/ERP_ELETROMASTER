@@ -4,29 +4,33 @@ document.addEventListener('DOMContentLoaded', function() {
     // 1. SELEÇÃO DE ELEMENTOS DO DOM
     // ==========================================
     
-    // Elementos Principais do Modal
+    // Modal e Overlay
     const modal = document.getElementById('modalServico');
     const overlay = document.getElementById('modalOverlay');
     const btnFechar = document.getElementById('btnFecharModal');
     
-    // Sub-seções do Modal
-    const divStatusActions = document.getElementById('divStatusActions'); // Botões de status
-    const areaPagamento = document.getElementById('areaPagamento');       // Form de pagamento
-    const areaCancelamento = document.getElementById('areaCancelamento'); // Form de cancelamento
-    const msgPago = document.getElementById('msgPago');                   // Mensagem de pago
-    const botoesStatus = document.getElementById('botoesStatus');         // Container dos botões
-    const timelineContainer = document.getElementById('timelineContainer'); // Container da timeline
+    // Seções internas do Modal
+    const divStatusActions = document.getElementById('divStatusActions');
+    const areaPagamento = document.getElementById('areaPagamento');
+    const areaCancelamento = document.getElementById('areaCancelamento');
+    const msgPago = document.getElementById('msgPago');
+    const botoesStatus = document.getElementById('botoesStatus');
+    const timelineContainer = document.getElementById('timelineContainer');
+    
+    // --- NOVO: Seção de Itens Individuais ---
+    const containerItens = document.getElementById('containerItens');
+    const tabelaItensModal = document.getElementById('tabelaItensModal');
     
     // Formulários
     const formPagamento = document.getElementById('formPagamento');
     const formCancelar = document.getElementById('formCancelar');
 
-    // Botões de Ação Específica
-    const btnShowCancelar = document.getElementById('btnShowCancelar');         // Link "Cancelar Serviço"
-    const btnAbortarCancelamento = document.getElementById('btnAbortarCancelamento'); // Botão "Voltar" do cancelamento
-    const btnWhatsapp = document.getElementById('btnWhatsapp');                 // Botão Zap
+    // Botões Especiais
+    const btnShowCancelar = document.getElementById('btnShowCancelar');
+    const btnAbortarCancelamento = document.getElementById('btnAbortarCancelamento');
+    const btnWhatsapp = document.getElementById('btnWhatsapp');
 
-    // Filtros da Tabela
+    // Filtros
     const filtroTexto = document.getElementById('filtroTexto');
     const filtroStatus = document.getElementById('filtroStatus');
     const filtroVendedor = document.getElementById('filtroVendedor');
@@ -38,25 +42,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // ============================================================
-    // 2. FILTROS AVANÇADOS (LIVE SEARCH)
+    // 2. FILTROS AVANÇADOS
     // ============================================================
     function filtrarTabelaCompleta() {
+        if(!tabela) return; // Segurança
+
         const texto = filtroTexto.value.toLowerCase();
         const status = filtroStatus.value.toLowerCase();
-        const vendedor = filtroVendedor.value; // Exact match
-        const data = filtroData.value; // YYYY-MM-DD
+        const vendedor = filtroVendedor.value;
+        const data = filtroData.value;
 
         const linhas = tabela.querySelectorAll('.linha-tabela');
         let visiveis = 0;
 
         linhas.forEach(linha => {
-            // Lê os dados armazenados nos atributos data-*
             const lTexto = linha.dataset.texto.toLowerCase();
             const lStatus = linha.dataset.status.toLowerCase();
             const lVendedor = linha.dataset.vendedor;
             const lData = linha.dataset.data;
 
-            // Lógica E (AND): A linha deve atender a TODOS os critérios preenchidos
             const matchTexto = texto === '' || lTexto.includes(texto);
             const matchStatus = status === '' || lStatus === status;
             const matchVendedor = vendedor === '' || lVendedor === vendedor;
@@ -70,13 +74,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Feedback Visual (Nenhum resultado)
         const semResultados = document.getElementById('semResultados');
         if (visiveis === 0) semResultados.classList.remove('hidden');
         else semResultados.classList.add('hidden');
     }
 
-    // Adiciona Listeners aos inputs de filtro
     if(filtroTexto) [filtroTexto, filtroStatus, filtroVendedor, filtroData].forEach(el => {
         el.addEventListener('input', filtrarTabelaCompleta);
     });
@@ -86,43 +88,47 @@ document.addEventListener('DOMContentLoaded', function() {
     // 3. ABERTURA E PREENCHIMENTO DO MODAL
     // ============================================================
     
-    // Captura cliques nos botões "Gerenciar" da tabela
     const btnsGerenciar = document.querySelectorAll('.btn-abrir-modal');
     
     btnsGerenciar.forEach(btn => {
         btn.addEventListener('click', function() {
-            // Extrai dados do botão clicado
+            // Dados básicos
             const id = this.dataset.id;
             const cliente = this.dataset.cliente;
             const contato = this.dataset.contato;
             const descricao = this.dataset.descricao;
             const restante = parseFloat(this.dataset.restante);
             const status = this.dataset.status;
+            const modo = this.dataset.modo; // 'simples' ou 'multipla'
             
-            // O histórico vem como string JSON segura, precisamos converter de volta para Objeto
+            // Parse de JSONs
             let historico = {};
-            try {
-                historico = JSON.parse(this.dataset.historico);
-            } catch (e) {
-                console.error("Erro ao ler histórico JSON", e);
-            }
+            let itens = [];
+            
+            try { historico = JSON.parse(this.dataset.historico); } catch (e) {}
+            try { itens = JSON.parse(this.dataset.itens || '[]'); } catch (e) {}
 
+            // 1. Preenche dados gerais
             preencherModal(id, cliente, contato, descricao, restante, status, historico);
+            
+            // 2. Renderiza a tabela de itens individuais (NOVO)
+            renderizarItens(modo, itens);
+
+            // 3. Exibe o modal
             modal.classList.remove('hidden');
         });
     });
 
     function preencherModal(id, cliente, contato, descricao, restante, status, historico) {
-        // 1. Textos Básicos
+        // Textos
         document.getElementById('modalTitulo').innerText = `Serviço #${id} - ${cliente}`;
         document.getElementById('modalDescricao').innerText = descricao;
         document.getElementById('modalRestanteDisplay').innerText = restante.toFixed(2);
+        document.getElementById('modalContato').innerText = contato || '--';
         
-        // 2. Configura Links de Contato
-        document.getElementById('modalContato').innerText = contato;
+        // WhatsApp Link
         if(contato) {
-            const zapNumero = contato.replace(/\D/g, ''); // Remove tudo que não é número
-            // Verifica se parece um celular válido (DDD + 9 dígitos = 11)
+            const zapNumero = contato.replace(/\D/g, '');
             if (zapNumero.length >= 10) {
                 btnWhatsapp.href = `https://wa.me/55${zapNumero}`;
                 btnWhatsapp.classList.remove('hidden');
@@ -133,33 +139,29 @@ document.addEventListener('DOMContentLoaded', function() {
             btnWhatsapp.classList.add('hidden');
         }
 
-        // 3. Configura Actions dos Forms (Para onde os dados serão enviados)
+        // Actions dos Forms
         formPagamento.action = `/vendas/servicos/${id}/pagamento`;
         formCancelar.action = `/vendas/servicos/${id}/cancelar`;
 
-        // 4. Reseta Estado Visual (Esconde Cancelamento, Mostra Ações Normais)
+        // Reset Visual
         areaCancelamento.classList.add('hidden');
         divStatusActions.classList.remove('hidden');
 
-        // 5. Constrói a Timeline
+        // Timeline
         montarTimeline(historico);
 
-        // 6. Lógica de Pagamento
-        // Se a dívida é 0 (ou quase), mostra mensagem de Pago. Senão, mostra form.
+        // Lógica de Pagamento
         if (restante <= 0.01) {
             areaPagamento.classList.add('hidden');
             msgPago.classList.remove('hidden');
         } else {
-            // Se o serviço estiver cancelado, não deve permitir pagar
             if (status !== 'cancelado') {
                 areaPagamento.classList.remove('hidden');
                 msgPago.classList.add('hidden');
-                
-                // Reseta inputs do form de pagamento
                 document.querySelector("input[name='tipo_recebimento'][value='parcial']").checked = true;
                 toggleValorInput();
                 
-                // Define data padrão como Hoje (ajustando fuso horário local para o input date)
+                // Data Hoje
                 const hojeLocal = new Date();
                 hojeLocal.setMinutes(hojeLocal.getMinutes() - hojeLocal.getTimezoneOffset());
                 document.querySelector("input[name='data_pagamento']").value = hojeLocal.toISOString().split('T')[0];
@@ -169,11 +171,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // 7. Botões de Mudança de Status
+        // Botões Status Global
         gerarBotoesStatus(id, status);
 
-        // 8. Lógica do Botão "Cancelar Serviço"
-        // Bloqueia se já estiver cancelado OU (Entregue E Pago)
+        // Botão Cancelar
         const isTotalmentePago = (restante <= 0.01);
         if (status === 'cancelado' || (status === 'entregue' && isTotalmentePago)) {
             btnShowCancelar.classList.add('hidden');
@@ -184,19 +185,90 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // ============================================================
-    // 4. GERAÇÃO DINÂMICA DE CONTEÚDO
+    // 4. RENDERIZAÇÃO DE ITENS INDIVIDUAIS (NOVO)
+    // ============================================================
+    
+    function renderizarItens(modo, itens) {
+        tabelaItensModal.innerHTML = ''; // Limpa tabela
+        
+        // Só mostra se for modo múltiplo e tiver itens
+        if (modo === 'multipla' && itens.length > 0) {
+            containerItens.classList.remove('hidden');
+            
+            itens.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors";
+
+                // Lógica de Status do ITEM
+                let badgeClass = 'bg-gray-100 text-gray-600';
+                let labelStatus = 'Pendente';
+                let htmlAcoes = '';
+                
+                // Define botões baseados no status atual do item
+                if (item.status === 'pendente') {
+                    badgeClass = 'bg-gray-200 text-gray-700';
+                    labelStatus = 'Pendente';
+                    htmlAcoes = `<a href="/vendas/itens/${item.id}/status/producao" class="inline-flex items-center px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded transition-colors shadow-sm">
+                                    <i data-lucide="hammer" class="w-3 h-3 mr-1"></i> Produzir
+                                 </a>`;
+                
+                } else if (item.status === 'producao') {
+                    badgeClass = 'bg-blue-100 text-blue-700 animate-pulse';
+                    labelStatus = 'Em Produção';
+                    htmlAcoes = `<a href="/vendas/itens/${item.id}/status/pronto" class="inline-flex items-center px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold rounded transition-colors shadow-sm">
+                                    <i data-lucide="package" class="w-3 h-3 mr-1"></i> Pronto
+                                 </a>`;
+                
+                } else if (item.status === 'pronto') {
+                    badgeClass = 'bg-yellow-100 text-yellow-700';
+                    labelStatus = 'Pronto';
+                    htmlAcoes = `<a href="/vendas/itens/${item.id}/status/entregue" class="inline-flex items-center px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded transition-colors shadow-sm">
+                                    <i data-lucide="truck" class="w-3 h-3 mr-1"></i> Entregar
+                                 </a>`;
+                
+                } else if (item.status === 'entregue') {
+                    badgeClass = 'bg-green-100 text-green-700';
+                    labelStatus = 'Entregue';
+                    htmlAcoes = `<span class="text-green-600"><i data-lucide="check-circle-2" class="w-5 h-5"></i></span>`;
+                }
+
+                // Monta o HTML da linha
+                tr.innerHTML = `
+                    <td class="p-3">
+                        <div class="font-bold text-navy-900 text-sm">${item.qtd}x ${item.descricao}</div>
+                        <div class="text-xs text-gray-500">${item.cor}</div>
+                    </td>
+                    <td class="p-3 text-center">
+                        <span class="px-2 py-1 rounded-full text-[10px] uppercase font-bold tracking-wide ${badgeClass}">${labelStatus}</span>
+                    </td>
+                    <td class="p-3 text-right">
+                        ${htmlAcoes}
+                    </td>
+                `;
+                tabelaItensModal.appendChild(tr);
+            });
+            
+            // Importante: Recarrega ícones Lucide dentro da tabela dinâmica
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+            
+        } else {
+            // Venda Simples: Esconde a tabela de itens
+            containerItens.classList.add('hidden');
+        }
+    }
+
+
+    // ============================================================
+    // 5. TIMELINE E STATUS GERAL
     // ============================================================
 
     function montarTimeline(historico) {
         let html = '';
-        
-        // Eventos Normais
         html += criarItemTimeline('Solicitação Criada', historico.criado_em, historico.vendedor, true);
-        if (historico.data_producao) html += criarItemTimeline('Iniciou Produção', historico.data_producao, historico.user_producao, true);
-        if (historico.data_pronto) html += criarItemTimeline('Pronto p/ Retirada', historico.data_pronto, historico.user_pronto, true);
+        if (historico.data_producao) html += criarItemTimeline('Iniciou Produção (Geral)', historico.data_producao, historico.user_producao, true);
+        if (historico.data_pronto) html += criarItemTimeline('Pronto p/ Retirada (Geral)', historico.data_pronto, historico.user_pronto, true);
         if (historico.data_entrega) html += criarItemTimeline('Entregue ao Cliente', historico.data_entrega, historico.user_entrega, true);
         
-        // Evento Especial: Cancelamento
         if (historico.data_cancelamento) {
             html += `
             <div class="timeline-item">
@@ -209,7 +281,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p class="text-xs text-gray-500 mt-1 italic border-l-2 border-red-200 pl-2">Motivo: "${historico.motivo_cancelamento}"</p>
             </div>`;
         }
-        
         timelineContainer.innerHTML = html;
     }
 
@@ -239,53 +310,45 @@ document.addEventListener('DOMContentLoaded', function() {
         const btnClass = "px-4 py-2 text-white rounded shadow transition-colors text-sm font-bold flex-1 text-center block";
 
         if (status === 'pendente') {
-            html = `<a href="/vendas/servicos/${id}/status/producao" class="${btnClass} bg-blue-600 hover:bg-blue-700">Iniciar Produção</a>`;
+            html = `<a href="/vendas/servicos/${id}/status/producao" class="${btnClass} bg-blue-600 hover:bg-blue-700">Iniciar Produção (Tudo)</a>`;
         } else if (status === 'producao') {
-            html = `<a href="/vendas/servicos/${id}/status/pronto" class="${btnClass} bg-yellow-500 hover:bg-yellow-600">Marcar Pronto</a>`;
+            html = `<a href="/vendas/servicos/${id}/status/pronto" class="${btnClass} bg-yellow-500 hover:bg-yellow-600">Marcar Pronto (Tudo)</a>`;
         } else if (status === 'pronto') {
-            html = `<a href="/vendas/servicos/${id}/status/entregue" class="${btnClass} bg-green-600 hover:bg-green-700">Confirmar Entrega</a>`;
+            html = `<a href="/vendas/servicos/${id}/status/entregue" class="${btnClass} bg-green-600 hover:bg-green-700">Entregar (Tudo)</a>`;
         } else if (status === 'entregue') {
             html = `<span class="text-gray-400 text-sm italic w-full text-center flex items-center justify-center"><i data-lucide="check-circle" class="w-4 h-4 mr-1"></i> Finalizado</span>`;
         } else if (status === 'cancelado') {
             html = `<span class="text-red-500 text-sm font-bold w-full text-center uppercase border border-red-200 bg-red-50 py-2 rounded">Cancelado</span>`;
         }
-        
         botoesStatus.innerHTML = html;
-        if(typeof lucide !== 'undefined') lucide.createIcons(); // Recarrega ícones inseridos dinamicamente
+        if(typeof lucide !== 'undefined') lucide.createIcons();
     }
 
 
     // ============================================================
-    // 5. INTERAÇÕES DE UX (MOSTRAR/ESCONDER SEÇÕES)
+    // 6. UX (MOSTRAR/ESCONDER)
     // ============================================================
 
-    // Botão "Cancelar Serviço" -> Mostra form de cancelamento
     if(btnShowCancelar) {
         btnShowCancelar.addEventListener('click', function() {
-            divStatusActions.classList.add('hidden'); // Esconde botões normais
-            areaPagamento.classList.add('hidden');    // Esconde pagamento
-            areaCancelamento.classList.remove('hidden'); // Mostra área de perigo
+            divStatusActions.classList.add('hidden');
+            areaPagamento.classList.add('hidden');
+            areaCancelamento.classList.remove('hidden');
         });
     }
 
-    // Botão "Voltar" (dentro do cancelamento) -> Restaura estado
     if(btnAbortarCancelamento) {
         btnAbortarCancelamento.addEventListener('click', function() {
             areaCancelamento.classList.add('hidden');
             divStatusActions.classList.remove('hidden');
-            
-            // Se ainda deve, mostra pagamento de novo
             const restante = parseFloat(document.getElementById('modalRestanteDisplay').innerText);
             if(restante > 0.01) areaPagamento.classList.remove('hidden');
         });
     }
 
-    // Controle do Input de Valor (Total vs Parcial)
     function toggleValorInput() {
-        // Encontra qual radio está marcado
         const radioChecked = document.querySelector('input[name="tipo_recebimento"]:checked');
         if(!radioChecked) return;
-
         const tipo = radioChecked.value;
         const divInput = document.getElementById('divValorInput');
         const inputVal = document.querySelector('input[name="valor"]');
@@ -293,25 +356,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tipo === 'total') {
             divInput.classList.add('opacity-50', 'pointer-events-none');
             inputVal.required = false;
-            inputVal.value = ''; // Limpa para evitar confusão
+            inputVal.value = '';
         } else {
             divInput.classList.remove('opacity-50', 'pointer-events-none');
             inputVal.required = true;
         }
     }
-
-    // Adiciona listener a todos os radios
     radiosTipo.forEach(radio => radio.addEventListener('change', toggleValorInput));
 
 
     // ============================================================
-    // 6. CONTROLE DE FECHAMENTO DO MODAL
+    // 7. FECHAR MODAL
     // ============================================================
     function fecharModalFunc() {
         modal.classList.add('hidden');
     }
-
     if(btnFechar) btnFechar.addEventListener('click', fecharModalFunc);
     if(overlay) overlay.addEventListener('click', fecharModalFunc);
-
 });

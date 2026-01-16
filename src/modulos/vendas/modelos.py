@@ -1,7 +1,7 @@
 from src.extensoes import banco_de_dados as db
 from datetime import datetime
 from flask_login import current_user
-import pytz # Biblioteca para fuso horário
+import pytz
 
 def hora_brasilia():
     tz = pytz.timezone('America/Sao_Paulo')
@@ -32,16 +32,38 @@ class Pagamento(db.Model):
     venda_id = db.Column(db.Integer, db.ForeignKey('vendas.id'), nullable=False)
     valor = db.Column(db.Numeric(10, 2), nullable=False)
     data_pagamento = db.Column(db.DateTime, default=datetime.utcnow)
-    tipo = db.Column(db.String(20)) # 'parcial', 'total'
-    
-    # Rastreabilidade do Pagamento
+    tipo = db.Column(db.String(20)) 
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     usuario = db.relationship('Usuario')
+
+# --- NOVO MODELO: ITENS DA VENDA ---
+class ItemVenda(db.Model):
+    __tablename__ = 'venda_itens'
+    id = db.Column(db.Integer, primary_key=True)
+    venda_id = db.Column(db.Integer, db.ForeignKey('vendas.id'), nullable=False)
+    
+    descricao = db.Column(db.String(200), nullable=False)
+    cor_id = db.Column(db.Integer, db.ForeignKey('cores_servico.id'), nullable=False)
+    quantidade = db.Column(db.Integer, nullable=False)
+    valor_unitario = db.Column(db.Numeric(10, 2), nullable=False)
+    valor_total = db.Column(db.Numeric(10, 2), nullable=False)
+    
+    # --- NOVOS CAMPOS DE CONTROLE POR ITEM ---
+    status = db.Column(db.String(20), default='pendente') # pendente, producao, pronto, entregue
+    
+    data_inicio_producao = db.Column(db.DateTime, nullable=True)
+    data_pronto = db.Column(db.DateTime, nullable=True)
+    data_entregue = db.Column(db.DateTime, nullable=True)
+    
+    cor = db.relationship('CorServico')
 
 class Venda(db.Model):
     __tablename__ = 'vendas'
     id = db.Column(db.Integer, primary_key=True)
     
+    # Identificador do Modo de Venda
+    modo = db.Column(db.String(20), default='simples') # 'simples' ou 'multipla'
+
     # 1. Cliente
     tipo_cliente = db.Column(db.String(2), nullable=False)
     cliente_nome = db.Column(db.String(150), nullable=False)
@@ -51,65 +73,58 @@ class Venda(db.Model):
     cliente_email = db.Column(db.String(100), nullable=True)
     cliente_endereco = db.Column(db.String(255), nullable=True)
 
-    # 2. Serviço
-    descricao_servico = db.Column(db.Text, nullable=False)
+    # 2. Campos Venda Simples (Tornam-se Opcionais/Nullable no banco se for multipla)
+    descricao_servico = db.Column(db.Text, nullable=True) 
     observacoes_internas = db.Column(db.Text, nullable=True)
-    
-    # 3. Metragem e Cor
-    tipo_medida = db.Column(db.String(5), nullable=False)
-    dimensao_1 = db.Column(db.Numeric(10, 2), nullable=False)
-    dimensao_2 = db.Column(db.Numeric(10, 2), nullable=False)
+    tipo_medida = db.Column(db.String(5), nullable=True)
+    dimensao_1 = db.Column(db.Numeric(10, 2), nullable=True)
+    dimensao_2 = db.Column(db.Numeric(10, 2), nullable=True)
     dimensao_3 = db.Column(db.Numeric(10, 2), nullable=True)
-    metragem_total = db.Column(db.Numeric(10, 2), nullable=False)
+    metragem_total = db.Column(db.Numeric(10, 2), nullable=True)
     quantidade_pecas = db.Column(db.Integer, default=1)
+    cor_id = db.Column(db.Integer, db.ForeignKey('cores_servico.id'), nullable=True)
+    cor_nome_snapshot = db.Column(db.String(100), nullable=True)
+    preco_unitario_snapshot = db.Column(db.Numeric(10, 2), nullable=True)
     
-    cor_id = db.Column(db.Integer, db.ForeignKey('cores_servico.id'), nullable=False)
-    cor_nome_snapshot = db.Column(db.String(100))
-    preco_unitario_snapshot = db.Column(db.Numeric(10, 2))
-    
-    # 4. Financeiro
-    valor_base = db.Column(db.Numeric(10, 2), nullable=False)
+    # 3. Financeiro
+    valor_base = db.Column(db.Numeric(10, 2), nullable=False) # Soma dos itens
     valor_acrescimo = db.Column(db.Numeric(10, 2), default=0.00)
     tipo_desconto = db.Column(db.String(10), nullable=True)
     valor_desconto_aplicado = db.Column(db.Numeric(10, 2), default=0.00)
     valor_final = db.Column(db.Numeric(10, 2), nullable=False)
     
-    # 5. Status e Controle
+    # 4. Status e Controle
     status = db.Column(db.String(20), default='orcamento')
     status_pagamento = db.Column(db.String(20), default='pendente')
-    
-    # Vendedor Inicial
     vendedor_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # --- RASTREABILIDADE DO PROCESSO (NOVOS CAMPOS) ---
     
-    # Etapa: Em Produção
-    data_inicio_producao = db.Column(db.DateTime, nullable=True)
-    usuario_producao_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
-    
-    # Etapa: Pronto (Aguardando Cliente)
-    data_pronto = db.Column(db.DateTime, nullable=True)
-    usuario_pronto_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
-    
-    # Etapa: Entregue (Cliente buscou)
-    data_entrega = db.Column(db.DateTime, nullable=True)
-    usuario_entrega_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
-    
-    # Relacionamentos (Com foreign_keys explicito para evitar erro do SQLAlchemy)
-    vendedor = db.relationship('Usuario', foreign_keys=[vendedor_id])
-    cor = db.relationship('CorServico')
-    pagamentos = db.relationship('Pagamento', backref='venda', lazy=True)
-
+    # Cancelamento
     motivo_cancelamento = db.Column(db.Text, nullable=True)
     data_cancelamento = db.Column(db.DateTime, nullable=True)
     usuario_cancelamento_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+
+    # Relacionamentos
+    vendedor = db.relationship('Usuario', foreign_keys=[vendedor_id])
+    cor = db.relationship('CorServico') # Apenas para venda simples
+    pagamentos = db.relationship('Pagamento', backref='venda', lazy=True)
     usuario_cancelamento = db.relationship('Usuario', foreign_keys=[usuario_cancelamento_id])
     
-    # Relacionamentos de Auditoria
+    # Auditoria
+    data_inicio_producao = db.Column(db.DateTime, nullable=True)
+    usuario_producao_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     usuario_producao = db.relationship('Usuario', foreign_keys=[usuario_producao_id])
+    
+    data_pronto = db.Column(db.DateTime, nullable=True)
+    usuario_pronto_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     usuario_pronto = db.relationship('Usuario', foreign_keys=[usuario_pronto_id])
+    
+    data_entrega = db.Column(db.DateTime, nullable=True)
+    usuario_entrega_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     usuario_entrega = db.relationship('Usuario', foreign_keys=[usuario_entrega_id])
+
+    # NOVO RELACIONAMENTO DE ITENS
+    itens = db.relationship('ItemVenda', backref='venda', lazy=True, cascade="all, delete-orphan")
 
     @property
     def total_pago(self):

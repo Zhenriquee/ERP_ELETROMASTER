@@ -110,7 +110,11 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 max-w-xs truncate">
-                            {{ s.cor.nome }}
+                            {% if s.modo == 'multipla' %}
+                                <span class="text-xs font-bold text-blue-600">Venda Múltipla ({{ s.itens|length }} itens)</span>
+                            {% else %}
+                                {{ s.cor.nome }} ({{ s.quantidade_pecas }}x)
+                            {% endif %}
                         </td>
                         <td class="px-6 py-4">
                             {% if s.status == 'pendente' %}
@@ -134,11 +138,35 @@
                                 </span>
                             </div>
                         </td>
+
                         <td class="px-6 py-4">
                             <span class="block text-navy-900 font-medium">{{ s.vendedor.nome }}</span>
                             <span class="text-xs text-gray-400">{{ s.criado_em.strftime('%d/%m/%Y') }}</span>
                         </td>
+                        
                         <td class="px-6 py-4 text-right">
+                            
+                            {% set lista_itens_dados = [] %}
+                            {% set lista_descricoes = [] %}
+                            
+                            {% for item in s.itens %}
+                                {% set _ = lista_itens_dados.append({
+                                    'id': item.id,
+                                    'qtd': item.quantidade,
+                                    'descricao': item.descricao,
+                                    'cor': item.cor.nome,
+                                    'status': item.status
+                                }) %}
+                                
+                                {% set _ = lista_descricoes.append(item.quantidade ~ 'x ' ~ item.descricao ~ ' (' ~ item.cor.nome ~ ')') %}
+                            {% endfor %}
+
+                            {% if s.modo == 'simples' %}
+                                {% set desc_completa = s.descricao_servico %}
+                            {% else %}
+                                {% set desc_completa = lista_descricoes|join(' | ') %}
+                            {% endif %}
+                            
                             {% set historico = {
                                 'criado_em': s.criado_em.isoformat() if s.criado_em else None,
                                 'vendedor': s.vendedor.nome,
@@ -153,14 +181,16 @@
                                 'motivo_cancelamento': s.motivo_cancelamento
                             } %}
                             
-                            <button class="btn-abrir-modal p-2 bg-navy-50 text-navy-900 rounded hover:bg-navy-100"
+                            <button class="btn-abrir-modal p-2 bg-navy-50 text-navy-900 rounded hover:bg-navy-100 transition-colors"
                                 title="Gerenciar"
                                 data-id="{{ s.id }}"
                                 data-cliente="{{ s.cliente_nome }}"
                                 data-contato="{{ s.cliente_contato }}"
-                                data-descricao="{{ s.descricao_servico }}"
+                                data-descricao="{{ desc_completa }}" 
                                 data-restante="{{ s.valor_restante }}"
                                 data-status="{{ s.status }}"
+                                data-modo="{{ s.modo }}"
+                                data-itens="{{ lista_itens_dados|tojson|forceescape }}"
                                 data-historico="{{ historico|tojson|forceescape }}">
                                 <i data-lucide="settings-2" class="w-4 h-4"></i>
                             </button>
@@ -202,6 +232,15 @@
                 <p class="text-navy-900 text-sm" id="modalDescricao">--</p>
             </div>
 
+            <div id="containerItens" class="mb-6 hidden">
+                <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Itens do Serviço</h4>
+                <div class="bg-gray-50 rounded-lg border border-gray-100 overflow-hidden">
+                    <table class="w-full text-sm text-left">
+                        <tbody id="tabelaItensModal" class="divide-y divide-gray-100">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
             <div class="mb-8 px-2">
                 <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Histórico</h4>
                 <div class="timeline-container" id="timelineContainer"></div>
