@@ -33,6 +33,11 @@ class Usuario(UserMixin, db.Model):
     salario = db.Column(db.Numeric(10, 2), nullable=True)
     
     cargo = db.Column(db.String(20), nullable=False, default='tecnico')
+    
+    # --- NOVO CAMPO: EQUIPE ---
+    # Define a qual time ele pertence (vendas, estoque, etc) para filtros de metas
+    equipe = db.Column(db.String(50), default='vendas')
+    
     ativo = db.Column(db.Boolean, default=True)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -40,7 +45,7 @@ class Usuario(UserMixin, db.Model):
     permissoes = db.relationship('Modulo', secondary=usuario_modulos, lazy='subquery',
         backref=db.backref('usuarios', lazy=True))
 
-    # --- LÓGICA HIERÁRQUICA (Restaurada) ---
+    # --- LÓGICA HIERÁRQUICA ---
     NIVEIS_CARGO = {
         'dono': 1,
         'gerente': 2,

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+<div class="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
+    
+    <div class="bg-blue-50 p-6 rounded-full mb-6 shadow-sm">
+        <i data-lucide="target" class="w-16 h-16 text-navy-900"></i>
+    </div>
+
+    <h2 class="text-3xl font-bold text-navy-900 mb-3">Nenhuma Meta Definida</h2>
+
+    <p class="text-gray-500 max-w-md mb-8 text-lg leading-relaxed">
+        Não encontramos uma meta configurada para o mês atual. 
+        <br>Defina os objetivos da loja e da equipe para começar a monitorar os resultados.
+    </p>
+
+    <a href="{{ url_for('metas.nova_meta') }}" 
+       class="px-8 py-4 bg-navy-900 text-white rounded-xl hover:bg-navy-800 shadow-lg shadow-blue-900/20 font-bold text-lg flex items-center transition-all hover:-translate-y-1">
+        <i data-lucide="plus-circle" class="w-6 h-6 mr-3"></i>
+        Configurar Meta Agora
+    </a>
+
+</div>
+{% endblock %}

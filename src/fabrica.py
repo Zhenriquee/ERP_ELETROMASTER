@@ -33,6 +33,9 @@ def criar_app(nome_configuracao='desenvolvimento'):
     # Como ainda não temos rotas, importamos apenas os modelos para o banco reconhecer
     from src.modulos.financeiro.rotas import bp_financeiro
     app.register_blueprint(bp_financeiro)
+
+    from src.modulos.metas.rotas import bp_metas
+    app.register_blueprint(bp_metas)
     
     # --- COMANDOS CLI (Terminal) ---
 

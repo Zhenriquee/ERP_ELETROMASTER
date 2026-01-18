@@ -1,0 +1,54 @@
+/* src/static/css/metas.css */
+
+.input-meta {
+    text-align: right;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.input-meta:focus {
+    border-color: #1e3a8a; /* navy-900 */
+    box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.2);
+}
+
+/* Barra de Progresso do Ranking */
+.progress-track {
+    width: 6rem; /* w-24 */
+    background-color: #e5e7eb; /* gray-200 */
+    border-radius: 9999px;
+    height: 0.5rem; /* h-2 */
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 1s ease-in-out;
+}
+
+.progress-success {
+    background-color: #22c55e; /* green-500 */
+}
+
+.progress-normal {
+    background-color: #3b82f6; /* blue-500 */
+}
+
+/* Status da Distribuição */
+.status-ok {
+    color: #16a34a; /* green-600 */
+    font-weight: 700;
+    font-size: 0.75rem;
+}
+
+.status-warning {
+    color: #ca8a04; /* yellow-600 */
+    font-weight: 700;
+    font-size: 0.75rem;
+}
+
+.status-error {
+    color: #ef4444; /* red-500 */
+    font-weight: 700;
+    font-size: 0.75rem;
+}

@@ -94,6 +94,18 @@
                     </a>
                 {% endif %}
 
+                {% if current_user.tem_permissao('vendas_operar') or current_user.cargo in ['admin', 'supervisor', 'gerente'] %}
+                    {% set ativo_metas = request.endpoint and 'metas' in request.endpoint %}
+                    <a href="{{ url_for('metas.painel') }}" 
+                       class="flex items-center px-4 py-3 rounded-lg group transition-colors shadow-sm
+                       {{ 'bg-navy-800 text-white border-l-4 border-electric-500' if ativo_metas else 'text-gray-400 hover:text-white hover:bg-navy-800' }}">
+                        
+                        <i data-lucide="target" class="w-5 h-5 mr-3 {{ 'text-electric-500' if ativo_metas }}"></i>
+                        
+                        <span>Metas & Objetivos</span>
+                    </a>
+                {% endif %}
+
                 {% if current_user.tem_permissao('financeiro_ver') %}
                     {% set ativo_fin = request.endpoint and 'financeiro' in request.endpoint %}
                     <a href="{{ url_for('financeiro.painel') }}" 

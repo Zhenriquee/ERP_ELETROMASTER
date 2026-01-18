@@ -33,7 +33,14 @@ class FormularioCadastroUsuario(FlaskForm):
         ('gerente', 'Gerente'),
         ('dono', 'Dono')
     ], validators=[DataRequired()])
-    
+
+    equipe = SelectField('Equipe / Departamento', choices=[
+        ('vendas', 'Vendas (Possui Meta)'),
+        ('estoque', 'Estoque / Logística'),
+        ('financeiro', 'Financeiro'),
+        ('rh', 'Recursos Humanos'),
+        ('admin', 'Administração / TI')
+    ], validators=[DataRequired()])
     # NOVOS CHECKBOXES DE PERMISSÃO
     modulos_acesso = SelectMultipleField(
         'Permissões de Acesso', 
