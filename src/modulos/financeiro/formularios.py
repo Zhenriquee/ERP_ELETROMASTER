@@ -26,26 +26,27 @@ class FormularioDespesa(FlaskForm):
     valor = DecimalField('Valor (R$)', places=2, validators=[DataRequired()])
     data_vencimento = DateField('Data de Vencimento', format='%Y-%m-%d', validators=[DataRequired()])
     
-    # Data de Competência (String para suportar type="month")
-    data_competencia = StringField('Mês de Competência', validators=[DataRequired()])
+    # REMOVIDO: data_competencia = StringField(...) -> Agora é automático no backend
     
-    # Data de Pagamento (Novo campo para edição/visualização)
+    # Data de Pagamento
     data_pagamento = DateField('Data do Pagamento', format='%Y-%m-%d', validators=[Optional()])
 
     categoria = SelectField('Categoria', choices=[
-        ('infraestrutura', 'Infraestrutura (Luz, Água, Aluguel)'),
-        ('pessoal', 'Pessoal (Salários, Vale, Pró-labore)'),
-        ('material', 'Material / Insumos'),
-        ('impostos', 'Impostos / Taxas'),
-        ('financeiro', 'Despesa Financeira / Tarifas'),
-        ('manutencao', 'Manutenção / Limpeza'),
-        ('marketing', 'Marketing / Publicidade'),
-        ('outros', 'Outros')
+        ('infraestrutura', 'Infraestrutura (Aluguel, Energia, Água, Internet)'),
+        ('pessoal', 'Pessoal (Salários, Pró-labore, Vale, Benefícios)'),
+        ('material', 'Material / Insumos (Matéria-prima, Embalagens, Estoque)'),
+        ('impostos', 'Impostos / Taxas (DAS, ICMS, ISS, IPTU)'),
+        ('financeiro', 'Despesa Financeira (Tarifas Bancárias, Juros, Multas)'),
+        ('manutencao', 'Manutenção (Reparos, Limpeza, Pintura, TI)'),
+        ('marketing', 'Marketing (Anúncios, Redes Sociais, Brindes, Site)'),
+        ('outros', 'Outros (Despesas Diversas / Não Classificadas)')
     ], validators=[DataRequired()])
     
+    # ALTERADO: Adicionada opção 'extra'
     tipo_custo = SelectField('Tipo de Custo', choices=[
         ('fixo', 'Custo Fixo (Recorrente)'),
-        ('variavel', 'Custo Variável (Produção/Venda)')
+        ('variavel', 'Custo Variável (Produção/Venda)'),
+        ('extra', 'Custo Extra')
     ], validators=[DataRequired()])
     
     forma_pagamento = SelectField('Forma de Pagamento', choices=[
@@ -68,7 +69,6 @@ class FormularioDespesa(FlaskForm):
     codigo_barras = StringField('Código de Barras / Chave Pix', validators=[Optional()])
     observacao = TextAreaField('Observações', validators=[Optional()])
 
-    # Recorrência (Correção do Bug: min=1)
     recorrente = BooleanField('Despesa Recorrente?')
     qtd_repeticoes = IntegerField('Repetir por quantos meses?', 
                                   default=1, 

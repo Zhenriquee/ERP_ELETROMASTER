@@ -29,29 +29,28 @@ def nova_despesa():
         if form.recorrente.data and form.qtd_repeticoes.data:
             repeticoes = form.qtd_repeticoes.data
 
-        # Tratamento da Competência
-        comp_str = form.data_competencia.data 
-        try:
-            data_comp_base = datetime.strptime(comp_str + '-01', '%Y-%m-%d').date()
-        except ValueError:
-            data_comp_base = date.today()
-
+        # NOVA LÓGICA: Competência baseada no Vencimento
+        # Se vence em 15/05/2026, a competência base é 01/05/2026
+        data_base_vencimento = form.data_vencimento.data
+        
         for i in range(repeticoes):
-            nova_data_vencimento = add_months(form.data_vencimento.data, i)
-            nova_data_competencia = add_months(data_comp_base, i)
+            # Calcula o vencimento desta parcela
+            nova_data_vencimento = add_months(data_base_vencimento, i)
+            
+            # Define a competência AUTOMATICAMENTE com base no vencimento calculado
+            # Pega o ano e mês do vencimento e seta dia=1
+            nova_data_competencia = nova_data_vencimento.replace(day=1)
             
             descricao_final = form.descricao.data
             if repeticoes > 1:
                 descricao_final = f"{form.descricao.data} ({i+1}/{repeticoes})"
             
             status_final = form.status.data
-            data_pgto_final = form.data_pagamento.data # Pega do formulário se preenchido
+            data_pgto_final = form.data_pagamento.data
             
-            # Se status for pago e não tiver data, define hoje
             if status_final == 'pago' and not data_pgto_final:
                 data_pgto_final = date.today()
             
-            # Recorrência futura sempre nasce pendente
             if i > 0: 
                 status_final = 'pendente'
                 data_pgto_final = None
@@ -60,12 +59,12 @@ def nova_despesa():
                 descricao=descricao_final,
                 valor=form.valor.data,
                 data_vencimento=nova_data_vencimento,
-                data_competencia=nova_data_competencia,
+                data_competencia=nova_data_competencia, # <--- Automático
                 categoria=form.categoria.data,
                 tipo_custo=form.tipo_custo.data,
                 forma_pagamento=form.forma_pagamento.data,
                 status=status_final,
-                data_pagamento=data_pgto_final, # Salva a data correta
+                data_pagamento=data_pgto_final,
                 codigo_barras=form.codigo_barras.data,
                 observacao=form.observacao.data
             )
@@ -84,7 +83,6 @@ def nova_despesa():
 
     return render_template('financeiro/nova_despesa.html', form=form, titulo="Nova Despesa")
 
-# --- NOVA ROTA: EDITAR / VER DETALHES ---
 @bp_financeiro.route('/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_despesa(id):
@@ -97,23 +95,17 @@ def editar_despesa(id):
     form.usuario_id.choices = [(0, '--- Selecione (Opcional) ---')] + \
         [(u.id, u.nome) for u in Usuario.query.order_by(Usuario.nome).all()]
 
-    if request.method == 'GET':
-        # Preenche o campo de competência (date -> string YYYY-MM)
-        if despesa.data_competencia:
-            form.data_competencia.data = despesa.data_competencia.strftime('%Y-%m')
+    # No GET, não precisamos mais preencher a competência no form visual
 
     if form.validate_on_submit():
-        # Tratamento da Competência
-        comp_str = form.data_competencia.data
-        try:
-            nova_comp = datetime.strptime(comp_str + '-01', '%Y-%m-%d').date()
-        except:
-            nova_comp = despesa.data_competencia
-
         despesa.descricao = form.descricao.data
         despesa.valor = form.valor.data
+        
+        # Atualiza vencimento
         despesa.data_vencimento = form.data_vencimento.data
-        despesa.data_competencia = nova_comp
+        # Atualiza competência automaticamente baseada no novo vencimento
+        despesa.data_competencia = despesa.data_vencimento.replace(day=1)
+
         despesa.categoria = form.categoria.data
         despesa.tipo_custo = form.tipo_custo.data
         despesa.forma_pagamento = form.forma_pagamento.data
@@ -121,9 +113,7 @@ def editar_despesa(id):
         despesa.codigo_barras = form.codigo_barras.data
         despesa.observacao = form.observacao.data
         
-        # Lógica Data Pagamento
         if form.status.data == 'pago':
-            # Se o usuário informou uma data, usa ela. Se não, usa hoje.
             if form.data_pagamento.data:
                 despesa.data_pagamento = form.data_pagamento.data
             elif not despesa.data_pagamento:
