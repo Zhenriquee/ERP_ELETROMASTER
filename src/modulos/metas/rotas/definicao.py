@@ -52,7 +52,7 @@ def nova_meta():
             flash('Erro: A configuração resultou em 0 dias úteis.', 'error')
             return render_template('metas/nova_meta.html', form=form)
 
-        # Verifica existência (Lógica Mantida)
+        # Verifica existência
         existente = MetaMensal.query.filter_by(mes=form.mes.data, ano=form.ano.data).first()
         if existente:
             flash(f'Já existe meta para {form.mes.data}/{form.ano.data}. Redirecionando para edição.', 'warning')
@@ -62,7 +62,7 @@ def nova_meta():
             mes=form.mes.data,
             ano=form.ano.data,
             valor_loja=form.valor_loja.data,
-            dias_uteis=qtd_dias_uteis, # Automático
+            dias_uteis=qtd_dias_uteis,
             config_semana=str_semana,
             config_feriados=str_feriados,
             criado_por_id=current_user.id
@@ -75,7 +75,7 @@ def nova_meta():
         
     return render_template('metas/nova_meta.html', form=form)
 
-# NOVA ROTA: EDITAR META
+# ROTA: EDITAR META
 @bp_metas.route('/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_meta(id):
@@ -83,7 +83,6 @@ def editar_meta(id):
     form = FormularioMetaLoja(obj=meta)
     
     if request.method == 'GET':
-        # Popula o multicheckbox a partir da string do banco "0,1,2"
         if meta.config_semana:
             form.dias_semana.data = meta.config_semana.split(',')
         if meta.config_feriados:
@@ -112,17 +111,11 @@ def editar_meta(id):
 def distribuir_meta(id):
     meta_mensal = MetaMensal.query.get_or_404(id)
     
-    # --- CORREÇÃO: FILTRAR POR EQUIPE ---
-    # Busca apenas usuários ativos QUE PERTENCEM À EQUIPE DE VENDAS
-    # Usamos o ilike para ignorar maiúsculas/minúsculas
+    # Filtra por equipe Vendas
     vendedores = Usuario.query.filter(
         Usuario.ativo == True,
         Usuario.equipe.ilike('vendas')
     ).all()
-    
-    # Opção 2 (Se quiser filtrar): Verifique como está escrito no seu banco.
-    # Exemplo: Se cadastrou "Vendedor" (Maiúsculo), o filtro 'vendedor' falha.
-    # vendedores = Usuario.query.filter(Usuario.cargo.in_(['Vendedor', 'Supervisor', 'vendedor', 'supervisor', 'admin'])).all()
     
     if not vendedores:
         flash('Atenção: Nenhum usuário ativo encontrado para distribuir a meta.', 'warning')
@@ -138,10 +131,16 @@ def distribuir_meta(id):
             valor_input = request.form.get(f'meta_{vend.id}')
             
             if valor_input:
-                # Tratamento para converter "1.000,00" ou "1000.00" para float
                 try:
-                    valor_limpo = valor_input.replace('.', '').replace(',', '.')
-                    valor_decimal = float(valor_limpo)
+                    # CORREÇÃO AQUI: Lógica robusta para conversão de valores
+                    # 1. Se tiver vírgula, assume formato BR (1.000,00) -> remove ponto milhar, troca virgula por ponto
+                    if ',' in valor_input:
+                        valor_limpo = valor_input.replace('.', '').replace(',', '.')
+                        valor_decimal = float(valor_limpo)
+                    else:
+                        # 2. Se não tem vírgula, assume formato float padrão (1000.00) ou inteiro (1000)
+                        # Não removemos o ponto aqui, pois ele é o decimal!
+                        valor_decimal = float(valor_input)
                 except ValueError:
                     valor_decimal = 0.0
                 
