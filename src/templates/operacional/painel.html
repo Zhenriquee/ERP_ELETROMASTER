@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/operacional.css') }}">
+{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto px-2">
+    
+    <div class="mb-8 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-navy-900 flex items-center">
+                <i data-lucide="hammer" class="w-6 h-6 mr-2"></i>
+                Painel de Produção
+            </h2>
+            
+            <div class="flex gap-4">
+                <button onclick="filtrarCards('todos')" class="text-sm text-gray-500 font-bold hover:text-navy-900 border px-3 py-1 rounded hover:bg-gray-50 transition-colors">
+                    Limpar Filtros
+                </button>
+                <button onclick="window.location.reload();" class="text-sm text-blue-600 font-bold flex items-center hover:underline">
+                    <i data-lucide="refresh-cw" class="w-4 h-4 mr-1"></i> Atualizar Tela
+                </button>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-3 gap-4">
+            <div onclick="filtrarCards('pendente')" id="kpi-pendente" 
+                 class="kpi-card bg-gray-100 p-4 rounded-lg text-center border-b-4 border-gray-400">
+                <span class="block text-2xl font-black text-gray-600">{{ qtd_fila }}</span>
+                <span class="text-xs font-bold uppercase text-gray-500">Na Fila</span>
+            </div>
+
+            <div onclick="filtrarCards('producao')" id="kpi-producao"
+                 class="kpi-card bg-blue-50 p-4 rounded-lg text-center border-b-4 border-blue-500">
+                <span class="block text-2xl font-black text-blue-700">{{ qtd_producao }}</span>
+                <span class="text-xs font-bold uppercase text-blue-500">Em Execução</span>
+            </div>
+
+            <div onclick="filtrarCards('pronto')" id="kpi-pronto"
+                 class="kpi-card bg-yellow-50 p-4 rounded-lg text-center border-b-4 border-yellow-500">
+                <span class="block text-2xl font-black text-yellow-700">{{ qtd_pronto }}</span>
+                <span class="text-xs font-bold uppercase text-yellow-500">Pronto</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="gridCards">
+        {% for t in tarefas %}
+        <div class="card-servico bg-white rounded-xl shadow-lg border overflow-hidden flex flex-col relative
+            {{ 'border-blue-500 ring-2 ring-blue-100' if t.status == 'producao' else 'border-gray-200' }}
+            {{ 'opacity-75 bg-gray-50' if t.status == 'pronto' }}"
+            data-status="{{ t.status }}"> 
+            
+            <div class="absolute left-0 top-0 bottom-0 w-3 
+                {{ 'bg-gray-400' if t.status == 'pendente' }}
+                {{ 'bg-blue-600' if t.status == 'producao' }}
+                {{ 'bg-yellow-400' if t.status == 'pronto' }}
+            "></div>
+
+            <div class="p-5 pl-8 flex-1">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                            Pedido #{{ t.venda_id }} 
+                            {% if t.tipo == 'venda' %}(Simples){% endif %}
+                        </span>
+                        <h3 class="text-xl font-black text-navy-900 leading-tight">{{ t.descricao }}</h3>
+                    </div>
+                    
+                    {% if t.status == 'producao' %}
+                        <span class="animate-pulse bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded uppercase shadow-sm">
+                            <i data-lucide="hammer" class="w-3 h-3 inline mr-1"></i> Executando
+                        </span>
+                    {% elif t.status == 'pendente' %}
+                        <span class="bg-gray-200 text-gray-600 text-[10px] font-bold px-2 py-1 rounded uppercase">Na Fila</span>
+                    {% elif t.status == 'pronto' %}
+                        <span class="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-2 py-1 rounded uppercase">Pronto</span>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="bg-gray-100 p-2 rounded-lg text-center min-w-[70px] border border-gray-200">
+                            <span class="block text-[10px] text-gray-500 font-bold uppercase">Qtd</span>
+                            <span class="block text-3xl font-black text-navy-900">{{ t.quantidade }}</span>
+                        </div>
+                        <div class="flex-1 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                            <span class="block text-[10px] text-gray-500 font-bold uppercase">Cor / Acabamento</span>
+                            <span class="text-lg font-bold text-navy-900 block leading-tight">{{ t.cor }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if t.obs %}
+                    <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200 mt-3 relative">
+                        <div class="absolute -top-2 left-2 bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 rounded">OBSERVAÇÃO</div>
+                        <p class="text-sm text-gray-800 font-medium mt-1 leading-snug">"{{ t.obs }}"</p>
+                    </div>
+                    {% endif %}
+                    
+                    <p class="text-xs text-gray-400 mt-3 font-medium flex items-center">
+                        <i data-lucide="user" class="w-3 h-3 mr-1"></i> Cliente: {{ t.cliente.split()[0] }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-gray-50 border-t border-gray-100 flex gap-3">
+                {% set rota_avancar = url_for('operacional.avancar_item', id=t.id) if t.tipo == 'item' else url_for('operacional.avancar_venda', id=t.id) %}
+                {% set rota_voltar = url_for('operacional.voltar_item', id=t.id) if t.tipo == 'item' else url_for('operacional.voltar_venda', id=t.id) %}
+
+                {% if t.status == 'pendente' %}
+                    <a href="{{ rota_avancar }}" 
+                       class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:shadow-xl text-center flex items-center justify-center transition-all transform hover:-translate-y-0.5 group">
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs opacity-80 font-medium mb-0.5">ESTÁ TUDO PRONTO?</span>
+                            <span class="flex items-center text-lg">
+                                <i data-lucide="play" class="w-5 h-5 mr-2 fill-current"></i> INICIAR TRABALHO
+                            </span>
+                        </div>
+                    </a>
+                
+                {% elif t.status == 'producao' %}
+                    <a href="{{ rota_voltar }}" 
+                       class="w-16 bg-white border border-gray-300 text-gray-400 hover:text-red-600 hover:border-red-300 font-bold rounded-xl flex items-center justify-center transition-colors" title="Voltar status">
+                        <i data-lucide="undo-2" class="w-6 h-6"></i>
+                    </a>
+                    
+                    <a href="{{ rota_avancar }}" 
+                       class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:shadow-xl text-center flex items-center justify-center transition-all transform hover:-translate-y-0.5">
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs opacity-80 font-medium mb-0.5">JÁ FINALIZOU?</span>
+                            <span class="flex items-center text-lg">
+                                <i data-lucide="check-circle-2" class="w-6 h-6 mr-2"></i> CONCLUIR TAREFA
+                            </span>
+                        </div>
+                    </a>
+
+                {% elif t.status == 'pronto' %}
+                    <div class="w-full flex items-center justify-between bg-yellow-50 rounded-xl p-2 border border-yellow-200">
+                        <a href="{{ rota_voltar }}" class="text-xs text-gray-400 hover:text-red-500 font-bold px-3 py-2 hover:bg-white rounded transition-colors flex items-center">
+                            <i data-lucide="undo-2" class="w-3 h-3 mr-1"></i> Corrigir
+                        </a>
+                        <span class="text-yellow-700 font-bold flex items-center text-sm mr-4">
+                            <i data-lucide="package-check" class="w-5 h-5 mr-2"></i> AGUARDANDO ENTREGA
+                        </span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-full text-center py-20 text-gray-300 flex flex-col items-center">
+            <div class="bg-gray-50 p-6 rounded-full mb-4">
+                <i data-lucide="check-circle" class="w-16 h-16 text-gray-200"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-400">Tudo limpo por aqui!</h3>
+            <p class="text-sm">Nenhum serviço na fila de produção no momento.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/operacional.js') }}"></script>
+{% endblock %}

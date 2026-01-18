@@ -28,6 +28,8 @@ def criar_app(nome_configuracao='desenvolvimento'):
     from src.modulos.produtos.rotas import bp_produtos
     app.register_blueprint(bp_produtos)
 
+    from src.modulos.operacional.rotas import bp_operacional
+    app.register_blueprint(bp_operacional)
     
     
     # --- COMANDOS CLI (Terminal) ---
@@ -45,7 +47,8 @@ def criar_app(nome_configuracao='desenvolvimento'):
             {'nome': 'Estoque - Movimentar', 'codigo': 'estoque_mover'},
             {'nome': 'Vendas - Operar', 'codigo': 'vendas_operar'},     # <-- Novo
             {'nome': 'Vendas - Gestão Preços', 'codigo': 'vendas_admin'}, # <-- Novo
-            {'nome': 'Catálogo - Gestão', 'codigo': 'produtos_gerir'}
+            {'nome': 'Catálogo - Gestão', 'codigo': 'produtos_gerir'},
+            {'nome': 'Operacional - Produção', 'codigo': 'producao_operar'}
         ]
         
         for m_data in modulos:
