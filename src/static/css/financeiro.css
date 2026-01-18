@@ -1,0 +1,46 @@
+/* src/static/css/financeiro.css */
+
+/* Cards de KPI (Indicadores do Topo) */
+.kpi-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Status Badges na Tabela */
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+}
+
+.status-pendente {
+    background-color: #FEF3C7; /* Amarelo Claro */
+    color: #92400E;           /* Amarelo Escuro */
+    border: 1px solid #FCD34D;
+}
+
+.status-atrasado {
+    background-color: #FEE2E2; /* Vermelho Claro */
+    color: #991B1B;           /* Vermelho Escuro */
+    border: 1px solid #FCA5A5;
+}
+
+.status-pago {
+    background-color: #D1FAE5; /* Verde Claro */
+    color: #065F46;           /* Verde Escuro */
+    border: 1px solid #6EE7B7;
+}
+
+/* Área de Filtros */
+.filtro-container {
+    background-color: #F8FAFC;
+    border: 1px solid #E2E8F0;
+}

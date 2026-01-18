@@ -18,8 +18,6 @@ def criar_app(nome_configuracao='desenvolvimento'):
     from src.modulos.autenticacao import bp_autenticacao
     app.register_blueprint(bp_autenticacao)
 
-    
-    
     # 2. Vendas (Novo Módulo)
     from src.modulos.vendas.rotas import bp_vendas
     app.register_blueprint(bp_vendas)
@@ -30,7 +28,11 @@ def criar_app(nome_configuracao='desenvolvimento'):
 
     from src.modulos.operacional.rotas import bp_operacional
     app.register_blueprint(bp_operacional)
-    
+
+    # 5. FINANCEIRO (Adicione isto aqui!)
+    # Como ainda não temos rotas, importamos apenas os modelos para o banco reconhecer
+    from src.modulos.financeiro.rotas import bp_financeiro
+    app.register_blueprint(bp_financeiro)
     
     # --- COMANDOS CLI (Terminal) ---
 

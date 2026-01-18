@@ -94,6 +94,16 @@
                     </a>
                 {% endif %}
 
+                {% if current_user.tem_permissao('financeiro_ver') %}
+                    {% set ativo_fin = request.endpoint and 'financeiro' in request.endpoint %}
+                    <a href="{{ url_for('financeiro.painel') }}" 
+                       class="flex items-center px-4 py-3 rounded-lg group transition-colors shadow-sm
+                       {{ 'bg-navy-800 text-white border-l-4 border-electric-500' if ativo_fin else 'text-gray-400 hover:text-white hover:bg-navy-800' }}">
+                        <i data-lucide="dollar-sign" class="w-5 h-5 mr-3 {{ 'text-electric-500' if ativo_fin }}"></i>
+                        <span>Financeiro</span>
+                    </a>
+                {% endif %}
+
                 {% if current_user.tem_permissao('producao_operar') %}
                     {% set ativo_op = request.endpoint == 'operacional.painel' %}
                     <a href="{{ url_for('operacional.painel') }}" 
@@ -103,6 +113,7 @@
                         <span>Produção (Operacional)</span>
                     </a>
                 {% endif %}
+                
 
             </nav>
 

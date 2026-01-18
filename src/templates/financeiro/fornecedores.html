@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+<div class="max-w-6xl mx-auto">
+    
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-navy-900">Fornecedores</h2>
+            <p class="text-gray-500 text-sm">Cadastro de parceiros e fornecedores de materiais</p>
+        </div>
+        <a href="{{ url_for('financeiro.painel') }}" class="text-gray-500 hover:text-gray-700 text-sm">&larr; Voltar ao Painel</a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        
+        <div class="md:col-span-1">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 sticky top-4">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Novo Fornecedor</h3>
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nome Fantasia *</label>
+                            {{ form.nome_fantasia(class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy-900 outline-none") }}
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Razão Social</label>
+                            {{ form.razao_social(class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy-900 outline-none") }}
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">CNPJ</label>
+                            {{ form.cnpj(id="cnpj", maxlength="18", class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy-900 outline-none", placeholder="00.000.000/0000-00") }}
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Telefone</label>
+                                {{ form.telefone(class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy-900 outline-none") }}
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Estado</label>
+                                {{ form.estado(class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-navy-900 outline-none") }}
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full mt-4 py-2 bg-navy-900 text-white rounded-lg hover:bg-navy-800 font-medium text-sm">
+                            Cadastrar Fornecedor
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="md:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <table class="w-full text-left text-sm text-gray-600">
+                    <thead class="bg-gray-50 text-xs uppercase font-semibold text-gray-500">
+                        <tr>
+                            <th class="px-6 py-3">Fornecedor</th>
+                            <th class="px-6 py-3">Contato</th>
+                            <th class="px-6 py-3">Localização</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for f in fornecedores %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4">
+                                <div class="font-bold text-gray-900">{{ f.nome_fantasia }}</div>
+                                <div class="text-xs text-gray-400">{{ f.cnpj or 'Sem CNPJ' }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div>{{ f.telefone or '-' }}</div>
+                                <div class="text-xs text-gray-400">{{ f.email or '' }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if f.cidade %}{{ f.cidade }} - {% endif %}{{ f.estado or '-' }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="px-6 py-8 text-center text-gray-400">
+                                Nenhum fornecedor cadastrado.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
