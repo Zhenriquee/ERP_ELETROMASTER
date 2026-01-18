@@ -5,16 +5,39 @@
 {% endblock %}
 
 {% block conteudo %}
-<div class="max-w-7xl mx-auto">
+<div class="max-w-7xl mx-auto relative">
     
     <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div>
             <h2 class="text-2xl font-bold text-navy-900">Monitoramento de Metas</h2>
-            <p class="text-gray-500 text-sm">Acompanhamento de performance do mês atual</p>
+            <p class="text-gray-500 text-sm">Acompanhamento de performance</p>
         </div>
-        <div>
-            <a href="{{ url_for('metas.nova_meta') }}" class="px-4 py-2 bg-navy-900 text-white rounded-lg hover:bg-navy-800 font-medium text-sm flex items-center shadow-lg transition-transform hover:-translate-y-0.5">
-                <i data-lucide="settings" class="w-4 h-4 mr-2"></i> Configurar / Editar
+        
+        <div class="flex items-center gap-3 bg-white p-2 rounded-lg shadow-sm border border-gray-100">
+            <form method="GET" class="flex gap-2">
+                <select name="mes" class="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-navy-900 focus:border-navy-900 block p-2">
+                    {% for m in range(1, 13) %}
+                        <option value="{{ m }}" {% if m == mes_atual %}selected{% endif %}>
+                            {{ ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][m-1] }}
+                        </option>
+                    {% endfor %}
+                </select>
+                
+                <select name="ano" class="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-navy-900 focus:border-navy-900 block p-2">
+                    {% for y in range(2024, 2031) %}
+                        <option value="{{ y }}" {% if y == ano_atual %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+                
+                <button type="submit" class="p-2 bg-navy-900 text-white rounded-lg hover:bg-navy-800 transition-colors">
+                    <i data-lucide="filter" class="w-4 h-4"></i>
+                </button>
+            </form>
+
+            <div class="h-6 w-px bg-gray-200 mx-2"></div>
+
+            <a href="{{ url_for('metas.nova_meta') }}" class="px-4 py-2 bg-white border border-gray-200 text-navy-900 rounded-lg hover:bg-gray-50 font-medium text-sm flex items-center transition-colors">
+                <i data-lucide="settings" class="w-4 h-4 mr-2"></i> Configurar
             </a>
         </div>
     </div>
@@ -34,10 +57,8 @@
                 </span>
             </div>
         </div>
-        
         <div class="w-full bg-gray-100 rounded-full h-4 overflow-hidden">
-            <div class="bg-navy-900 h-4 rounded-full transition-all duration-1000 js-progress" 
-                 data-width="{{ perc_loja if perc_loja <= 100 else 100 }}"></div>
+            <div class="bg-navy-900 h-4 rounded-full transition-all duration-1000 js-progress" data-width="{{ perc_loja if perc_loja <= 100 else 100 }}"></div>
         </div>
         <div class="flex justify-between text-xs text-gray-400 mt-2">
             <span>Início</span>
@@ -46,38 +67,17 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        
         <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center">
             <h3 class="text-lg font-bold text-navy-900 mb-4">Meta Diária Necessária</h3>
-            
-            <div class="text-4xl font-bold text-navy-900 mb-1">
-                R$ {{ fmt_moeda(meta_diaria_loja) }}
-            </div>
-            <p class="text-xs text-gray-500 mb-6 border-b border-gray-100 pb-4">
-                Valor que a loja precisa vender em cada dia útil para bater a meta.
-            </p>
-            
-            <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Legenda do Calendário</h4>
+            <div class="text-4xl font-bold text-navy-900 mb-1">R$ {{ fmt_moeda(meta_diaria_loja) }}</div>
+            <p class="text-xs text-gray-500 mb-6 border-b border-gray-100 pb-4">Valor necessário por dia útil.</p>
+            <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Legenda</h4>
             <div class="space-y-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-6 h-6 bg-green-50 border border-green-200 rounded flex items-center justify-center text-green-600 font-bold text-xs">OK</div>
-                    <span class="text-sm text-gray-600">Meta do dia batida</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div class="w-6 h-6 bg-red-50 border border-red-200 rounded flex items-center justify-center text-red-600 font-bold text-xs">!</div>
-                    <span class="text-sm text-gray-600">Abaixo da meta diária</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div class="w-6 h-6 bg-white border border-gray-200 rounded"></div>
-                    <span class="text-sm text-gray-600">Dia Futuro</span>
-                </div>
+                <div class="flex items-center gap-3"><div class="w-6 h-6 bg-green-50 border border-green-200 rounded flex items-center justify-center text-green-600 font-bold text-xs">OK</div><span class="text-sm text-gray-600">Meta batida</span></div>
+                <div class="flex items-center gap-3"><div class="w-6 h-6 bg-red-50 border border-red-200 rounded flex items-center justify-center text-red-600 font-bold text-xs">!</div><span class="text-sm text-gray-600">Abaixo da meta</span></div>
+                <div class="flex items-center gap-3"><div class="w-6 h-6 bg-white border border-gray-200 rounded"></div><span class="text-sm text-gray-600">Futuro</span></div>
             </div>
-            
-            <a href="{{ url_for('metas.editar_meta', id=meta_loja.id) }}" class="mt-6 w-full text-center px-4 py-3 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors">
-                <i data-lucide="edit-3" class="w-3 h-3 inline mr-1"></i> Editar Dias / Feriados
-            </a>
         </div>
-
         <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <div class="grid grid-cols-7 gap-2 text-center mb-2 border-b border-gray-100 pb-2">
                 <div class="text-xs font-bold text-gray-400 uppercase">Seg</div>
@@ -88,7 +88,6 @@
                 <div class="text-xs font-bold text-gray-400 uppercase text-blue-300">Sáb</div>
                 <div class="text-xs font-bold text-gray-400 uppercase text-red-300">Dom</div>
             </div>
-
             <div class="grid grid-cols-7 gap-2">
                 {% for semana in calendario %}
                     {% for dia in semana %}
@@ -97,37 +96,24 @@
                         {% else %}
                             <div class="h-24 rounded-lg border flex flex-col justify-between p-2 relative transition-all group
                                 {% if dia.tipo == 'trabalho' %}
-                                    {% if dia.futuro %} 
-                                        bg-white border-gray-200 hover:border-navy-300
-                                    {% elif dia.meta_batida %} 
-                                        bg-green-50 border-green-200 hover:shadow-md
-                                    {% else %} 
-                                        bg-red-50 border-red-200 hover:shadow-md 
-                                    {% endif %}
-                                {% else %}
-                                    bg-gray-50 border-gray-100 opacity-60
-                                {% endif %}">
+                                    {% if dia.futuro %} bg-white border-gray-200 hover:border-navy-300
+                                    {% elif dia.meta_batida %} bg-green-50 border-green-200 hover:shadow-md
+                                    {% else %} bg-red-50 border-red-200 hover:shadow-md {% endif %}
+                                {% else %} bg-gray-50 border-gray-100 opacity-60 {% endif %}">
                                 
-                                <span class="text-xs font-bold {{ 'text-gray-400' if dia.tipo != 'trabalho' else 'text-navy-900' }}">
-                                    {{ dia.dia }}
-                                </span>
-
+                                <span class="text-xs font-bold {{ 'text-gray-400' if dia.tipo != 'trabalho' else 'text-navy-900' }}">{{ dia.dia }}</span>
+                                
                                 {% if dia.tipo == 'trabalho' %}
                                     <div class="text-right">
                                         <span class="block text-[10px] uppercase font-bold text-gray-400 group-hover:text-navy-600">Vendido</span>
-                                        <span class="block text-sm font-bold truncate 
-                                            {{ 'text-green-700' if dia.meta_batida and not dia.futuro else ('text-red-700' if not dia.futuro else 'text-gray-800') }}">
+                                        <span class="block text-sm font-bold truncate {{ dia.classe_cor_texto }}">
                                             {{ "%.0f"|format(dia.vendido) }}
                                         </span>
                                     </div>
                                 {% elif dia.tipo == 'feriado' %}
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <span class="text-[10px] font-bold text-red-300 uppercase -rotate-12 border border-red-200 px-1 rounded">Feriado</span>
-                                    </div>
+                                    <div class="absolute inset-0 flex items-center justify-center"><span class="text-[10px] font-bold text-red-300 uppercase -rotate-12 border border-red-200 px-1 rounded">Feriado</span></div>
                                 {% elif dia.tipo == 'folga' %}
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <span class="text-[10px] font-bold text-gray-300 uppercase">Folga</span>
-                                    </div>
+                                    <div class="absolute inset-0 flex items-center justify-center"><span class="text-[10px] font-bold text-gray-300 uppercase">Folga</span></div>
                                 {% endif %}
                             </div>
                         {% endif %}
@@ -139,7 +125,6 @@
 
     <div class="grid grid-cols-1 gap-6">
         <h3 class="text-lg font-bold text-navy-900">Performance da Equipe</h3>
-        
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <table class="w-full text-left text-sm text-gray-600">
                 <thead class="bg-gray-50 text-xs uppercase font-semibold text-gray-500">
@@ -149,18 +134,18 @@
                         <th class="px-6 py-4">Realizado / Meta</th>
                         <th class="px-6 py-4 text-center">Atingimento</th>
                         <th class="px-6 py-4 text-right">Ritmo Diário Ideal</th>
+                        <th class="px-6 py-4 text-center">Detalhes</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     {% for r in ranking %}
-                    <tr class="hover:bg-gray-50 transition-colors">
+                    <tr class="hover:bg-gray-50 transition-colors group">
                         <td class="px-6 py-4 font-bold text-navy-900">#{{ loop.index }}</td>
                         <td class="px-6 py-4 font-medium text-gray-900">{{ r.nome }}</td>
                         <td class="px-6 py-4">
                             <div class="font-bold text-gray-800">R$ {{ fmt_moeda(r.vendido) }}</div>
                             <div class="text-xs text-gray-400">Meta: R$ {{ fmt_moeda(r.meta) }}</div>
                         </td>
-                        
                         <td class="px-6 py-4 align-middle">
                             <div class="flex items-center justify-center gap-2">
                                 <div class="progress-track">
@@ -171,15 +156,25 @@
                                 <span class="text-xs font-bold">{{ "%.1f"|format(r.perc) }}%</span>
                             </div>
                         </td>
-
                         <td class="px-6 py-4 text-right">
                             <div class="text-gray-700 font-medium">R$ {{ fmt_moeda(r.meta_diaria) }}</div>
                             <span class="text-[10px] text-gray-400 uppercase">Por dia útil</span>
                         </td>
+                        <td class="px-6 py-4 text-center">
+                            <button type="button"
+                                    class="p-2 text-gray-400 hover:text-navy-900 hover:bg-gray-200 rounded-lg transition-all js-abrir-detalhes"
+                                    data-id="{{ r.id }}"
+                                    data-nome="{{ r.nome }}"
+                                    data-mes="{{ mes_atual }}"
+                                    data-ano="{{ ano_atual }}"
+                                    title="Ver Vendas Detalhadas">
+                                <i data-lucide="eye" class="w-4 h-4 pointer-events-none"></i>
+                            </button>
+                        </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-gray-400">
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-400">
                             <i data-lucide="bar-chart-2" class="w-12 h-12 mx-auto mb-2 opacity-20"></i>
                             <p>Nenhuma venda ou meta registrada para este período.</p>
                         </td>
@@ -190,4 +185,56 @@
         </div>
     </div>
 </div>
+
+<div id="modalDetalhes" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 transform scale-95 transition-transform duration-300" id="modalContent">
+        <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+            <div>
+                <h3 class="text-lg font-bold text-navy-900" id="modalTitulo">Vendas de [Nome]</h3>
+                <p class="text-sm text-gray-500">Detalhamento do período selecionado</p>
+            </div>
+            <button onclick="fecharModalDetalhes()" class="text-gray-400 hover:text-red-500 transition-colors p-2">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+        
+        <div class="p-6 max-h-[60vh] overflow-y-auto">
+            <div id="loadingModal" class="flex justify-center py-8">
+                <i data-lucide="loader-2" class="w-8 h-8 text-navy-900 animate-spin"></i>
+            </div>
+            
+            <table class="w-full text-left text-sm hidden" id="tabelaModal">
+                <thead class="bg-gray-50 text-xs uppercase font-semibold text-gray-500">
+                    <tr>
+                        <th class="px-4 py-3 rounded-l-lg">ID</th>
+                        <th class="px-4 py-3">Data</th>
+                        <th class="px-4 py-3">Cliente</th>
+                        <th class="px-4 py-3 text-right rounded-r-lg">Valor</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100" id="conteudoTabelaModal">
+                    </tbody>
+            </table>
+            
+            <div id="vazioModal" class="hidden text-center py-8 text-gray-500">
+                Nenhuma venda encontrada para este período.
+            </div>
+        </div>
+        
+        <div class="p-4 border-t border-gray-100 flex justify-end bg-gray-50 rounded-b-xl">
+            <button onclick="fecharModalDetalhes()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium text-sm transition-colors">
+                Fechar
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/metas.js') }}"></script>
+    <script>
+        function refreshIcons() {
+            lucide.createIcons();
+        }
+    </script>
 {% endblock %}

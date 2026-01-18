@@ -203,4 +203,102 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-});
+// =========================================================================
+    // 4. MODAL DE DETALHES DE VENDAS (CORRIGIDO)
+    // =========================================================================
+
+    const modal = document.getElementById('modalDetalhes');
+    const modalContent = document.getElementById('modalContent');
+    const modalTitulo = document.getElementById('modalTitulo');
+    const loadingModal = document.getElementById('loadingModal');
+    const tabelaModal = document.getElementById('tabelaModal');
+    const conteudoTabelaModal = document.getElementById('conteudoTabelaModal');
+    const vazioModal = document.getElementById('vazioModal');
+    
+    // Função para fechar o modal
+    window.fecharModalDetalhes = function() {
+        if(!modal) return;
+        modal.classList.add('opacity-0');
+        modalContent.classList.remove('scale-100');
+        modalContent.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    // Função Lógica (não atrelada ao clique direto)
+    function carregarDadosModal(usuarioId, nome, mes, ano) {
+        if(!modal) return;
+
+        // Mostrar Modal
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modalContent.classList.remove('scale-95');
+            modalContent.classList.add('scale-100');
+        }, 10);
+        
+        modalTitulo.innerText = `Vendas de ${nome}`;
+        loadingModal.classList.remove('hidden');
+        tabelaModal.classList.add('hidden');
+        vazioModal.classList.add('hidden');
+        conteudoTabelaModal.innerHTML = '';
+
+        // Buscar Dados
+        fetch(`/metas/api/vendas-usuario/${usuarioId}?mes=${mes}&ano=${ano}`)
+            .then(response => response.json())
+            .then(data => {
+                loadingModal.classList.add('hidden');
+                
+                if (data.vendas && data.vendas.length > 0) {
+                    tabelaModal.classList.remove('hidden');
+                    data.vendas.forEach(v => {
+                        const row = `
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-4 py-3 font-mono text-xs text-gray-400">#${v.id}</td>
+                                <td class="px-4 py-3 text-gray-600">${v.data}</td>
+                                <td class="px-4 py-3 font-medium text-navy-900">${v.cliente}</td>
+                                <td class="px-4 py-3 text-right font-bold text-green-600">R$ ${v.valor}</td>
+                            </tr>
+                        `;
+                        conteudoTabelaModal.insertAdjacentHTML('beforeend', row);
+                    });
+                } else {
+                    vazioModal.classList.remove('hidden');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                loadingModal.classList.add('hidden');
+                vazioModal.innerText = "Erro ao carregar dados.";
+                vazioModal.classList.remove('hidden');
+            });
+    }
+
+    // LISTENER AUTOMÁTICO (Esta é a correção para o "onclick")
+    // Procura todos os botões com a classe .js-abrir-detalhes e adiciona o evento
+    const botoesDetalhes = document.querySelectorAll('.js-abrir-detalhes');
+    botoesDetalhes.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault(); // Previne comportamentos padrão
+            
+            // Lê os dados dos atributos data-
+            const id = this.dataset.id;
+            const nome = this.dataset.nome;
+            const mes = this.dataset.mes;
+            const ano = this.dataset.ano;
+            
+            carregarDadosModal(id, nome, mes, ano);
+        });
+    });
+
+    // Fechar ao clicar fora
+    if(modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                fecharModalDetalhes();
+            }
+        });
+    }
+
+}); // Fim do DOMContentLoaded

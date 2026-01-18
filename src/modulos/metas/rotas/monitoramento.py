@@ -1,6 +1,6 @@
 # src/modulos/metas/rotas/monitoramento.py
 
-from flask import render_template
+from flask import render_template, request, jsonify
 from flask_login import login_required
 from datetime import date
 from sqlalchemy import func
@@ -11,9 +11,7 @@ from src.modulos.metas.modelos import MetaMensal, MetaVendedor
 from src.modulos.vendas.modelos import Venda
 from . import bp_metas
 
-# --- FUNÇÃO AUXILIAR DE FORMATAÇÃO (ADICIONADA) ---
 def fmt_moeda(valor):
-    """Formata um valor float para o padrão BRL (R$ 1.000,00)"""
     if valor is None:
         valor = 0.0
     return f"{float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -22,16 +20,20 @@ def fmt_moeda(valor):
 @login_required
 def painel():
     hoje = date.today()
-    mes_atual = hoje.month
-    ano_atual = hoje.year
     
+    try:
+        mes_atual = int(request.args.get('mes', hoje.month))
+        ano_atual = int(request.args.get('ano', hoje.year))
+    except ValueError:
+        mes_atual = hoje.month
+        ano_atual = hoje.year
+
     meta_config = MetaMensal.query.filter_by(mes=mes_atual, ano=ano_atual).first()
     
     if not meta_config:
-        return render_template('metas/sem_meta.html')
+        return render_template('metas/sem_meta.html', mes_filtro=mes_atual, ano_filtro=ano_atual)
 
-    # 1. DADOS GERAIS DA LOJA
-    # Soma de todas as vendas do mês (sem orçamentos ou canceladas)
+    # 1. DADOS GERAIS
     total_vendido_loja = db.session.query(func.sum(Venda.valor_final))\
         .filter(
             func.extract('month', Venda.criado_em) == mes_atual,
@@ -42,7 +44,7 @@ def painel():
         
     perc_loja = (float(total_vendido_loja) / float(meta_config.valor_loja)) * 100
     
-    # 2. CALENDÁRIO DE PERFORMANCE
+    # 2. CALENDÁRIO
     dias_trabalho = [int(d) for d in meta_config.config_semana.split(',')]
     feriados = []
     if meta_config.config_feriados:
@@ -51,7 +53,6 @@ def painel():
         except:
             pass
 
-    # Vendas diárias
     vendas_diarias = db.session.query(
             func.extract('day', Venda.criado_em).label('dia'),
             func.sum(Venda.valor_final).label('total')
@@ -64,11 +65,12 @@ def painel():
     
     mapa_vendas = {int(v.dia): float(v.total) for v in vendas_diarias}
     
-    # Meta Diária Ideal
     meta_diaria = float(meta_config.valor_loja) / meta_config.dias_uteis if meta_config.dias_uteis > 0 else 0
     
     calendario_dados = []
     cal = calendar.monthcalendar(ano_atual, mes_atual)
+    
+    eh_mes_passado = (ano_atual < hoje.year) or (ano_atual == hoje.year and mes_atual < hoje.month)
     
     for semana in cal:
         semana_dados = []
@@ -80,12 +82,21 @@ def painel():
             eh_feriado = dia_numero in feriados
             eh_trabalho = dia_idx in dias_trabalho
             
+            if eh_mes_passado:
+                eh_futuro = False
+            elif (ano_atual == hoje.year and mes_atual == hoje.month):
+                eh_futuro = dia_numero > hoje.day
+            else:
+                eh_futuro = True
+            
+            # Objeto de informações do dia
             info = {
                 'dia': dia_numero,
                 'tipo': 'padrao',
                 'vendido': mapa_vendas.get(dia_numero, 0),
                 'meta_batida': False,
-                'futuro': dia_numero > hoje.day
+                'futuro': eh_futuro,
+                'classe_cor_texto': 'text-gray-800' # Cor padrão
             }
             
             if eh_feriado:
@@ -95,12 +106,19 @@ def painel():
             else:
                 info['tipo'] = 'trabalho'
                 if not info['futuro']:
-                    info['meta_batida'] = info['vendido'] >= meta_diaria
+                    meta_batida = info['vendido'] >= meta_diaria
+                    info['meta_batida'] = meta_batida
+                    
+                    # --- LÓGICA DE COR MOVIDA PARA CÁ ---
+                    if meta_batida:
+                        info['classe_cor_texto'] = 'text-green-700'
+                    else:
+                        info['classe_cor_texto'] = 'text-red-700'
             
             semana_dados.append(info)
         calendario_dados.append(semana_dados)
 
-    # 3. RANKING DE VENDEDORES
+    # 3. RANKING
     metas_vendedores = MetaVendedor.query.filter_by(meta_mensal_id=meta_config.id).all()
     ranking = []
     
@@ -110,13 +128,15 @@ def painel():
                 Venda.vendedor_id == mv.usuario_id,
                 func.extract('month', Venda.criado_em) == mes_atual,
                 func.extract('year', Venda.criado_em) == ano_atual,
-                Venda.status != 'cancelada'
+                Venda.status != 'cancelada',
+                Venda.status != 'orcamento'
             ).scalar() or 0
             
         perc = (float(vendido) / float(mv.valor_meta)) * 100 if mv.valor_meta > 0 else 0
         m_diaria = float(mv.valor_meta) / meta_config.dias_uteis if meta_config.dias_uteis > 0 else 0
         
         ranking.append({
+            'id': mv.usuario_id,
             'nome': mv.usuario.nome,
             'meta': float(mv.valor_meta),
             'vendido': float(vendido),
@@ -132,5 +152,35 @@ def painel():
                            ranking=ranking,
                            calendario=calendario_dados,
                            meta_diaria_loja=meta_diaria,
-                           # AQUI ESTAVA FALTANDO:
-                           fmt_moeda=fmt_moeda)
+                           fmt_moeda=fmt_moeda,
+                           mes_atual=mes_atual,
+                           ano_atual=ano_atual)
+
+# API Detalhes (Mantida igual)
+@bp_metas.route('/api/vendas-usuario/<int:usuario_id>', methods=['GET'])
+@login_required
+def api_vendas_usuario(usuario_id):
+    try:
+        mes = int(request.args.get('mes'))
+        ano = int(request.args.get('ano'))
+        
+        vendas = Venda.query.filter(
+            Venda.vendedor_id == usuario_id,
+            func.extract('month', Venda.criado_em) == mes,
+            func.extract('year', Venda.criado_em) == ano,
+            Venda.status != 'cancelada',
+            Venda.status != 'orcamento'
+        ).order_by(Venda.criado_em.desc()).all()
+        
+        dados = []
+        for v in vendas:
+            dados.append({
+                'id': v.id,
+                'data': v.criado_em.strftime('%d/%m/%Y %H:%M'),
+                'cliente': v.cliente_nome,
+                'valor': fmt_moeda(v.valor_final)
+            })
+            
+        return jsonify({'vendas': dados})
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 400
