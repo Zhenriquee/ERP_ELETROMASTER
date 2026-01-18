@@ -11,11 +11,11 @@ from src.modulos.metas.modelos import MetaMensal, MetaVendedor
 from src.modulos.vendas.modelos import Venda
 from . import bp_metas
 
-# --- FUNÇÃO AUXILIAR DE FORMATAÇÃO ---
+# --- FUNÇÃO AUXILIAR DE FORMATAÇÃO (ADICIONADA) ---
 def fmt_moeda(valor):
+    """Formata um valor float para o padrão BRL (R$ 1.000,00)"""
     if valor is None:
         valor = 0.0
-    # Formata float para string "10.000,00" (Padrão BR)
     return f"{float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 @bp_metas.route('/', methods=['GET'])
@@ -31,8 +31,7 @@ def painel():
         return render_template('metas/sem_meta.html')
 
     # 1. DADOS GERAIS DA LOJA
-    # CORREÇÃO 1: Venda.criado_em em vez de data_venda
-    # CORREÇÃO 2: Venda.valor_final em vez de valor_total
+    # Soma de todas as vendas do mês (sem orçamentos ou canceladas)
     total_vendido_loja = db.session.query(func.sum(Venda.valor_final))\
         .filter(
             func.extract('month', Venda.criado_em) == mes_atual,
@@ -52,8 +51,7 @@ def painel():
         except:
             pass
 
-    # CORREÇÃO 1: Venda.criado_em em vez de data_venda
-    # CORREÇÃO 2: Venda.valor_final em vez de valor_total
+    # Vendas diárias
     vendas_diarias = db.session.query(
             func.extract('day', Venda.criado_em).label('dia'),
             func.sum(Venda.valor_final).label('total')
@@ -105,9 +103,8 @@ def painel():
     # 3. RANKING DE VENDEDORES
     metas_vendedores = MetaVendedor.query.filter_by(meta_mensal_id=meta_config.id).all()
     ranking = []
+    
     for mv in metas_vendedores:
-        # CORREÇÃO 1: Venda.criado_em em vez de data_venda
-        # CORREÇÃO 2: Venda.valor_final em vez de valor_total
         vendido = db.session.query(func.sum(Venda.valor_final))\
             .filter(
                 Venda.vendedor_id == mv.usuario_id,
@@ -134,4 +131,6 @@ def painel():
                            perc_loja=perc_loja,
                            ranking=ranking,
                            calendario=calendario_dados,
-                           meta_diaria_loja=meta_diaria)
+                           meta_diaria_loja=meta_diaria,
+                           # AQUI ESTAVA FALTANDO:
+                           fmt_moeda=fmt_moeda)

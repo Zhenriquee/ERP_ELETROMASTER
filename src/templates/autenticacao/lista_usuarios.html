@@ -95,9 +95,11 @@
                         </td>
 
                         <td class="px-6 py-4 text-right">
-                            <button class="text-gray-400 hover:text-electric-500 transition-colors p-1" title="Editar">
+                            <a href="{{ url_for('autenticacao.editar_usuario', id=u.id) }}" 
+                               class="text-gray-400 hover:text-electric-500 transition-colors p-1 inline-block" 
+                               title="Editar">
                                 <i data-lucide="edit-2" class="w-4 h-4"></i>
-                            </button>
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}

@@ -8,8 +8,12 @@
             <i data-lucide="arrow-left" class="w-6 h-6"></i>
         </a>
         <div>
-            <h2 class="text-2xl font-bold text-navy-900">Novo Colaborador</h2>
-            <p class="text-sm text-gray-500">Preencha os dados para registrar um novo membro na equipe.</p>
+            <h2 class="text-2xl font-bold text-navy-900">
+                {{ 'Editar Colaborador' if editando else 'Novo Colaborador' }}
+            </h2>
+            <p class="text-sm text-gray-500">
+                {{ 'Atualize os dados do membro da equipe.' if editando else 'Preencha os dados para registrar um novo membro na equipe.' }}
+            </p>
         </div>
     </div>
 
@@ -18,7 +22,7 @@
         <div class="bg-gray-50 px-8 py-4 border-b border-gray-100 flex items-center justify-between">
             <div class="flex items-center gap-2 text-navy-900 font-semibold">
                 <div class="bg-electric-500 rounded-full p-1.5 text-white">
-                    <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    <i data-lucide="{{ 'user-check' if editando else 'user-plus' }}" class="w-4 h-4"></i>
                 </div>
                 Ficha Cadastral
             </div>
@@ -89,13 +93,18 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-navy-900 mb-1">Senha Inicial</label>
+                            <label class="block text-sm font-medium text-navy-900 mb-1">
+                                {{ 'Nova Senha' if editando else 'Senha Inicial' }}
+                            </label>
                             <div class="relative">
                                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
                                     <i data-lucide="lock" class="w-5 h-5"></i>
                                 </span>
                                 {{ form.senha(class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-navy-900 focus:border-transparent outline-none transition-all") }}
                             </div>
+                            {% if editando %}
+                                <p class="text-xs text-gray-400 mt-1">Deixe em branco para manter a senha atual.</p>
+                            {% endif %}
                         </div>
 
                         <div>
@@ -167,7 +176,7 @@
                     <a href="{{ url_for('autenticacao.listar_usuarios') }}" class="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors">
                         Cancelar
                     </a>
-                    {{ form.botao_submit(class="px-6 py-2.5 rounded-lg bg-navy-900 text-white font-bold hover:bg-navy-800 shadow-lg shadow-navy-900/20 transition-all transform hover:-translate-y-0.5 cursor-pointer") }}
+                    {{ form.botao_submit(class="px-6 py-2.5 rounded-lg bg-navy-900 text-white font-bold hover:bg-navy-800 shadow-lg shadow-navy-900/20 transition-all transform hover:-translate-y-0.5 cursor-pointer", value=("Salvar Alterações" if editando else "Salvar Funcionário")) }}
                 </div>
 
             </form>

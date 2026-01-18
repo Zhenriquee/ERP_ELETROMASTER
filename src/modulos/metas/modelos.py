@@ -8,7 +8,7 @@ class MetaMensal(db.Model):
     mes = db.Column(db.Integer, nullable=False)
     ano = db.Column(db.Integer, nullable=False)
     
-    valor_loja = db.Column(db.Numeric(10, 2), nullable=False)
+    valor_loja = db.Column(db.Numeric(15, 2), nullable=False)
     
     # Campo calculado (mantido para facilitar contas rápidas)
     dias_uteis = db.Column(db.Integer, nullable=False)

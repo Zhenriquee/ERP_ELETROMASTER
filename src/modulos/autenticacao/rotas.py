@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
+from wtforms.validators import Optional
 from src.extensoes import banco_de_dados as db
 from src.modulos.autenticacao.modelos import Usuario, Modulo
 from src.modulos.autenticacao.formularios import FormularioLogin, FormularioCadastroUsuario
@@ -118,3 +119,109 @@ def novo_usuario():
             return redirect(url_for('autenticacao.listar_usuarios'))
 
     return render_template('autenticacao/cadastro_usuario.html', form=form)
+
+# src/modulos/autenticacao/rotas.py
+
+# ... (Mantenha as importações e outras rotas iguais) ...
+
+@bp_autenticacao.route('/usuarios/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+@cargo_exigido('rh_equipe') 
+def editar_usuario(id):
+    usuario_edit = Usuario.query.get_or_404(id)
+    
+    # Validação de Hierarquia
+    if current_user.cargo != 'dono':
+        if usuario_edit.nivel_acesso <= current_user.nivel_acesso and usuario_edit.id != current_user.id:
+            flash('Você não tem permissão para editar este usuário.', 'error')
+            return redirect(url_for('autenticacao.listar_usuarios'))
+
+    form = FormularioCadastroUsuario(obj=usuario_edit)
+    form.senha.validators = [Optional()] # Senha opcional na edição
+
+    # Opções de Cargos e Módulos
+    opcoes_cargos = [
+        ('dono', 'Dono', 1),
+        ('gerente', 'Gerente', 2),
+        ('coordenador', 'Coordenador', 3),
+        ('tecnico', 'Técnico', 4)
+    ]
+    cargos_permitidos = [
+        (c_val, c_nome) for c_val, c_nome, c_lvl in opcoes_cargos 
+        if c_lvl >= current_user.nivel_acesso
+    ]
+    form.cargo.choices = cargos_permitidos
+
+    todos_modulos = Modulo.query.all()
+    if current_user.cargo == 'dono':
+        form.modulos_acesso.choices = [(m.id, m.nome) for m in todos_modulos]
+    else:
+        ids_meus = [m.id for m in current_user.permissoes]
+        mods_permitidos = [m for m in todos_modulos if m.id in ids_meus]
+        form.modulos_acesso.choices = [(m.id, m.nome) for m in mods_permitidos]
+
+    if current_user.cargo != 'dono' and not current_user.tem_permissao('rh_salarios'):
+        del form.salario
+
+    # --- GET: Preencher o formulário ---
+    if request.method == 'GET':
+        form.modulos_acesso.data = [m.id for m in usuario_edit.permissoes]
+        form.equipe.data = usuario_edit.equipe
+
+    # --- POST: Salvar Alterações ---
+    if form.validate_on_submit():
+        # 1. VERIFICAÇÃO DE USUÁRIO DUPLICADO
+        check_user = Usuario.query.filter(Usuario.usuario == form.usuario.data, Usuario.id != id).first()
+        if check_user:
+            flash(f'O usuário "{form.usuario.data}" já está em uso por outra pessoa.', 'error')
+            return render_template('autenticacao/cadastro_usuario.html', form=form, editando=True)
+
+        # 2. VERIFICAÇÃO DE CPF DUPLICADO (NOVA CORREÇÃO)
+        if form.cpf.data:
+            check_cpf = Usuario.query.filter(Usuario.cpf == form.cpf.data, Usuario.id != id).first()
+            if check_cpf:
+                flash(f'O CPF {form.cpf.data} já está cadastrado para o colaborador "{check_cpf.nome}".', 'error')
+                return render_template('autenticacao/cadastro_usuario.html', form=form, editando=True)
+        
+        # 3. VERIFICAÇÃO DE E-MAIL DUPLICADO (NOVA CORREÇÃO)
+        if form.email.data:
+            check_email = Usuario.query.filter(Usuario.email == form.email.data, Usuario.id != id).first()
+            if check_email:
+                flash(f'O E-mail {form.email.data} já está em uso.', 'error')
+                return render_template('autenticacao/cadastro_usuario.html', form=form, editando=True)
+
+        # Atualiza campos básicos
+        usuario_edit.nome = form.nome.data
+        usuario_edit.usuario = form.usuario.data
+        
+        # Tratamento de campos opcionais únicos: Se vazio, salva como None (NULL no banco)
+        # Isso evita erro de duplicidade se tiver dois usuários com string vazia ''
+        usuario_edit.cpf = form.cpf.data if form.cpf.data else None
+        usuario_edit.email = form.email.data if form.email.data else None
+        
+        usuario_edit.telefone = form.telefone.data
+        usuario_edit.cargo = form.cargo.data
+        usuario_edit.equipe = form.equipe.data
+        
+        if hasattr(form, 'salario'):
+            usuario_edit.salario = form.salario.data
+
+        if form.senha.data:
+            usuario_edit.definir_senha(form.senha.data)
+
+        # Atualiza Permissões
+        ids_opcoes_validas = [c[0] for c in form.modulos_acesso.choices]
+        ids_selecionados = [mid for mid in form.modulos_acesso.data if mid in ids_opcoes_validas]
+        modulos_selecionados = Modulo.query.filter(Modulo.id.in_(ids_selecionados)).all()
+        usuario_edit.permissoes = modulos_selecionados
+
+        try:
+            db.session.commit()
+            flash('Dados atualizados com sucesso!', 'success')
+            return redirect(url_for('autenticacao.listar_usuarios'))
+        except Exception as e:
+            db.session.rollback()
+            flash('Erro ao salvar no banco de dados. Verifique os dados e tente novamente.', 'error')
+            print(f"Erro DB: {e}") # Para debug no terminal
+
+    return render_template('autenticacao/cadastro_usuario.html', form=form, editando=True)
