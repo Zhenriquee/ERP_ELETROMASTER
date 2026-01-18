@@ -192,32 +192,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const tr = document.createElement('tr');
                 tr.className = "border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors";
 
+                // ... (Lógica de status/badges mantém igual) ...
                 let badgeClass = 'bg-gray-100 text-gray-600';
                 let labelStatus = 'Pendente';
                 let htmlAcoes = '';
-                let htmlHistorico = '';
-
-                // Monta o mini-histórico COM USUÁRIO
-                if (item.hist_producao) {
-                    htmlHistorico += `<div class="flex items-center text-[10px] text-blue-600 mt-1">
-                        <i data-lucide="hammer" class="w-3 h-3 mr-1"></i> ${item.hist_producao} 
-                        <span class="ml-1 text-gray-400">(${item.user_producao || '?'})</span>
-                    </div>`;
-                }
-                if (item.hist_pronto) {
-                    htmlHistorico += `<div class="flex items-center text-[10px] text-yellow-600 mt-0.5">
-                        <i data-lucide="package-check" class="w-3 h-3 mr-1"></i> ${item.hist_pronto}
-                        <span class="ml-1 text-gray-400">(${item.user_pronto || '?'})</span>
-                    </div>`;
-                }
-                if (item.hist_entregue) {
-                    htmlHistorico += `<div class="flex items-center text-[10px] text-green-600 mt-0.5">
-                        <i data-lucide="truck" class="w-3 h-3 mr-1"></i> ${item.hist_entregue}
-                        <span class="ml-1 text-gray-400">(${item.user_entregue || '?'})</span>
-                    </div>`;
-                }
-
-                // ... (Lógica de botões htmlAcoes mantém igual à resposta anterior) ...
+                
+                // Define botões e status (CÓDIGO ANTERIOR MANTIDO)
                 if (item.status === 'pendente') {
                     badgeClass = 'bg-gray-200 text-gray-700'; labelStatus = 'Pendente';
                     htmlAcoes = `<a href="/vendas/itens/${item.id}/status/producao" class="inline-flex items-center px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded">Produzir</a>`;
@@ -232,13 +212,43 @@ document.addEventListener('DOMContentLoaded', function() {
                     htmlAcoes = `<span class="text-green-600"><i data-lucide="check-circle-2" class="w-5 h-5"></i></span>`;
                 }
 
+                // --- NOVO: Monta HTML do Log de Auditoria ---
+                let htmlLog = '';
+                if (item.log_completo && item.log_completo.length > 0) {
+                    htmlLog = `<div class="mt-2 pt-2 border-t border-gray-100 hidden" id="log-${item.id}">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Auditoria de Movimentações:</p>
+                        <ul class="space-y-1">`;
+                    
+                    item.log_completo.forEach(log => {
+                        htmlLog += `
+                            <li class="text-[10px] text-gray-500 flex justify-between">
+                                <span><span class="font-bold text-navy-900">${log.usuario}</span>: ${log.acao}</span>
+                                <span class="text-gray-400">${log.data}</span>
+                            </li>`;
+                    });
+                    htmlLog += `</ul></div>`;
+                }
+
+                // Botão para mostrar o log
+                const btnLog = (item.log_completo && item.log_completo.length > 0) 
+                    ? `<button onclick="document.getElementById('log-${item.id}').classList.toggle('hidden')" class="text-[10px] text-blue-400 hover:text-blue-600 underline ml-2 cursor-pointer">Ver Histórico</button>` 
+                    : '';
+
+                // Monta a Linha
                 tr.innerHTML = `
                     <td class="p-3 align-top">
-                        <div class="font-bold text-navy-900 text-sm">${item.qtd}x ${item.descricao}</div>
-                        <div class="text-xs text-gray-500">${item.cor}</div>
-                        <div class="mt-2 border-l-2 border-gray-100 pl-2">
-                            ${htmlHistorico || '<span class="text-[10px] text-gray-400 italic">Aguardando início...</span>'}
+                        <div class="flex justify-between">
+                            <div class="font-bold text-navy-900 text-sm">${item.qtd}x ${item.descricao}</div>
+                            ${btnLog}
                         </div>
+                        <div class="text-xs text-gray-500">${item.cor}</div>
+                        
+                        <div class="mt-1 flex gap-2">
+                             ${item.hist_producao ? `<span class="text-[10px] text-blue-600" title="Início Produção"><i data-lucide="hammer" class="w-3 h-3 inline"></i> ${item.hist_producao}</span>` : ''}
+                             ${item.hist_pronto ? `<span class="text-[10px] text-yellow-600" title="Pronto"><i data-lucide="package" class="w-3 h-3 inline"></i> ${item.hist_pronto}</span>` : ''}
+                        </div>
+
+                        ${htmlLog}
                     </td>
                     <td class="p-3 text-center align-top">
                         <span class="px-2 py-1 rounded-full text-[10px] uppercase font-bold tracking-wide ${badgeClass}">${labelStatus}</span>

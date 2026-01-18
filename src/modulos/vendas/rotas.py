@@ -1,11 +1,11 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from src.extensoes import banco_de_dados as db
-from src.modulos.vendas.modelos import Venda, CorServico, Pagamento, hora_brasilia, ItemVenda
+from src.modulos.vendas.modelos import Venda, CorServico, Pagamento, hora_brasilia, ItemVenda, ItemVendaHistorico
 from src.modulos.vendas.formularios import FormularioVendaWizard, FormularioPagamento
 from decimal import Decimal
 from datetime import datetime, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 bp_vendas = Blueprint('vendas', __name__, url_prefix='/vendas')
 
@@ -89,44 +89,73 @@ def nova_venda():
 @bp_vendas.route('/servicos', methods=['GET'])
 @login_required
 def gestao_servicos():
-    # Paginação e Ordenação
+    # ==========================================
+    # 1. PAGINAÇÃO E ORDENAÇÃO
+    # ==========================================
     page = request.args.get('page', 1, type=int)
-    per_page = 10 # Quantidade por página
+    per_page = 10 # Itens por página
     
-    # Filtra (não orçamentos) e Ordena por ID Decrescente (Mais novo primeiro)
+    # Filtra (ignora orçamentos) e Ordena (ID decrescente: mais novo no topo)
     query = Venda.query.filter(Venda.status != 'orcamento').order_by(Venda.id.desc())
     
     # Cria o objeto de paginação
     paginacao = query.paginate(page=page, per_page=per_page, error_out=False)
-    servicos = paginacao.items # Lista de serviços da página atual
+    servicos = paginacao.items # Lista de vendas da página atual
     
-    # --- CÁLCULO DE KPIS (Mantido) ---
+    # ==========================================
+    # 2. KPIS FINANCEIROS (Mantidos)
+    # ==========================================
     hoje = hora_brasilia().date()
     inicio_mes = hoje.replace(day=1)
     data_30_dias_atras = hora_brasilia() - timedelta(days=30)
     
     total_vendido = db.session.query(func.sum(Venda.valor_final)).filter(Venda.status != 'orcamento', Venda.status != 'cancelado').scalar() or 0
     total_recebido_geral = db.session.query(func.sum(Pagamento.valor)).scalar() or 0
+    
     a_receber = total_vendido - total_recebido_geral
     if a_receber < 0: a_receber = 0
     
     recebido_mes = db.session.query(func.sum(Pagamento.valor)).filter(Pagamento.data_pagamento >= inicio_mes).scalar() or 0
     
-    qtd_pendente = Venda.query.filter_by(status='pendente').count()
-    qtd_producao = Venda.query.filter_by(status='producao').count()
-    qtd_pronto = Venda.query.filter_by(status='pronto').count()
-    qtd_cancelados_30d = Venda.query.filter(Venda.status == 'cancelado', Venda.data_cancelamento >= data_30_dias_atras).count()
+    # ==========================================
+    # 3. KPIS OPERACIONAIS (SINCRONIZADOS COM PRODUÇÃO)
+    # ==========================================
+    # Precisamos somar: (Itens de Vendas Múltiplas) + (Vendas Simples)
+    # E excluir vendas canceladas para não mostrar dados falsos.
+    
+    # A) Contagem de Itens Individuais (Venda Múltipla)
+    # join(Venda) garante que filtramos pelo status da venda pai também
+    itens_pendente = ItemVenda.query.filter_by(status='pendente').join(Venda).filter(Venda.status != 'cancelado').count()
+    itens_producao = ItemVenda.query.filter_by(status='producao').join(Venda).filter(Venda.status != 'cancelado').count()
+    itens_pronto = ItemVenda.query.filter_by(status='pronto').join(Venda).filter(Venda.status != 'cancelado').count()
+    
+    # B) Contagem de Vendas Simples (Sem itens na tabela ItemVenda)
+    vendas_simples_pendente = Venda.query.filter(Venda.modo == 'simples', Venda.status == 'pendente').count()
+    vendas_simples_producao = Venda.query.filter(Venda.modo == 'simples', Venda.status == 'producao').count()
+    vendas_simples_pronto = Venda.query.filter(Venda.modo == 'simples', Venda.status == 'pronto').count()
+    
+    # C) Totais Unificados (O que aparece nos quadradinhos coloridos)
+    qtd_pendente = itens_pendente + vendas_simples_pendente
+    qtd_producao = itens_producao + vendas_simples_producao
+    qtd_pronto = itens_pronto + vendas_simples_pronto
+    
+    # D) Cancelados (apenas Vendas nos últimos 30 dias para controle gerencial)
+    qtd_cancelados_30d = Venda.query.filter(
+        Venda.status == 'cancelado',
+        Venda.data_cancelamento >= data_30_dias_atras
+    ).count()
 
+    # ==========================================
+    # 4. DADOS AUXILIARES
+    # ==========================================
     form_pgto = FormularioPagamento()
     
-    # Carrega vendedores únicos para o filtro (pode ser otimizado no futuro)
-    todos_vendedores = db.session.query(Venda.vendedor_id).distinct()
-    # Logica simplificada para vendedores no filtro (opcional, mantendo compatibilidade)
-    vendedores = set(s.vendedor.nome for s in servicos) 
+    # Filtro de vendedores presentes na lista atual (simples)
+    vendedores = set(s.vendedor.nome for s in servicos)
 
     return render_template('vendas/gestao_servicos.html', 
-                           servicos=servicos, # Agora é a lista paginada
-                           paginacao=paginacao, # Objeto para criar os botões prev/next
+                           servicos=servicos,
+                           paginacao=paginacao,
                            vendedores=vendedores,
                            kpi_receber=a_receber,
                            kpi_recebido_mes=recebido_mes,
@@ -135,7 +164,6 @@ def gestao_servicos():
                            qtd_pronto=qtd_pronto,
                            qtd_cancelados=qtd_cancelados_30d,
                            form_pgto=form_pgto)
-
 # --- AÇÕES DE SERVIÇO ---
 # ... (Mantenha os imports e rotas anteriores até chegar em mudar_status) ...
 
@@ -424,4 +452,62 @@ def mudar_status_item(id, novo_status):
         db.session.commit()
         flash(f'Item "{item.descricao}" atualizado com sucesso.', 'success')
     
+    return redirect(url_for('vendas.gestao_servicos'))
+
+# --- ROTA DE STATUS GERAL (VENDA PAI) ---
+@bp_vendas.route('/servicos/<int:id>/status/<novo_status>')
+@login_required
+def alterar_status_servico(id, novo_status):
+    venda = Venda.query.get_or_404(id)
+    agora = hora_brasilia()
+    
+    # 1. Atualiza a VENDA PAI
+    venda.status = novo_status
+    
+    if novo_status == 'producao':
+        venda.data_inicio_producao = agora
+        venda.usuario_producao_id = current_user.id
+    elif novo_status == 'pronto':
+        venda.data_pronto = agora
+        venda.usuario_pronto_id = current_user.id
+    elif novo_status == 'entregue':
+        venda.data_entrega = agora
+        venda.usuario_entrega_id = current_user.id
+
+    # 2. CASCATA: Atualiza TODOS os ITENS (Se for Venda Múltipla)
+    # Isso garante que o item saia da tela de produção
+    if venda.modo == 'multipla':
+        for item in venda.itens:
+            status_antigo = item.status
+            
+            # Só atualiza se o status for "evoluir" (não vamos forçar voltar para trás aqui)
+            if novo_status == 'entregue':
+                item.status = 'entregue'
+                item.data_entregue = agora
+                item.usuario_entrega_id = current_user.id
+                
+            elif novo_status == 'pronto' and item.status != 'entregue':
+                item.status = 'pronto'
+                item.data_pronto = agora
+                item.usuario_pronto_id = current_user.id
+                
+            elif novo_status == 'producao' and item.status == 'pendente':
+                item.status = 'producao'
+                item.data_inicio_producao = agora
+                item.usuario_producao_id = current_user.id
+            
+            # 3. Gera Histórico Individual para cada Item (Para aparecer no modal depois)
+            if item.status != status_antigo:
+                log = ItemVendaHistorico(
+                    item_id=item.id,
+                    usuario_id=current_user.id,
+                    status_anterior=status_antigo,
+                    status_novo=item.status,
+                    acao=f"Atualização em Massa ({novo_status.title()})",
+                    data_acao=agora
+                )
+                db.session.add(log)
+
+    db.session.commit()
+    flash(f'Status do serviço atualizado para {novo_status.upper()}.', 'success')
     return redirect(url_for('vendas.gestao_servicos'))

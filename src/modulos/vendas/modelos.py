@@ -136,9 +136,40 @@ class Venda(db.Model):
     itens = db.relationship('ItemVenda', backref='venda', lazy=True, cascade="all, delete-orphan")
 
     @property
-    def total_pago(self):
+    def valor_pago(self):
+        """Soma todos os pagamentos vinculados a esta venda"""
+        if not self.pagamentos:
+            return 0.0
         return sum(p.valor for p in self.pagamentos)
 
     @property
     def valor_restante(self):
-        return self.valor_final - self.total_pago
+        """Calcula quanto falta pagar"""
+        pago = self.valor_pago
+        # Garante que não fique negativo por erro de arredondamento pequeno
+        restante = float(self.valor_final) - float(pago)
+        return max(0.0, restante)
+
+class ItemVendaHistorico(db.Model):
+    __tablename__ = 'item_venda_historico'
+    id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(db.Integer, db.ForeignKey('venda_itens.id'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    
+    status_anterior = db.Column(db.String(20), nullable=False)
+    status_novo = db.Column(db.String(20), nullable=False)
+    acao = db.Column(db.String(50)) # Ex: "Iniciou", "Voltou para Fila", "Finalizou"
+    
+    data_acao = db.Column(db.DateTime, default=hora_brasilia)
+    
+    # Relacionamentos
+    usuario = db.relationship('Usuario')
+    item = db.relationship('ItemVenda', backref=db.backref('historico_acoes', lazy=True, cascade="all, delete-orphan"))
+
+    #@property
+    #def total_pago(self):
+    #    return sum(p.valor for p in self.pagamentos)
+
+    #@property
+    #def valor_restante(self):
+    #    return self.valor_final - self.total_pago

@@ -148,17 +148,33 @@
                             {% set lista_descricoes = [] %}
                             
                             {% for item in s.itens %}
+                                
+                                {% set log_acoes = [] %}
+                                {% for log in item.historico_acoes|sort(attribute='data_acao', reverse=True) %}
+                                    {% set _ = log_acoes.append({
+                                        'data': log.data_acao.strftime('%d/%m %H:%M'),
+                                        'usuario': log.usuario.nome,
+                                        'acao': log.acao,
+                                        'de': log.status_anterior,
+                                        'para': log.status_novo
+                                    }) %}
+                                {% endfor %}
+
                                 {% set _ = lista_itens_dados.append({
                                     'id': item.id,
                                     'qtd': item.quantidade,
                                     'descricao': item.descricao,
                                     'cor': item.cor.nome,
                                     'status': item.status,
+                                    'log_completo': log_acoes,  'hist_producao': item.data_inicio_producao.strftime('%d/%m/%Y %H:%M') if item.data_inicio_producao else None,
+                                    'user_producao': item.usuario_producao.nome if item.usuario_producao else None,
                                     
-                                    'hist_producao': item.data_inicio_producao.strftime('%d/%m/%Y %H:%M') if item.data_inicio_producao else None,
-                                    'user_producao': item.usuario_producao.nome if item.usuario_producao else None,  'hist_pronto': item.data_pronto.strftime('%d/%m/%Y %H:%M') if item.data_pronto else None,
-                                    'user_pronto': item.usuario_pronto.nome if item.usuario_pronto else None,        'hist_entregue': item.data_entregue.strftime('%d/%m/%Y %H:%M') if item.data_entregue else None,
-                                    'user_entregue': item.usuario_entrega.nome if item.usuario_entrega else None     }) %}
+                                    'hist_pronto': item.data_pronto.strftime('%d/%m/%Y %H:%M') if item.data_pronto else None,
+                                    'user_pronto': item.usuario_pronto.nome if item.usuario_pronto else None,
+                                    
+                                    'hist_entregue': item.data_entregue.strftime('%d/%m/%Y %H:%M') if item.data_entregue else None,
+                                    'user_entregue': item.usuario_entrega.nome if item.usuario_entrega else None
+                                }) %}
                                 
                                 {% set _ = lista_descricoes.append(item.quantidade ~ 'x ' ~ item.descricao ~ ' (' ~ item.cor.nome ~ ')') %}
                             {% endfor %}
@@ -337,6 +353,14 @@
         </div>
     </div>
 </div>
+<script>
+    setTimeout(function(){
+       // Só recarrega se não tiver nenhum modal aberto para não atrapalhar o usuário
+       if (document.getElementById('modalServico').classList.contains('hidden')) {
+           window.location.reload();
+       }
+    }, 60000); // 60000 ms = 1 minuto
+</script>
 {% endblock %}
 
 {% block scripts %}
