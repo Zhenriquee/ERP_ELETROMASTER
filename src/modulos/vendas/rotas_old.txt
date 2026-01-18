@@ -171,25 +171,62 @@ def gestao_servicos():
 @login_required
 def mudar_status(id, novo_status):
     venda = Venda.query.get_or_404(id)
-    mapa_status = {'producao': 'Em Produção', 'pronto': 'Pronto', 'entregue': 'Entregue'}
+    agora = hora_brasilia()
+    
+    mapa_status = {
+        'producao': 'Em Produção', 
+        'pronto': 'Pronto', 
+        'entregue': 'Entregue'
+    }
     
     if novo_status in mapa_status:
+        # 1. Atualiza a VENDA PAI
         venda.status = novo_status
-        agora = hora_brasilia() # <--- Mudança aqui
-        usuario_atual = current_user.id
         
+        # Atualiza quem mexeu na VENDA PAI
         if novo_status == 'producao':
             venda.data_inicio_producao = agora
-            venda.usuario_producao_id = usuario_atual
+            venda.usuario_producao_id = current_user.id
         elif novo_status == 'pronto':
             venda.data_pronto = agora
-            venda.usuario_pronto_id = usuario_atual
+            venda.usuario_pronto_id = current_user.id
         elif novo_status == 'entregue':
             venda.data_entrega = agora
-            venda.usuario_entrega_id = usuario_atual
+            venda.usuario_entrega_id = current_user.id
+
+        # 2. CASCATA: Se for Venda Múltipla, atualiza TODOS os ITENS
+        if venda.modo == 'multipla':
+            for item in venda.itens:
+                status_antigo = item.status
+                
+                # Só atualiza se o status for diferente para evitar logs duplicados
+                if item.status != novo_status:
+                    item.status = novo_status
+                    
+                    # Atualiza datas e usuários do ITEM
+                    if novo_status == 'producao':
+                        item.data_inicio_producao = agora
+                        item.usuario_producao_id = current_user.id
+                    elif novo_status == 'pronto':
+                        item.data_pronto = agora
+                        item.usuario_pronto_id = current_user.id
+                    elif novo_status == 'entregue':
+                        item.data_entregue = agora
+                        item.usuario_entrega_id = current_user.id
+                    
+                    # 3. Gera Histórico Individual para cada Item (Para aparecer no modal)
+                    log = ItemVendaHistorico(
+                        item_id=item.id,
+                        usuario_id=current_user.id,
+                        status_anterior=status_antigo,
+                        status_novo=novo_status,
+                        acao=f"Ação em Massa ({mapa_status[novo_status]})",
+                        data_acao=agora
+                    )
+                    db.session.add(log)
 
         db.session.commit()
-        flash(f'Status atualizado para: {mapa_status[novo_status]}', 'success')
+        flash(f'Status atualizado para: {mapa_status[novo_status]} (Itens sincronizados)', 'success')
     
     return redirect(url_for('vendas.gestao_servicos'))
 
