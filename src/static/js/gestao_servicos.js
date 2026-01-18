@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ============================================================
     // 2. FILTROS AVANÇADOS
     // ============================================================
-    function filtrarTabelaCompleta() {
+    /*function filtrarTabelaCompleta() {
         if(!tabela) return; // Segurança
 
         const texto = filtroTexto.value.toLowerCase();
@@ -81,7 +81,59 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if(filtroTexto) [filtroTexto, filtroStatus, filtroVendedor, filtroData].forEach(el => {
         el.addEventListener('input', filtrarTabelaCompleta);
-    });
+    });*/
+
+    // ============================================================
+    // 2. FILTROS VIA SERVIDOR (Backend)
+    // ============================================================
+    
+    // Função debounce para não recarregar a cada letra digitada, espera o usuário parar de digitar
+    function debounce(func, timeout = 800){
+        let timer;
+        return (...args) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => { func.apply(this, args); }, timeout);
+        };
+    }
+
+    function aplicarFiltros() {
+        const q = document.getElementById('filtroTexto').value;
+        const status = document.getElementById('filtroStatus').value;
+        const vendedor = document.getElementById('filtroVendedor').value;
+        const data = document.getElementById('filtroData').value;
+
+        // Monta a URL com Query Strings
+        const params = new URLSearchParams();
+        if(q) params.append('q', q);
+        if(status) params.append('status', status);
+        if(vendedor) params.append('vendedor', vendedor);
+        if(data) params.append('data', data);
+        
+        // Reseta para página 1 ao filtrar
+        params.append('page', 1);
+
+        window.location.href = `/vendas/servicos?${params.toString()}`;
+    }
+
+    // Event Listeners
+    const inpTexto = document.getElementById('filtroTexto');
+    const inpStatus = document.getElementById('filtroStatus');
+    const inpVendedor = document.getElementById('filtroVendedor');
+    const inpData = document.getElementById('filtroData');
+
+    if(inpTexto) {
+        // Para texto, usa debounce (espera parar de digitar)
+        inpTexto.addEventListener('input', debounce(() => aplicarFiltros()));
+        // Se der Enter, vai na hora
+        inpTexto.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') aplicarFiltros();
+        });
+    }
+
+    // Para selects e data, aplica na hora que mudar
+    if(inpStatus) inpStatus.addEventListener('change', aplicarFiltros);
+    if(inpVendedor) inpVendedor.addEventListener('change', aplicarFiltros);
+    if(inpData) inpData.addEventListener('change', aplicarFiltros);
 
 
     // ============================================================

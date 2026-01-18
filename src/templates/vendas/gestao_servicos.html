@@ -51,18 +51,19 @@
         </h4>
         <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div class="md:col-span-2">
-                <input type="text" id="filtroTexto" placeholder="Buscar ID, Cliente ou Serviço..." 
+                <input type="text" id="filtroTexto" value="{{ filtros.q }}" 
+                       placeholder="Buscar ID, Cliente, Serviço ou Item..." 
                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none">
             </div>
             
             <div>
                 <select id="filtroStatus" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none bg-white">
                     <option value="">Status: Todos</option>
-                    <option value="pendente">Pendente</option>
-                    <option value="producao">Em Produção</option>
-                    <option value="pronto">Pronto</option>
-                    <option value="entregue">Entregue</option>
-                    <option value="cancelado">Cancelado</option>
+                    <option value="pendente" {{ 'selected' if filtros.status == 'pendente' }}>Pendente</option>
+                    <option value="producao" {{ 'selected' if filtros.status == 'producao' }}>Em Produção</option>
+                    <option value="pronto" {{ 'selected' if filtros.status == 'pronto' }}>Pronto</option>
+                    <option value="entregue" {{ 'selected' if filtros.status == 'entregue' }}>Entregue</option>
+                    <option value="cancelado" {{ 'selected' if filtros.status == 'cancelado' }}>Cancelado</option>
                 </select>
             </div>
 
@@ -70,14 +71,18 @@
                 <select id="filtroVendedor" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none bg-white">
                     <option value="">Vendedor: Todos</option>
                     {% for v in vendedores %}
-                    <option value="{{ v }}">{{ v }}</option>
+                    <option value="{{ v }}" {{ 'selected' if filtros.vendedor == v }}>{{ v }}</option>
                     {% endfor %}
                 </select>
             </div>
 
             <div>
-                <input type="date" id="filtroData" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none text-gray-500">
+                <input type="date" id="filtroData" value="{{ filtros.data }}" 
+                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none text-gray-500">
             </div>
+        </div>
+        <div class="mt-2 text-right">
+            <a href="{{ url_for('vendas.gestao_servicos') }}" class="text-xs text-blue-500 hover:underline">Limpar filtros</a>
         </div>
     </div>
 
@@ -227,13 +232,15 @@
                 Página <strong>{{ paginacao.page }}</strong> de <strong>{{ paginacao.pages }}</strong>
             </span>
             <div class="flex gap-2">
-                {% if paginacao.has_prev %}
-                    <a href="{{ url_for('vendas.gestao_servicos', page=paginacao.prev_num) }}" class="px-4 py-2 bg-white border border-gray-300 rounded hover:bg-gray-100 text-sm font-medium text-gray-700">Anterior</a>
-                {% endif %}
-                {% if paginacao.has_next %}
-                    <a href="{{ url_for('vendas.gestao_servicos', page=paginacao.next_num) }}" class="px-4 py-2 bg-navy-900 text-white rounded hover:bg-navy-800 text-sm font-medium">Próximo</a>
-                {% endif %}
-            </div>
+            {% if paginacao.has_prev %}
+                <a href="{{ url_for('vendas.gestao_servicos', page=paginacao.prev_num, q=filtros.q, status=filtros.status, vendedor=filtros.vendedor, data=filtros.data) }}" 
+                   class="px-4 py-2 bg-white border border-gray-300 rounded hover:bg-gray-100 text-sm font-medium text-gray-700">Anterior</a>
+            {% endif %}
+            {% if paginacao.has_next %}
+                <a href="{{ url_for('vendas.gestao_servicos', page=paginacao.next_num, q=filtros.q, status=filtros.status, vendedor=filtros.vendedor, data=filtros.data) }}" 
+                   class="px-4 py-2 bg-navy-900 text-white rounded hover:bg-navy-800 text-sm font-medium">Próximo</a>
+            {% endif %}
+        </div>
         </div>
     </div>
 </div>

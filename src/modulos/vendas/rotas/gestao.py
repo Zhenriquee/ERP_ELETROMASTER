@@ -1,34 +1,72 @@
 from flask import render_template, request
 from flask_login import login_required
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from datetime import timedelta
 
-# Importa o banco e modelos
 from src.extensoes import banco_de_dados as db
 from src.modulos.vendas.modelos import Venda, ItemVenda, Pagamento, hora_brasilia
 from src.modulos.vendas.formularios import FormularioPagamento
+# IMPORTAÇÃO DO USUÁRIO MOVIDA PARA O TOPO (CORREÇÃO)
+from src.modulos.autenticacao.modelos import Usuario
 
-# Importa o Blueprint da pasta atual (o arquivo __init__.py)
 from . import bp_vendas
 
 @bp_vendas.route('/servicos', methods=['GET'])
 @login_required
 def gestao_servicos():
     # ==========================================
-    # 1. PAGINAÇÃO E ORDENAÇÃO
+    # 1. CAPTURA DE FILTROS DA URL
     # ==========================================
     page = request.args.get('page', 1, type=int)
-    per_page = 10 # Itens por página
+    per_page = 10
     
-    # Filtra (ignora orçamentos) e Ordena (ID decrescente: mais novo no topo)
-    query = Venda.query.filter(Venda.status != 'orcamento').order_by(Venda.id.desc())
-    
-    # Executa a paginação
+    # Filtros vindos do GET
+    filtro_q = request.args.get('q', '').strip()
+    filtro_status = request.args.get('status', '')
+    filtro_vendedor = request.args.get('vendedor', '')
+    filtro_data = request.args.get('data', '')
+
+    # ==========================================
+    # 2. CONSTRUÇÃO DA QUERY (BUSCA NO BANCO)
+    # ==========================================
+    query = Venda.query.filter(Venda.status != 'orcamento')
+
+    # A) Filtro de Texto (ID, Cliente, Descrição ou Item)
+    if filtro_q:
+        query = query.outerjoin(ItemVenda)
+        
+        condicoes = [
+            Venda.cliente_nome.ilike(f'%{filtro_q}%'),
+            Venda.descricao_servico.ilike(f'%{filtro_q}%'),
+            ItemVenda.descricao.ilike(f'%{filtro_q}%'),
+            Venda.cor_nome_snapshot.ilike(f'%{filtro_q}%')
+        ]
+        
+        if filtro_q.isdigit():
+            condicoes.append(Venda.id == int(filtro_q))
+            
+        query = query.filter(or_(*condicoes)).distinct()
+
+    # B) Filtro de Status
+    if filtro_status:
+        query = query.filter(Venda.status == filtro_status)
+
+    # C) Filtro de Vendedor (Nome)
+    if filtro_vendedor:
+        # Agora o Usuario já está importado no topo, funciona sempre
+        query = query.join(Usuario, Venda.vendedor_id == Usuario.id).filter(Usuario.nome == filtro_vendedor)
+
+    # D) Filtro de Data
+    if filtro_data:
+        query = query.filter(func.date(Venda.criado_em) == filtro_data)
+
+    # Ordenação e Paginação
+    query = query.order_by(Venda.id.desc())
     paginacao = query.paginate(page=page, per_page=per_page, error_out=False)
-    servicos = paginacao.items # Lista de vendas da página atual
+    servicos = paginacao.items 
     
     # ==========================================
-    # 2. KPIS FINANCEIROS
+    # 3. KPIS (Mantidos)
     # ==========================================
     hoje = hora_brasilia().date()
     inicio_mes = hoje.replace(day=1)
@@ -42,40 +80,29 @@ def gestao_servicos():
     
     recebido_mes = db.session.query(func.sum(Pagamento.valor)).filter(Pagamento.data_pagamento >= inicio_mes).scalar() or 0
     
-    # ==========================================
-    # 3. KPIS OPERACIONAIS (SINCRONIZADOS COM PRODUÇÃO)
-    # ==========================================
-    # Lógica: Soma (Itens de Vendas Múltiplas) + (Vendas Simples)
-    # Exclui vendas canceladas para não inflar os números.
-    
-    # A) Contagem de Itens Individuais (Venda Múltipla)
+    # KPIs Operacionais
     itens_pendente = ItemVenda.query.filter_by(status='pendente').join(Venda).filter(Venda.status != 'cancelado').count()
     itens_producao = ItemVenda.query.filter_by(status='producao').join(Venda).filter(Venda.status != 'cancelado').count()
     itens_pronto = ItemVenda.query.filter_by(status='pronto').join(Venda).filter(Venda.status != 'cancelado').count()
     
-    # B) Contagem de Vendas Simples (Sem itens na tabela ItemVenda)
     vendas_simples_pendente = Venda.query.filter(Venda.modo == 'simples', Venda.status == 'pendente').count()
     vendas_simples_producao = Venda.query.filter(Venda.modo == 'simples', Venda.status == 'producao').count()
     vendas_simples_pronto = Venda.query.filter(Venda.modo == 'simples', Venda.status == 'pronto').count()
     
-    # C) Totais Unificados (Números dos cards coloridos)
     qtd_pendente = itens_pendente + vendas_simples_pendente
     qtd_producao = itens_producao + vendas_simples_producao
     qtd_pronto = itens_pronto + vendas_simples_pronto
     
-    # D) Cancelados (apenas Vendas nos últimos 30 dias)
-    qtd_cancelados_30d = Venda.query.filter(
-        Venda.status == 'cancelado',
-        Venda.data_cancelamento >= data_30_dias_atras
-    ).count()
+    qtd_cancelados_30d = Venda.query.filter(Venda.status == 'cancelado', Venda.data_cancelamento >= data_30_dias_atras).count()
 
-    # ==========================================
-    # 4. DADOS AUXILIARES
-    # ==========================================
     form_pgto = FormularioPagamento()
     
-    # Filtro de vendedores presentes na lista atual
-    vendedores = set(s.vendedor.nome for s in servicos)
+    # ==========================================
+    # 4. PREENCHIMENTO DOS FILTROS (SELECTS)
+    # ==========================================
+    # Agora 'Usuario' está disponível aqui independente do if acima
+    vendedores_query = db.session.query(Usuario.nome).join(Venda, Venda.vendedor_id == Usuario.id).distinct().all()
+    vendedores = [v[0] for v in vendedores_query]
 
     return render_template('vendas/gestao_servicos.html', 
                            servicos=servicos,
@@ -87,4 +114,10 @@ def gestao_servicos():
                            qtd_producao=qtd_producao,
                            qtd_pronto=qtd_pronto,
                            qtd_cancelados=qtd_cancelados_30d,
-                           form_pgto=form_pgto)
+                           form_pgto=form_pgto,
+                           filtros={
+                               'q': filtro_q,
+                               'status': filtro_status,
+                               'vendedor': filtro_vendedor,
+                               'data': filtro_data
+                           })
