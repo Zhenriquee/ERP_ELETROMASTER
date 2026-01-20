@@ -36,6 +36,10 @@ def criar_app(nome_configuracao='desenvolvimento'):
 
     from src.modulos.metas.rotas import bp_metas
     app.register_blueprint(bp_metas)
+
+    # 6. DASHBOARD (Adicione isto!)
+    from src.modulos.dashboard import bp_dashboard
+    app.register_blueprint(bp_dashboard)
     
     # --- COMANDOS CLI (Terminal) ---
 
@@ -106,13 +110,11 @@ def criar_app(nome_configuracao='desenvolvimento'):
     @app.route('/')
     def index():
         if current_user.is_authenticated:
-            return redirect(url_for('dashboard'))
+            # Redireciona para o painel do dashboard
+            return redirect(url_for('dashboard.painel'))
         else:
             return redirect(url_for('autenticacao.login'))
 
-    @app.route('/dashboard')
-    @login_required
-    def dashboard():
-        return render_template('dashboard.html')
-        
+    # --- IMPORTANTE: Retorna o objeto app criado ---
     return app
+ 

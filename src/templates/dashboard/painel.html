@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block conteudo %}
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-navy-900">Visão Geral</h2>
+            <p class="text-sm text-gray-500">Resumo operacional da Eletromaster.</p>
+        </div>
+        <div class="text-right">
+    <p class="text-xs font-bold text-gray-400 uppercase">Meta do Mês</p>
+    <div class="flex items-center gap-2">
+                <div class="w-32 bg-gray-200 rounded-full h-2.5">
+                    <div id="barraMeta" class="bg-electric-500 h-2.5 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+                <span class="text-sm font-bold text-navy-900">{{ perc_meta }}%</span>
+            </div>
+</div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm text-gray-500 font-medium">Faturamento (Mês)</p>
+                    <h3 class="text-2xl font-bold text-navy-900">R$ {{ kpi_faturamento }}</h3>
+                </div>
+                <div class="p-3 bg-green-50 rounded-full text-green-600">
+                    <i data-lucide="trending-up" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <div class="text-xs text-gray-400">Vendas confirmadas este mês</div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm text-gray-500 font-medium">A Receber (Geral)</p>
+                    <h3 class="text-2xl font-bold text-navy-900">R$ {{ kpi_receber }}</h3>
+                </div>
+                <div class="p-3 bg-blue-50 rounded-full text-blue-600">
+                    <i data-lucide="wallet" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <div class="text-xs text-gray-400">Fluxo de entrada futuro</div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-red-500 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm text-gray-500 font-medium">A Pagar (Mês)</p>
+                    <h3 class="text-2xl font-bold text-navy-900">R$ {{ kpi_pagar }}</h3>
+                </div>
+                <div class="p-3 bg-red-50 rounded-full text-red-600">
+                    <i data-lucide="arrow-down-circle" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <div class="text-xs text-gray-400">Despesas pendentes este mês</div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-navy-600 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm text-gray-500 font-medium">Equipe Ativa</p>
+                    <h3 class="text-2xl font-bold text-navy-900">{{ kpi_equipe }}</h3>
+                </div>
+                <div class="p-3 bg-navy-50 rounded-full text-navy-600">
+                    <i data-lucide="users" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <div class="text-xs text-gray-400">Colaboradores no sistema</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow-sm lg:col-span-2 border border-gray-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg text-navy-900">Fluxo Financeiro (Semestral)</h3>
+                <span class="text-xs font-bold text-gray-400 uppercase">Receita vs Despesa</span>
+            </div>
+            <div class="relative h-72 w-full">
+                <canvas id="financeiroChart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 class="font-bold text-lg text-navy-900 mb-4">Distribuição de Custos</h3>
+            <div class="relative h-56 w-full flex justify-center">
+                <canvas id="categoriaChart"></canvas>
+            </div>
+            <div class="mt-4 text-center">
+                <p class="text-xs text-gray-400">Categorias do mês atual</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <a href="{{ url_for('vendas.nova_venda') }}" class="bg-white p-4 rounded-xl border border-gray-200 text-center hover:border-navy-500 transition-colors group">
+            <i data-lucide="shopping-cart" class="w-8 h-8 mx-auto text-gray-400 group-hover:text-navy-900 mb-2"></i>
+            <span class="text-sm font-bold text-gray-600 group-hover:text-navy-900">Nova Venda</span>
+        </a>
+        <a href="{{ url_for('financeiro.nova_despesa') }}" class="bg-white p-4 rounded-xl border border-gray-200 text-center hover:border-red-500 transition-colors group">
+            <i data-lucide="minus-circle" class="w-8 h-8 mx-auto text-gray-400 group-hover:text-red-500 mb-2"></i>
+            <span class="text-sm font-bold text-gray-600 group-hover:text-red-500">Lançar Despesa</span>
+        </a>
+        <a href="{{ url_for('operacional.painel') }}" class="bg-white p-4 rounded-xl border border-gray-200 text-center hover:border-blue-500 transition-colors group">
+            <i data-lucide="hammer" class="w-8 h-8 mx-auto text-gray-400 group-hover:text-blue-500 mb-2"></i>
+            <span class="text-sm font-bold text-gray-600 group-hover:text-blue-500">Produção</span>
+        </a>
+        <a href="{{ url_for('metas.painel') }}" class="bg-white p-4 rounded-xl border border-gray-200 text-center hover:border-green-500 transition-colors group">
+            <i data-lucide="target" class="w-8 h-8 mx-auto text-gray-400 group-hover:text-green-500 mb-2"></i>
+            <span class="text-sm font-bold text-gray-600 group-hover:text-green-500">Metas</span>
+        </a>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script id="kpi-data" type="application/json">
+        {
+            "chartLabels": {{ chart_labels|tojson }},
+            "chartVendas": {{ chart_vendas|tojson }},
+            "chartDespesas": {{ chart_despesas|tojson }},
+            "doughLabels": {{ doughnut_labels|tojson }},
+            "doughData": {{ doughnut_data|tojson }}
+        }
+    </script>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const rawData = JSON.parse(document.getElementById('kpi-data').textContent);
+
+            // Variáveis Globais para os Gráficos
+            window.CHART_LABELS = rawData.chartLabels;
+            window.CHART_VENDAS = rawData.chartVendas;
+            window.CHART_DESPESAS = rawData.chartDespesas;
+            window.DOUGH_LABELS = rawData.doughLabels;
+            window.DOUGH_DATA = rawData.doughData;
+            
+            // --- NOVA LÓGICA: ATUALIZA A BARRA DE META VIA JS ---
+            const barra = document.getElementById('barraMeta');
+            if (barra) {
+                // Trava em 100% visualmente se passou da meta
+                let largura = rawData.metaPerc > 100 ? 100 : rawData.metaPerc;
+                
+                // Pequeno delay para a animação CSS funcionar
+                setTimeout(() => {
+                    barra.style.width = largura + '%';
+                }, 100);
+            }
+            // ---------------------------------------------------
+
+            // Dispara evento para carregar gráficos
+            const event = new Event('dadosCarregados');
+            window.dispatchEvent(event);
+        });
+    </script>
+{% endblock %}
