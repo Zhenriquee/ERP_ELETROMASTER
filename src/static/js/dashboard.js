@@ -1,83 +1,66 @@
-// Funções de Modal Globais
-function abrirModal(modalId) {
-    const modal = document.getElementById(modalId);
-    const modalContent = modal.querySelector('div'); // O container branco dentro do modal
-    
-    if (modal) {
-        modal.classList.remove('hidden');
-        // Pequeno delay para permitir a animação CSS
-        setTimeout(() => {
-            modal.classList.remove('opacity-0');
-            if (modalContent) {
-                modalContent.classList.remove('scale-95');
-                modalContent.classList.add('scale-100');
-            }
-        }, 10);
-    }
-}
-
-function fecharModal(modalId) {
-    const modal = document.getElementById(modalId);
-    const modalContent = modal.querySelector('div');
-    
-    if (modal) {
-        modal.classList.add('opacity-0');
-        if (modalContent) {
-            modalContent.classList.remove('scale-100');
-            modalContent.classList.add('scale-95');
-        }
-        // Espera a animação acabar para esconder
-        setTimeout(() => {
-            modal.classList.add('hidden');
-        }, 300);
-    }
-}
-
-// Fechar ao clicar fora
-document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('modal-overlay')) {
-        fecharModal(e.target.id);
-    }
-});
-
-// ESC para fechar
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        const modals = document.querySelectorAll('.modal-overlay');
-        modals.forEach(m => {
-            if (!m.classList.contains('hidden')) {
-                fecharModal(m.id);
-            }
-        });
-    }
-});
+// src/static/js/dashboard.js
 
 document.addEventListener('DOMContentLoaded', function() {
     
-    // 1. GRÁFICO DE LINHA (Financeiro)
+    // =========================================================
+    // 1. RECUPERAÇÃO DOS DADOS DO HTML (JSON)
+    // =========================================================
+    let dados = {
+        chartLabels: [],
+        chartVendas: [],
+        chartDespesas: [],
+        doughLabels: [],
+        doughData: [],
+        metaPerc: 0
+    };
+
+    const elementoDados = document.getElementById('kpi-data');
+    if (elementoDados) {
+        try {
+            dados = JSON.parse(elementoDados.textContent);
+        } catch (e) {
+            console.error('Erro ao ler dados do Dashboard:', e);
+        }
+    }
+
+    // =========================================================
+    // 2. BARRA DE PROGRESSO DA META
+    // =========================================================
+    const barra = document.getElementById('barraMeta');
+    if (barra) {
+        // Trava em 100% visualmente se passou da meta
+        let largura = dados.metaPerc > 100 ? 100 : dados.metaPerc;
+        // Pequeno delay para a animação CSS funcionar
+        setTimeout(() => {
+            barra.style.width = largura + '%';
+        }, 100);
+    }
+
+    // =========================================================
+    // 3. GRÁFICO DE LINHA (FLUXO FINANCEIRO)
+    // =========================================================
     const canvasFin = document.getElementById('financeiroChart');
-    if (canvasFin && typeof CHART_LABELS !== 'undefined') {
+    if (canvasFin) {
         const ctx = canvasFin.getContext('2d');
         
-        // Gradiente para Vendas
+        // Gradientes
         const gradVendas = ctx.createLinearGradient(0, 0, 0, 400);
-        gradVendas.addColorStop(0, 'rgba(34, 197, 94, 0.2)'); // Green
+        gradVendas.addColorStop(0, 'rgba(34, 197, 94, 0.2)'); // Verde transparente
         gradVendas.addColorStop(1, 'rgba(34, 197, 94, 0)');
 
-        // Gradiente para Despesas
         const gradDespesas = ctx.createLinearGradient(0, 0, 0, 400);
-        gradDespesas.addColorStop(0, 'rgba(239, 68, 68, 0.2)'); // Red
+        gradDespesas.addColorStop(0, 'rgba(239, 68, 68, 0.2)'); // Vermelho transparente
         gradDespesas.addColorStop(1, 'rgba(239, 68, 68, 0)');
 
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: CHART_LABELS,
+                labels: dados.chartLabels,
                 datasets: [
                     {
                         label: 'Receitas (R$)',
-                        data: CHART_VENDAS,
-                        borderColor: '#22c55e', // Green 500
+                        data: dados.chartVendas,
+                        borderColor: '#22c55e', // Verde
                         backgroundColor: gradVendas,
                         borderWidth: 2,
                         tension: 0.4,
@@ -88,8 +71,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     {
                         label: 'Despesas (R$)',
-                        data: CHART_DESPESAS,
-                        borderColor: '#ef4444', // Red 500
+                        data: dados.chartDespesas,
+                        borderColor: '#ef4444', // Vermelho
                         backgroundColor: gradDespesas,
                         borderWidth: 2,
                         tension: 0.4,
@@ -124,7 +107,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         grid: { borderDash: [2, 4], color: '#e2e8f0' },
                         ticks: {
                             callback: function(value) {
-                                return 'R$ ' + value / 1000 + 'k'; // Formato curto
+                                if(value >= 1000) return 'R$ ' + value / 1000 + 'k';
+                                return 'R$ ' + value;
                             }
                         }
                     },
@@ -134,20 +118,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 2. GRÁFICO DE ROSCA (Categorias)
+    // =========================================================
+    // 4. GRÁFICO DE ROSCA (CATEGORIAS)
+    // =========================================================
     const canvasCat = document.getElementById('categoriaChart');
-    if (canvasCat && typeof DOUGH_LABELS !== 'undefined') {
+    if (canvasCat) {
         const ctxCat = canvasCat.getContext('2d');
-        
-        // Cores padrão do Eletromaster + Auxiliares
         const palette = ['#0a192f', '#3b82f6', '#facc15', '#ef4444', '#10b981', '#8b5cf6', '#f97316'];
 
         new Chart(ctxCat, {
             type: 'doughnut',
             data: {
-                labels: DOUGH_LABELS,
+                labels: dados.doughLabels,
                 datasets: [{
-                    data: DOUGH_DATA,
+                    data: dados.doughData,
                     backgroundColor: palette,
                     borderWidth: 0,
                     hoverOffset: 4
@@ -163,15 +147,71 @@ document.addEventListener('DOMContentLoaded', function() {
                         callbacks: {
                             label: function(context) {
                                 let val = context.parsed;
-                                // Se for valor monetário (assumindo que labels são categorias)
-                                if (val > 100) { 
-                                     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+                                let label = context.label || '';
+                                // Tenta formatar como moeda se parecer valor alto, senão mostra número puro
+                                if (val > 0) { 
+                                     // Verifica se é valor monetário ou qtd (assumindo monetário para custos)
+                                     return `${label}: ${val}`;
                                 }
-                                return val;
+                                return `${label}: ${val}`;
                             }
                         }
                     }
                 }
+            }
+        });
+    }
+
+});
+
+// =========================================================
+// 5. FUNÇÕES DE MODAL (Globais para funcionar com onclick)
+// =========================================================
+window.abrirModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    const modalContent = modal.querySelector('div');
+    
+    if (modal) {
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            if (modalContent) {
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }
+        }, 10);
+    }
+}
+
+window.fecharModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    const modalContent = modal.querySelector('div');
+    
+    if (modal) {
+        modal.classList.add('opacity-0');
+        if (modalContent) {
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+        }
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+}
+
+// Fechar ao clicar fora ou ESC
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal-overlay')) {
+        fecharModal(e.target.id);
+    }
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(m => {
+            if (!m.classList.contains('hidden')) {
+                fecharModal(m.id);
             }
         });
     }

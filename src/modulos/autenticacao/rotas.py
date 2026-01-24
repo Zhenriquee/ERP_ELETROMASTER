@@ -12,14 +12,14 @@ bp_autenticacao = Blueprint('autenticacao', __name__, url_prefix='/auth')
 @bp_autenticacao.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('dashboard.painel'))
     form = FormularioLogin()
     if form.validate_on_submit():
         user_banco = Usuario.query.filter_by(usuario=form.usuario.data).first()
         if user_banco and user_banco.verificar_senha(form.senha.data):
             login_user(user_banco, remember=form.lembrar_de_mim.data)
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('dashboard'))
+            return redirect(next_page or url_for('dashboard.painel'))
         else:
             flash('Usuário ou senha incorretos.', 'error')
     return render_template('autenticacao/login.html', form=form)
