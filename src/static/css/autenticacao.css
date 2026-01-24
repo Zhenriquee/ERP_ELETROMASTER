@@ -1,0 +1,25 @@
+/* src/static/css/autenticacao.css */
+
+/* Animação de Fade para o Slider */
+.fade-enter {
+    opacity: 0;
+    transition: opacity 1000ms ease-in-out;
+}
+
+.fade-enter-active {
+    opacity: 1;
+}
+
+/* Utilitário para imagem de fundo */
+.bg-slide {
+    background-size: cover;
+    background-position: center;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+
+/* Utilitário para transições de opacidade */
+.opacity-0 { opacity: 0; }
+.opacity-100 { opacity: 1; }
+.transition-opacity { transition: opacity 1s ease-in-out; }

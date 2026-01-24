@@ -92,7 +92,21 @@
         </div>
     </div>
 
-    <h3 class="text-lg font-bold text-navy-900 mb-4 flex items-center gap-2">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow-sm lg:col-span-2 border border-gray-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg text-navy-900">Fluxo Financeiro (Semestral)</h3>
+                <span class="text-xs font-bold text-gray-400 uppercase">Receita vs Despesa</span>
+            </div>
+            <div class="relative h-72 w-full"><canvas id="financeiroChart"></canvas></div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 class="font-bold text-lg text-navy-900 mb-4">Distribuição de Custos</h3>
+            <div class="relative h-56 w-full flex justify-center"><canvas id="categoriaChart"></canvas></div>
+        </div>
+    </div>
+
+    <h3 class="text-lg font-bold text-navy-900 mb-4 flex items-center gap-2 border-t pt-6 border-gray-200">
         <i data-lucide="hammer" class="w-5 h-5 text-gray-400"></i> Produção & Operacional
     </h3>
     
@@ -148,20 +162,6 @@
                 </div>
             </div>
             <div class="mt-2 text-xs text-gray-400">Entregues este mês</div>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white p-6 rounded-xl shadow-sm lg:col-span-2 border border-gray-100">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-lg text-navy-900">Fluxo Financeiro (Semestral)</h3>
-                <span class="text-xs font-bold text-gray-400 uppercase">Receita vs Despesa</span>
-            </div>
-            <div class="relative h-72 w-full"><canvas id="financeiroChart"></canvas></div>
-        </div>
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 class="font-bold text-lg text-navy-900 mb-4">Distribuição de Custos</h3>
-            <div class="relative h-56 w-full flex justify-center"><canvas id="categoriaChart"></canvas></div>
         </div>
     </div>
 

@@ -1,84 +1,102 @@
+{% from "macros/forms.html" import render_field_icon %}
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Eletromaster ERP</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     
     <script src="{{ url_for('static', filename='js/tema.js') }}"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/autenticacao.css') }}">
+    
+    <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
-<body class="bg-navy-900 h-screen flex items-center justify-center p-4">
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
-        
-        <div class="bg-gray-50 p-8 text-center border-b border-gray-100">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-navy-900 text-yellow-400 mb-4 shadow-lg">
-                <i data-lucide="zap" class="w-6 h-6 fill-current"></i>
-            </div>
-            <h2 class="text-2xl font-bold text-navy-900 tracking-tight">ELETROMASTER</h2>
-            <p class="text-sm text-gray-500 mt-1">Acesso ao Sistema Gerencial</p>
+<body class="h-screen w-full bg-gray-50 overflow-hidden flex">
+
+    <div class="hidden lg:flex w-1/2 relative bg-navy-900 items-center justify-center overflow-hidden">
+        <div id="slider-container" 
+             class="absolute inset-0 z-0"
+             data-images='[
+                 "{{ url_for('static', filename='img/login_bg_1.png') }}",
+                 "{{ url_for('static', filename='img/login_bg_2.png') }}",
+                 "{{ url_for('static', filename='img/login_bg_3.png') }}"
+             ]'>
         </div>
 
-        <div class="p-8">
+        <div class="absolute inset-0 bg-gradient-to-t from-navy-900 via-navy-900/60 to-transparent z-10"></div>
+
+        <div class="relative z-20 text-white p-12 w-full max-w-2xl">
+            <h1 class="text-4xl font-bold mb-4 tracking-tight leading-tight">
+                Gestão Inteligente para<br>
+                <span class="text-electric-500">Serviços de Excelência</span>
+            </h1>
+            <p class="text-gray-300 text-lg opacity-90 leading-relaxed">
+                Controle total da produção e financeiro em um único lugar.
+            </p>
+        </div>
+    </div>
+
+    <div class="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 bg-white overflow-y-auto">
+        <div class="w-full max-w-md space-y-8">
             
+            <div class="text-center">
+                <h2 class="text-3xl font-bold text-navy-900 tracking-tight">Bem-vindo de volta!</h2>
+                <p class="text-sm text-gray-500 mt-2">Insira suas credenciais para acessar o painel.</p>
+            </div>
+
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="mb-4 p-3 rounded-lg text-sm flex items-center
-                            {{ 'bg-red-50 text-red-700 border border-red-200' if category == 'error' else 'bg-green-50 text-green-700 border border-green-200' }}">
-                            <i data-lucide="alert-circle" class="w-4 h-4 mr-2"></i>
-                            {{ message }}
-                        </div>
-                    {% endfor %}
+                    <div class="space-y-2">
+                        {% for category, message in messages %}
+                            <div class="p-4 rounded-lg text-sm flex items-start gap-3 shadow-sm
+                                {{ 'bg-red-50 text-red-700 border-l-4 border-red-500' if category == 'error' else 'bg-green-50 text-green-700 border-l-4 border-green-500' }}">
+                                <i data-lucide="{{ 'alert-circle' if category == 'error' else 'check-circle' }}" class="w-5 h-5 shrink-0 mt-0.5"></i>
+                                <span class="font-medium">{{ message }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
                 {% endif %}
             {% endwith %}
 
-            <form method="POST" class="space-y-5">
+            <form method="POST" class="mt-8 space-y-6">
                 {{ form.hidden_tag() }}
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Usuário</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i data-lucide="user" class="w-5 h-5 text-gray-400"></i>
-                        </div>
-                        {{ form.usuario(class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 focus:border-navy-900 transition-colors outline-none", placeholder="Ex: admin") }}
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i data-lucide="lock" class="w-5 h-5 text-gray-400"></i>
-                        </div>
-                        {{ form.senha(class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 focus:border-navy-900 transition-colors outline-none") }}
-                    </div>
+                <div class="space-y-5">
+                    {{ render_field_icon(form.usuario, 'user', 'Seu usuário de acesso') }}
+                    {{ render_field_icon(form.senha, 'lock', '••••••••', type='password') }}
                 </div>
 
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        {{ form.lembrar_de_mim(class="h-4 w-4 text-navy-900 focus:ring-navy-900 border-gray-300 rounded") }}
-                        <label class="ml-2 block text-sm text-gray-900">Lembrar acesso</label>
+                        {{ form.lembrar_de_mim(class="h-4 w-4 text-navy-900 focus:ring-navy-900 border-gray-300 rounded cursor-pointer") }}
+                        <label for="lembrar_de_mim" class="ml-2 block text-sm text-gray-600 cursor-pointer select-none">
+                            Manter conectado
+                        </label>
                     </div>
+                    <a href="#" class="text-sm font-medium text-electric-500 hover:text-navy-900 transition-colors">
+                        Esqueceu a senha?
+                    </a>
                 </div>
 
-                <button type="submit" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-navy-900 hover:bg-navy-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-navy-900 transition-all transform hover:scale-[1.02]">
-                    ENTRAR
+                <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-bold text-white bg-navy-900 hover:bg-navy-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-navy-900 transition-all transform hover:-translate-y-0.5 hover:shadow-xl">
+                    ACESSAR SISTEMA
                 </button>
             </form>
-        </div>
-        
-        <div class="bg-gray-50 px-8 py-4 text-center border-t border-gray-100">
-            <p class="text-xs text-gray-400">&copy; 2026 Eletromaster ERP</p>
+
+            <div class="mt-6 text-center">
+                <p class="text-xs text-gray-400">
+                    &copy; 2026 Eletromaster ERP.
+                </p>
+            </div>
         </div>
     </div>
 
-    <script>
-        lucide.createIcons();
-    </script>
+    <script src="{{ url_for('static', filename='js/login_controller.js') }}"></script>
 </body>
 </html>
