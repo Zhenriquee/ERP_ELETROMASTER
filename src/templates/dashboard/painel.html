@@ -225,24 +225,29 @@
     {% endif %}
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        
+        {% if current_user.tem_permissao('vendas_operar') %}
         <a href="{{ url_for('vendas.nova_venda') }}" class="bg-white p-4 rounded-xl border border-gray-200 text-center hover:border-navy-500 transition-colors group">
             <i data-lucide="shopping-cart" class="w-8 h-8 mx-auto text-gray-400 group-hover:text-navy-900 mb-2"></i>
             <span class="text-sm font-bold text-gray-600 group-hover:text-navy-900">Nova Venda</span>
         </a>
+        {% endif %}
         
-        {% if exibir_financeiro %}
+        {% if current_user.tem_permissao('financeiro_acesso') %}
         <a href="{{ url_for('financeiro.nova_despesa') }}" class="bg-white p-4 rounded-xl border border-gray-200 text-center hover:border-red-500 transition-colors group">
             <i data-lucide="minus-circle" class="w-8 h-8 mx-auto text-gray-400 group-hover:text-red-500 mb-2"></i>
             <span class="text-sm font-bold text-gray-600 group-hover:text-red-500">Lançar Despesa</span>
         </a>
         {% endif %}
         
+        {% if current_user.tem_permissao('producao_operar') %}
         <a href="{{ url_for('operacional.painel') }}" class="bg-white p-4 rounded-xl border border-gray-200 text-center hover:border-blue-500 transition-colors group">
             <i data-lucide="hammer" class="w-8 h-8 mx-auto text-gray-400 group-hover:text-blue-500 mb-2"></i>
             <span class="text-sm font-bold text-gray-600 group-hover:text-blue-500">Produção</span>
         </a>
+        {% endif %}
         
-        {% if exibir_financeiro %}
+        {% if current_user.tem_permissao('metas_equipe') %}
         <a href="{{ url_for('metas.painel') }}" class="bg-white p-4 rounded-xl border border-gray-200 text-center hover:border-green-500 transition-colors group">
             <i data-lucide="target" class="w-8 h-8 mx-auto text-gray-400 group-hover:text-green-500 mb-2"></i>
             <span class="text-sm font-bold text-gray-600 group-hover:text-green-500">Metas</span>
@@ -270,7 +275,7 @@
             </div>
         </div>
     </div>
-    
+
     <div id="modalPerformance" class="modal-overlay fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 transform scale-95 transition-transform duration-300">
             <div class="flex justify-between items-center mb-4 border-b pb-2">
@@ -341,7 +346,7 @@
             </div>
         </div>
     </div>
-    
+
     <div id="modalOpFila" class="modal-overlay fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 transform scale-95 transition-transform duration-300 flex flex-col max-h-[80vh]">
             <div class="flex justify-between items-center mb-4 border-b pb-2">

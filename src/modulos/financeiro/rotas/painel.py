@@ -2,6 +2,7 @@ from flask import render_template, request
 from flask_login import login_required
 from sqlalchemy import extract, desc, and_
 from datetime import date
+from src.modulos.autenticacao.permissoes import cargo_exigido # Importante
 
 from src.extensoes import banco_de_dados as db
 from src.modulos.financeiro.modelos import Despesa, Fornecedor
@@ -9,6 +10,7 @@ from . import bp_financeiro
 
 @bp_financeiro.route('/', methods=['GET'])
 @login_required
+@cargo_exigido('financeiro_acesso') # <--- GARANTIR QUE ESTEJA AQUI
 def painel():
     hoje = date.today()
     

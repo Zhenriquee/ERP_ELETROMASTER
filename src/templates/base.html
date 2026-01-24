@@ -59,14 +59,13 @@
 
                 {{ nav_header('Gestão') }}
 
-                {% if current_user.tem_permissao('financeiro_ver') %}
+                {% if current_user.tem_permissao('financeiro_acesso') %}
                     {{ nav_link('financeiro.painel', 'dollar-sign', 'Financeiro', ['financeiro.nova_despesa', 'financeiro.fornecedores']) }}
                 {% endif %}
 
-                {% if current_user.tem_permissao('vendas_operar') or current_user.cargo in ['admin', 'gerente'] %}
-                    {{ nav_link('metas.painel', 'target', 'Metas & Objetivos', ['metas.nova_meta']) }}
+                {% if current_user.tem_permissao('metas_equipe') %}
+                {{ nav_link('metas.painel', 'target', 'Metas & Objetivos', ['metas.nova_meta']) }}
                 {% endif %}
-
                 {% if current_user.tem_permissao('produtos_gerir') %}
                     {{ nav_link('produtos.gerenciar', 'tag', 'Catálogo de Preços') }}
                 {% endif %}

@@ -1,317 +1,372 @@
 {% extends "base.html" %}
 
-{% block conteudo %}
-<div class="container mx-auto max-w-4xl px-0 sm:px-2">
-    
-    <div class="mb-6 flex justify-between items-center">
-        <h2 class="text-2xl font-bold text-navy-900">Nova Venda / Orçamento</h2>
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vendas.css') }}">
+    <style>
+        .sticky-summary { position: sticky; top: 1.5rem; }
+        .hidden-force { display: none !important; }
+        input:focus, select:focus, textarea:focus { transform: translateY(-1px); }
         
-        <a href="{{ url_for('vendas.nova_venda_multipla') }}" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 text-sm font-bold flex items-center transition-colors">
-            <i data-lucide="list-plus" class="w-4 h-4 mr-2"></i>
+        /* Estilo para campo travado (readonly visual) */
+        .input-locked {
+            background-color: #f3f4f6;
+            cursor: not-allowed;
+            color: #6b7280;
+        }
+    </style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto max-w-7xl px-2 sm:px-4 pb-12">
+    
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div>
+            <h2 class="text-3xl font-black text-navy-900 tracking-tight">Nova Venda (Simples)</h2>
+            <p class="text-sm text-gray-500">Orçamento rápido para item único.</p>
+        </div>
+        
+        <a href="{{ url_for('vendas.nova_venda_multipla') }}" 
+           class="group flex items-center px-5 py-2.5 bg-white border border-electric-500 text-electric-500 font-bold rounded-xl hover:bg-electric-50 transition-all shadow-sm">
+            <i data-lucide="layers" class="w-5 h-5 mr-2"></i>
             Modo Múltiplos Itens
         </a>
     </div>
 
-    <form method="POST" id="formVenda" action="{{ url_for('vendas.nova_venda') }}" class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden relative min-h-[500px]">
+    <form method="POST" id="formVenda" action="{{ url_for('vendas.nova_venda') }}">
         {{ form.hidden_tag() }}
 
-        <div class="bg-navy-900 text-white px-6 py-4">
-            <div class="flex justify-between items-center relative">
-                <div class="absolute left-0 top-1/2 w-full h-1 bg-navy-700 -z-0 transform -translate-y-1/2"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <div class="lg:col-span-2 space-y-6">
                 
-                <div class="relative z-10 flex flex-col items-center">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-green-500 text-white border-2 border-green-500 step-indicator transition-all" data-step="1">1</div>
-                    <span class="text-xs mt-1 font-medium text-green-400">Cliente</span>
-                </div>
-                <div class="relative z-10 flex flex-col items-center">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-gray-100 text-gray-500 border-2 border-gray-100 step-indicator transition-all" data-step="2">2</div>
-                    <span class="text-xs mt-1 font-medium text-gray-300">Serviço</span>
-                </div>
-                <div class="relative z-10 flex flex-col items-center">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-gray-100 text-gray-500 border-2 border-gray-100 step-indicator transition-all" data-step="3">3</div>
-                    <span class="text-xs mt-1 font-medium text-gray-300">Medidas</span>
-                </div>
-                <div class="relative z-10 flex flex-col items-center">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-gray-100 text-gray-500 border-2 border-gray-100 step-indicator transition-all" data-step="4">4</div>
-                    <span class="text-xs mt-1 font-medium text-gray-300">Acabamento</span>
-                </div>
-                <div class="relative z-10 flex flex-col items-center">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-gray-100 text-gray-500 border-2 border-gray-100 step-indicator transition-all" data-step="5">5</div>
-                    <span class="text-xs mt-1 font-medium text-gray-300">Valores</span>
-                </div>
-                <div class="relative z-10 flex flex-col items-center">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-gray-100 text-gray-500 border-2 border-gray-100 step-indicator transition-all" data-step="6">6</div>
-                    <span class="text-xs mt-1 font-medium text-gray-300">Revisão</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="p-6 md:p-8">
-
-            <div class="wizard-step" data-step="1">
-                <h3 class="text-xl font-bold text-navy-900 mb-6 flex items-center">
-                    <i data-lucide="user" class="w-5 h-5 mr-2"></i> Identificação do Cliente
-                </h3>
-                
-                <div class="mb-6">
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Tipo de Pessoa</label>
-                    <div class="flex gap-6">
-                        {% for subfield in form.tipo_cliente %}
-                        <label class="flex items-center cursor-pointer group">
-                            <div class="relative">
-                                {{ subfield(class="peer sr-only") }}
-                                <div class="w-5 h-5 border-2 border-gray-300 rounded-full peer-checked:border-navy-900 peer-checked:bg-navy-900 transition-all"></div>
-                            </div>
-                            <span class="ml-2 text-gray-700 font-medium group-hover:text-navy-900">{{ subfield.label.text }}</span>
-                        </label>
-                        {% endfor %}
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+                        <div class="p-2 bg-blue-50 text-blue-600 rounded-lg"><i data-lucide="user" class="w-6 h-6"></i></div>
+                        <h3 class="text-lg font-bold text-navy-900">1. Dados do Cliente</h3>
                     </div>
-                </div>
 
-                <div id="bloco-pf" class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Nome Completo *</label>
-                        {{ form.pf_nome(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="Ex: João da Silva") }}
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">CPF</label>
-                        {{ form.pf_cpf(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="000.000.000-00") }}
-                    </div>
-                </div>
-
-                <div id="bloco-pj" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden animate-fade-in">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Nome Fantasia *</label>
-                        {{ form.pj_fantasia(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="Ex: Empresa X") }}
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">CNPJ</label>
-                        {{ form.pj_cnpj(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="00.000.000/0000-00") }}
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Solicitante (Responsável) *</label>
-                        {{ form.pj_solicitante(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="Quem pediu o serviço?") }}
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-100">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Telefone / WhatsApp *</label>
-                        {{ form.telefone(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="(00) 00000-0000") }}
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">E-mail</label>
-                        {{ form.email(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="cliente@email.com") }}
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Endereço Completo</label>
-                        {{ form.endereco(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="Rua, Número, Bairro, Cidade") }}
-                    </div>
-                </div>
-            </div>
-
-            <div class="wizard-step hidden" data-step="2">
-                <h3 class="text-xl font-bold text-navy-900 mb-6 flex items-center">
-                    <i data-lucide="wrench" class="w-5 h-5 mr-2"></i> Detalhes do Serviço
-                </h3>
-                
-                <div class="mb-6">
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Descrição do Item/Serviço *</label>
-                    {{ form.descricao_servico(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none h-32 resize-none", placeholder="Ex: Pintura de Portão de Ferro com detalhes...") }}
-                    <p class="text-xs text-gray-400 mt-1">Descreva o que será feito com detalhes para o cliente.</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Observações Internas</label>
-                    {{ form.observacoes_internas(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none h-24 resize-none bg-yellow-50", placeholder="Anotações para a equipe (não sai na via do cliente)") }}
-                </div>
-            </div>
-
-            <div class="wizard-step hidden" data-step="3">
-                <h3 class="text-xl font-bold text-navy-900 mb-6 flex items-center">
-                    <i data-lucide="ruler" class="w-5 h-5 mr-2"></i> Dimensões
-                </h3>
-
-                <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6 flex items-start gap-3">
-                    <i data-lucide="info" class="w-5 h-5 text-blue-600 mt-0.5"></i>
-                    <p class="text-sm text-blue-800">Selecione a unidade de medida correta. Para <strong>M²</strong> use Altura e Largura. Para <strong>M³</strong> inclua a Profundidade.</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Tipo de Medida</label>
-                        {{ form.tipo_medida(id="select-medida", class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none bg-white") }}
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Dimensão 1 (m)</label>
-                        {{ form.dim_1(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none input-calc", placeholder="0.00", type="number", step="0.01") }}
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Dimensão 2 (m)</label>
-                        {{ form.dim_2(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none input-calc", placeholder="0.00", type="number", step="0.01") }}
-                    </div>
-                    <div id="div-dim-3" class="hidden">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Dimensão 3 (m)</label>
-                        {{ form.dim_3(class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none input-calc", placeholder="0.00", type="number", step="0.01") }}
-                    </div>
-                </div>
-
-                <div class="mt-8 bg-gray-50 p-6 rounded-xl border border-gray-200 text-center">
-                    <p class="text-gray-500 uppercase text-xs font-bold tracking-wider mb-2">Metragem Total Calculada</p>
-                    <div class="text-4xl font-black text-navy-900 flex justify-center items-end gap-2">
-                        <span id="display-metragem">0.00</span>
-                        <span id="display-unidade" class="text-lg text-gray-400 mb-1 font-bold">m²</span>
-                    </div>
-                    {{ form.metragem_calculada(type="hidden") }}
-                </div>
-            </div>
-
-            <div class="wizard-step hidden" data-step="4">
-                <h3 class="text-xl font-bold text-navy-900 mb-6 flex items-center">
-                    <i data-lucide="paint-bucket" class="w-5 h-5 mr-2"></i> Acabamento e Quantidade
-                </h3>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Cor / Acabamento</label>
-                        {{ form.cor_id(id="select-cor", class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none bg-white") }}
-                        <div class="mt-2 text-xs text-gray-500 flex justify-between">
-                            <span>Preço Base:</span>
-                            <span class="font-bold text-navy-900">R$ <span id="cor-preco-base">0.00</span></span>
+                    <div class="mb-6">
+                        <label class="text-xs font-bold text-gray-500 uppercase mb-2 block">Tipo de Pessoa</label>
+                        <div class="flex gap-4">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="tipo_cliente" value="PF" class="peer sr-only" onchange="toggleCliente()" checked>
+                                <div class="px-4 py-2 rounded-lg border border-gray-300 text-gray-500 font-bold hover:bg-gray-50 peer-checked:bg-navy-900 peer-checked:text-white peer-checked:border-navy-900 transition-all shadow-sm">
+                                    Pessoa Física
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="tipo_cliente" value="PJ" class="peer sr-only" onchange="toggleCliente()">
+                                <div class="px-4 py-2 rounded-lg border border-gray-300 text-gray-500 font-bold hover:bg-gray-50 peer-checked:bg-navy-900 peer-checked:text-white peer-checked:border-navy-900 transition-all shadow-sm">
+                                    Pessoa Jurídica
+                                </div>
+                            </label>
                         </div>
                     </div>
-                    
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Quantidade de Peças</label>
-                        <div class="flex items-center">
-                            <button type="button" onclick="document.querySelector('[name=\'qtd_pecas\']').stepDown(); calculateAll();" class="w-10 h-11 bg-gray-100 border border-gray-300 rounded-l-lg hover:bg-gray-200 font-bold">-</button>
-                            {{ form.qtd_pecas(class="w-full h-11 border-y border-gray-300 text-center focus:ring-0 outline-none input-calc", type="number", min="1") }}
-                            <button type="button" onclick="document.querySelector('[name=\'qtd_pecas\']').stepUp(); calculateAll();" class="w-10 h-11 bg-gray-100 border border-gray-300 rounded-r-lg hover:bg-gray-200 font-bold">+</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="wizard-step hidden" data-step="5">
-                <h3 class="text-xl font-bold text-navy-900 mb-6 flex items-center">
-                    <i data-lucide="dollar-sign" class="w-5 h-5 mr-2"></i> Fechamento Financeiro
-                </h3>
-
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 flex justify-between items-center">
-                    <div>
-                        <span class="text-xs uppercase font-bold text-gray-500">Valor Base (Peças)</span>
-                        <div class="text-xl font-bold text-navy-900">R$ <span id="resumo-base">0.00</span></div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    
-                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                        <label class="block text-sm font-bold text-blue-800 mb-2">Acréscimo (R$)</label>
-                        {{ form.input_acrescimo(class="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-right font-mono font-bold text-blue-700 bg-white input-calc", placeholder="0.00", type="number", step="0.01") }}
-                        <p class="text-[10px] text-blue-600 mt-1">Valor somado ao total.</p>
-                    </div>
-
-                    <div class="bg-red-50 p-4 rounded-xl border border-red-100">
-                        <div class="flex justify-between mb-2">
-                            <label class="block text-sm font-bold text-red-800">Desconto</label>
-                            <div class="flex gap-2 bg-white px-2 py-1 rounded border border-red-100">
-                                {% for sub in form.tipo_desconto %}
-                                <label class="flex items-center cursor-pointer text-xs font-bold text-red-700">
-                                    {{ sub(class="mr-1 text-red-600 focus:ring-red-500") }} {{ sub.label.text }}
-                                </label>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {{ form.input_desconto(class="w-full px-4 py-3 border border-red-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-right font-mono font-bold text-red-600 bg-white input-calc", placeholder="0.00", type="number", step="0.01") }}
-                        <p class="text-[10px] text-red-600 mt-1">Valor subtraído do total.</p>
-                    </div>
-                </div>
-
-                <div class="bg-navy-900 text-white p-8 rounded-xl shadow-xl flex flex-col items-center justify-center relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-electric-400 to-blue-600"></div>
-                    <span class="text-gray-300 text-xs uppercase font-bold tracking-widest mb-2">Total Final a Cobrar</span>
-                    <div class="text-6xl font-black tracking-tighter">
-                        R$ <span id="resumo-total">0.00</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="wizard-step hidden" data-step="6">
-                <h3 class="text-xl font-bold text-navy-900 mb-6 flex items-center">
-                    <i data-lucide="clipboard-check" class="w-5 h-5 mr-2"></i> Revisão Final
-                </h3>
-
-                <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-xs text-gray-500 uppercase font-bold">Cliente</p>
-                            <p class="text-navy-900 font-medium text-lg" id="rev-cliente">--</p>
-                        </div>
-                        <div id="container-rev-solicitante">
-                            <p class="text-xs text-gray-500 uppercase font-bold">Solicitante</p>
-                            <p class="text-navy-900 font-medium" id="rev-solicitante">--</p>
-                        </div>
-                    </div>
-                    
-                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div id="bloco-pf" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="md:col-span-2">
-                            <p class="text-xs text-gray-500 uppercase font-bold">Descrição do Serviço</p>
-                            <p class="text-gray-700 mt-1" id="rev-servico">--</p>
+                            <label class="label-padrao">Nome Completo *</label>
+                            {{ form.pf_nome(class="input-navy", placeholder="Nome do cliente") }}
                         </div>
-                        
                         <div>
-                            <p class="text-xs text-gray-500 uppercase font-bold">Cor / Acabamento</p>
-                            <p class="text-navy-900 font-bold text-lg mt-1" id="rev-cor">--</p>
+                            <label class="label-padrao">CPF</label>
+                            {{ form.pf_cpf(class="input-navy", placeholder="000.000.000-00", oninput="mascaraCpf(this)") }}
                         </div>
-                        
-                        <div>
-                            <p class="text-xs text-gray-500 uppercase font-bold">Quantidade</p>
-                            <p class="text-navy-900 font-bold text-lg mt-1"><span id="rev-qtd">0</span> peças</p>
                         </div>
 
+                    <div id="bloco-pj" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden-force">
                         <div>
-                            <p class="text-xs text-gray-500 uppercase font-bold">Medidas Unitárias</p>
-                            <p class="text-gray-700 font-mono mt-1" id="rev-medidas">--</p>
+                            <label class="label-padrao">Nome Fantasia *</label>
+                            {{ form.pj_fantasia(class="input-navy") }}
                         </div>
-                        
                         <div>
-                            <p class="text-xs text-gray-500 uppercase font-bold">Metragem Total</p>
-                            <p class="text-gray-700 font-mono mt-1 font-bold" id="rev-metragem-total">--</p>
+                            <label class="label-padrao">Solicitante *</label>
+                            {{ form.pj_solicitante(class="input-navy", placeholder="Quem pediu?") }}
+                        </div>
+                        <div>
+                            <label class="label-padrao">CNPJ</label>
+                            {{ form.pj_cnpj(class="input-navy", oninput="mascaraCnpj(this)") }}
                         </div>
                     </div>
 
-                    <div class="bg-navy-900 px-6 py-4 flex justify-between items-center text-white">
-                        <span class="text-sm font-bold uppercase tracking-wider text-gray-400">Total Final</span>
-                        <span class="text-2xl font-black">R$ <span id="rev-total">0.00</span></span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-50">
+                        <div>
+                            <label class="label-padrao">Telefone/WhatsApp *</label>
+                            {{ form.telefone(class="input-navy", placeholder="(00) 00000-0000", oninput="mascaraTel(this)") }}
+                        </div>
+                        <div>
+                            <label class="label-padrao">E-mail</label>
+                            {{ form.email(class="input-navy", placeholder="cliente@email.com") }}
+                        </div>
+                         <div class="md:col-span-2">
+                            <label class="label-padrao">Endereço</label>
+                            {{ form.endereco(class="input-navy", placeholder="Rua, Número, Bairro...") }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+                        <div class="p-2 bg-yellow-50 text-yellow-600 rounded-lg"><i data-lucide="ruler" class="w-6 h-6"></i></div>
+                        <h3 class="text-lg font-bold text-navy-900">2. Detalhes do Serviço</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="md:col-span-2">
+                            <label class="label-padrao">Descrição do Serviço *</label>
+                            {{ form.descricao_servico(class="input-navy h-20 resize-none", placeholder="Ex: Portão basculante...") }}
+                        </div>
+                        
+                        <div>
+                            <label class="label-padrao">Acabamento / Cor *</label>
+                            <select name="cor_id" id="select-cor" class="input-navy bg-white cursor-pointer" onchange="atualizarUnidadeECalcular()">
+                                <option value="" data-preco="0" data-unidade="">Selecione...</option>
+                                {% for id, label in form.cor_id.choices %}
+                                    {# Recupera dados extras do JSON enviado pelo backend #}
+                                    {% set dados_cor = cores_json | selectattr("id", "equalto", id) | first %}
+                                    
+                                    <option value="{{ id }}" 
+                                            data-preco="{{ dados_cor.preco if dados_cor else 0 }}"
+                                            data-unidade="{{ dados_cor.unidade if dados_cor else 'm2' }}">
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="label-padrao">Unidade de Medida</label>
+                            {{ form.tipo_medida(id="select-medida", class="input-navy bg-white cursor-pointer", onchange="calculateAll()") }}
+                            <p class="text-[10px] text-gray-400 mt-1 flex items-center">
+                                <i data-lucide="lock" class="w-3 h-3 mr-1"></i>
+                                Definido pelo cadastro do acabamento
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-5 rounded-xl border border-gray-200">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                            <div>
+                                <label class="label-mini">Altura (m)</label>
+                                {{ form.dim_1(class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00", oninput="calculateAll()") }}
+                            </div>
+                            <div>
+                                <label class="label-mini">Largura (m)</label>
+                                {{ form.dim_2(class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00", oninput="calculateAll()") }}
+                            </div>
+                            <div id="div-dim-3" class="hidden-force">
+                                <label class="label-mini">Profund. (m)</label>
+                                {{ form.dim_3(class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00", oninput="calculateAll()") }}
+                            </div>
+                            <div>
+                                <label class="label-mini">Quantidade</label>
+                                {{ form.qtd_pecas(class="input-calc input-navy text-center font-bold", type="number", min="1", value="1", oninput="calculateAll()") }}
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center">
+                            <span class="text-xs text-gray-500 font-bold uppercase">Área Total</span>
+                            <div class="text-xl font-black text-navy-900">
+                                <span id="display-metragem">0.00</span> 
+                                <small id="display-unidade" class="text-gray-400 text-sm">m²</small>
+                            </div>
+                            {{ form.metragem_calculada(type="hidden", id="metragem_calculada") }}
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="label-padrao text-gray-400">Observações Internas</label>
+                        {{ form.observacoes_internas(class="input-navy bg-yellow-50", rows="2") }}
                     </div>
                 </div>
             </div>
 
-            <div class="mt-8 flex justify-between pt-6 border-t border-gray-100">
-                <button type="button" id="btn-prev" class="px-6 py-2 rounded-lg border border-gray-300 text-gray-600 font-bold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
-                    Voltar
-                </button>
-                
-                <button type="button" id="btn-next" class="px-8 py-2 rounded-lg bg-navy-900 text-white font-bold hover:bg-navy-800 shadow-lg shadow-navy-900/20 transition-all transform hover:-translate-y-0.5">
-                    Próximo
-                </button>
-                
-                <button type="submit" id="btn-submit" class="hidden px-8 py-2 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 shadow-lg shadow-green-600/20 transition-all transform hover:-translate-y-0.5">
-                    Confirmar Venda
-                </button>
+            <div class="lg:col-span-1">
+                <div class="sticky-summary">
+                    <div class="bg-navy-900 text-white rounded-2xl shadow-xl overflow-hidden relative">
+                        <div class="absolute top-0 right-0 p-4 opacity-5"><i data-lucide="dollar-sign" class="w-32 h-32"></i></div>
+
+                        <div class="p-6 pb-8 bg-gradient-to-br from-navy-900 to-navy-800">
+                            <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Estimado</p>
+                            <h2 class="text-4xl font-black tracking-tight flex items-baseline">
+                                <span class="text-lg mr-1 text-gray-400">R$</span>
+                                <span id="resumo-total">0.00</span>
+                            </h2>
+                        </div>
+
+                        <div class="bg-white p-6 text-gray-800 space-y-4">
+                            <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                                <span class="text-sm font-bold text-gray-500">Valor Base</span>
+                                <span class="font-bold text-navy-900">R$ <span id="resumo-base">0.00</span></span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <label class="text-xs font-bold text-blue-600 uppercase">Acréscimo</label>
+                                {{ form.input_acrescimo(class="input-calc w-24 text-right border-b border-blue-200 font-bold text-blue-600 outline-none", placeholder="0.00", type="number", step="0.01", oninput="calculateAll()") }}
+                            </div>
+
+                            <div class="flex items-center justify-between">
+                                <label class="text-xs font-bold text-red-500 uppercase">Desconto</label>
+                                {{ form.input_desconto(class="input-calc w-24 text-right border-b border-red-200 font-bold text-red-600 outline-none", placeholder="0.00", type="number", step="0.01", oninput="calculateAll()") }}
+                            </div>
+
+                            <button type="submit" class="w-full py-4 mt-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg transition-all transform hover:-translate-y-1 active:scale-95 group">
+                                <span class="mr-2">CONFIRMAR VENDA</span>
+                                <i data-lucide="check" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
+
         </div>
     </form>
 </div>
 {% endblock %}
 
 {% block scripts %}
-    <script>
-        const CORES_DB = JSON.parse('{{ cores_json|tojson|safe }}');
-    </script>
-    <script src="{{ url_for('static', filename='js/vendas.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if(typeof lucide !== 'undefined') lucide.createIcons();
+        toggleCliente(); 
+        atualizarUnidadeECalcular(); // Inicializa corretamente
+    });
+
+    // 1. Lógica PF/PJ (TELEFONE MOVIDO)
+    window.toggleCliente = function() {
+        const radioPf = document.querySelector('input[name="tipo_cliente"][value="PF"]');
+        const isPf = radioPf ? radioPf.checked : true;
+        
+        const blocoPf = document.getElementById('bloco-pf');
+        const blocoPj = document.getElementById('bloco-pj');
+        
+        const inputsPf = blocoPf.querySelectorAll('input');
+        const inputsPj = blocoPj.querySelectorAll('input');
+
+        if (isPf) {
+            blocoPf.classList.remove('hidden-force');
+            blocoPj.classList.add('hidden-force');
+            inputsPf.forEach(i => i.required = true);
+            inputsPj.forEach(i => i.required = false);
+        } else {
+            blocoPf.classList.add('hidden-force');
+            blocoPj.classList.remove('hidden-force');
+            inputsPf.forEach(i => i.required = false);
+            inputsPj.forEach(i => i.required = true);
+        }
+    };
+
+    // 2. FUNÇÃO INTELIGENTE DE UNIDADE
+    window.atualizarUnidadeECalcular = function() {
+        const selectCor = document.getElementById('select-cor');
+        const selectMedida = document.getElementById('select-medida');
+        
+        if (selectCor.selectedIndex >= 0) {
+            const option = selectCor.options[selectCor.selectedIndex];
+            const unidadeCadastrada = option.getAttribute('data-unidade'); // Ex: 'm2' ou 'm3' ou 'un'
+            
+            // Lógica de mapeamento e travamento
+            if (unidadeCadastrada) {
+                // Remove caracteres estranhos e normaliza
+                const und = unidadeCadastrada.toLowerCase().trim();
+                
+                // Tenta selecionar no dropdown se existir
+                let encontrou = false;
+                for (let i = 0; i < selectMedida.options.length; i++) {
+                    if (selectMedida.options[i].value === und) {
+                        selectMedida.selectedIndex = i;
+                        encontrou = true;
+                        break;
+                    }
+                }
+                
+                // Se encontrou, trava o campo para o usuário não mudar
+                // Se não encontrou (ex: unidade 'un' e dropdown só tem m2/m3), deixa livre ou trava no padrão
+                if (encontrou) {
+                    selectMedida.classList.add('input-locked', 'pointer-events-none'); // Trava visual e clique
+                    // Opcional: selectMedida.disabled = true; (Cuidado: disabled não envia no POST)
+                } else {
+                    selectMedida.classList.remove('input-locked', 'pointer-events-none');
+                }
+            } else {
+                // Se não tem unidade definida (ex: "Selecione..."), destrava
+                selectMedida.classList.remove('input-locked', 'pointer-events-none');
+            }
+        }
+        
+        // Chama o cálculo normal
+        calculateAll();
+    }
+
+    // 3. Lógica de Cálculo
+    window.calculateAll = function() {
+        const dim1 = parseFloat(document.querySelector('[name="dim_1"]').value) || 0;
+        const dim2 = parseFloat(document.querySelector('[name="dim_2"]').value) || 0;
+        const dim3 = parseFloat(document.querySelector('[name="dim_3"]').value) || 0;
+        const qtd  = parseFloat(document.querySelector('[name="qtd_pecas"]').value) || 1;
+        
+        const selectMedida = document.getElementById('select-medida');
+        const tipoMedida = selectMedida ? selectMedida.value : 'm2';
+        const divDim3 = document.getElementById('div-dim-3');
+        const displayUnidade = document.getElementById('display-unidade');
+
+        let metragem = 0;
+
+        if (tipoMedida === 'm3') {
+            divDim3.classList.remove('hidden-force');
+            displayUnidade.innerText = 'm³';
+            metragem = dim1 * dim2 * (dim3 > 0 ? dim3 : 1);
+        } else {
+            divDim3.classList.add('hidden-force');
+            displayUnidade.innerText = 'm²';
+            metragem = dim1 * dim2;
+        }
+
+        document.getElementById('display-metragem').innerText = metragem.toFixed(2);
+        document.getElementById('metragem_calculada').value = metragem.toFixed(2);
+
+        // Busca Preço
+        let precoCor = 0;
+        const selectCor = document.getElementById('select-cor');
+        if (selectCor.selectedIndex >= 0) {
+            const option = selectCor.options[selectCor.selectedIndex];
+            precoCor = parseFloat(option.getAttribute('data-preco')) || 0;
+        }
+
+        const valorBase = (metragem * precoCor) * qtd;
+        const acrescimo = parseFloat(document.querySelector('[name="input_acrescimo"]').value) || 0;
+        const desconto = parseFloat(document.querySelector('[name="input_desconto"]').value) || 0;
+
+        let final = valorBase + acrescimo - desconto;
+        if (final < 0) final = 0;
+
+        document.getElementById('resumo-base').innerText = valorBase.toFixed(2);
+        document.getElementById('resumo-total').innerText = final.toFixed(2);
+    };
+
+    // 4. Máscaras
+    window.mascaraCpf = function(i){
+        let v = i.value.replace(/\D/g,"");
+        v=v.replace(/(\d{3})(\d)/,"$1.$2");
+        v=v.replace(/(\d{3})(\d)/,"$1.$2");
+        v=v.replace(/(\d{3})(\d{1,2})$/,"$1-$2");
+        i.value = v.substring(0, 14);
+    }
+    window.mascaraCnpj = function(i){
+        let v = i.value.replace(/\D/g,"");
+        v=v.replace(/^(\d{2})(\d)/,"$1.$2");
+        v=v.replace(/^(\d{2})\.(\d{3})(\d)/,"$1.$2.$3");
+        v=v.replace(/\.(\d{3})(\d)/,".$1/$2");
+        v=v.replace(/(\d{4})(\d)/,"$1-$2");
+        i.value = v.substring(0, 18);
+    }
+    window.mascaraTel = function(i){
+        let v = i.value.replace(/\D/g,"");
+        v=v.replace(/^(\d{2})(\d)/,"($1) $2");
+        v=v.replace(/(\d{5})(\d)/,"$1-$2");
+        i.value = v.substring(0, 15);
+    }
+</script>
 {% endblock %}

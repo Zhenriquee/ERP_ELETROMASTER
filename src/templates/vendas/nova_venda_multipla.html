@@ -1,24 +1,34 @@
 {% extends "base.html" %}
 
+{# 1. CORREÇÃO DO CSS: Adicionamos o bloco styles para carregar o visual #}
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vendas.css') }}">
+{% endblock %}
+
 {% block conteudo %}
 <div class="container mx-auto max-w-6xl px-0 sm:px-2">
     
     <div class="mb-6 flex justify-between items-center">
         <h2 class="text-2xl font-bold text-navy-900">Novo Serviço (Múltiplos Itens)</h2>
-        <a href="{{ url_for('vendas.nova_venda') }}" class="text-sm text-electric-500 hover:underline">
-            Voltar para Venda Simples
+        <a href="{{ url_for('vendas.nova_venda') }}" class="text-sm text-electric-500 hover:underline flex items-center">
+            <i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> Voltar para Venda Simples
         </a>
     </div>
 
-    <form method="POST" id="formMultiplo" action="{{ url_for('vendas.salvar_venda_multipla') }}">
+    {# 2. CORREÇÃO DOS DADOS: Passamos 'cores_json' via data-attribute seguro #}
+    <form method="POST" id="formMultiplo" 
+          data-cores='{{ cores_json|tojson|safe }}'
+          action="{{ url_for('vendas.salvar_venda_multipla') }}">
         
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-            <h3 class="font-bold text-navy-900 border-b pb-2 mb-4">1. Cliente</h3>
+            <h3 class="font-bold text-navy-900 border-b pb-2 mb-4 flex items-center">
+                <i data-lucide="user" class="w-5 h-5 mr-2 text-blue-500"></i> 1. Cliente
+            </h3>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1">Tipo Cliente</label>
-                    <select name="tipo_cliente" id="tipo_cliente" class="w-full p-2 border rounded" onchange="toggleTipoCliente()">
+                    <select name="tipo_cliente" id="tipo_cliente" class="input-navy" onchange="toggleTipoCliente()">
                         <option value="PF">Pessoa Física</option>
                         <option value="PJ">Pessoa Jurídica</option>
                     </select>
@@ -26,50 +36,80 @@
             </div>
 
             <div id="area-pf" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="text" name="pf_nome" placeholder="Nome Completo *" class="w-full p-2 border rounded" required>
-                <input type="text" name="pf_cpf" placeholder="CPF" class="w-full p-2 border rounded" oninput="mascaraCpf(this)">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">Nome Completo *</label>
+                    <input type="text" name="pf_nome" class="input-navy" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">CPF</label>
+                    <input type="text" name="pf_cpf" class="input-navy" oninput="mascaraCpf(this)">
+                </div>
             </div>
             
             <div id="area-pj" class="grid grid-cols-1 md:grid-cols-3 gap-4 hidden">
-                <input type="text" name="pj_fantasia" placeholder="Nome Fantasia *" class="w-full p-2 border rounded">
-                <input type="text" name="pj_cnpj" placeholder="CNPJ" class="w-full p-2 border rounded" oninput="mascaraCnpj(this)">
-                <input type="text" name="pj_solicitante" placeholder="Solicitante *" class="w-full p-2 border rounded">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">Nome Fantasia *</label>
+                    <input type="text" name="pj_fantasia" class="input-navy">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">CNPJ</label>
+                    <input type="text" name="pj_cnpj" class="input-navy" oninput="mascaraCnpj(this)">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">Solicitante *</label>
+                    <input type="text" name="pj_solicitante" class="input-navy">
+                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <input type="text" name="telefone" placeholder="Telefone/WhatsApp *" class="w-full p-2 border rounded" required>
-                <input type="email" name="email" placeholder="E-mail" class="w-full p-2 border rounded">
-                <input type="text" name="endereco" placeholder="Endereço" class="w-full p-2 border rounded">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">Telefone/WhatsApp *</label>
+                    <input type="text" name="telefone" class="input-navy" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">E-mail</label>
+                    <input type="email" name="email" class="input-navy">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">Endereço</label>
+                    <input type="text" name="endereco" class="input-navy">
+                </div>
             </div>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-            <h3 class="font-bold text-navy-900 border-b pb-2 mb-4 flex justify-between items-center">
-                2. Itens do Serviço
-                <button type="button" onclick="adicionarLinha()" class="text-xs bg-navy-900 text-white px-3 py-1 rounded hover:bg-navy-700">
-                    + Adicionar Item
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h3 class="font-bold text-navy-900 flex items-center">
+                    <i data-lucide="package" class="w-5 h-5 mr-2 text-blue-500"></i> 2. Itens do Serviço
+                </h3>
+                <button type="button" onclick="adicionarLinha()" class="text-xs bg-navy-900 text-white px-4 py-2 rounded-lg hover:bg-navy-700 font-bold transition-colors flex items-center shadow-sm">
+                    <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Adicionar Item
                 </button>
-            </h3>
+            </div>
 
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto rounded-lg border border-gray-100">
                 <table class="w-full text-sm text-left">
-                    <thead class="bg-gray-50 text-gray-500 font-bold">
+                    <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
                         <tr>
                             <th class="p-3 w-1/3">Descrição do Produto</th>
                             <th class="p-3">Cor/Acabamento</th>
-                            <th class="p-3 w-20">Qtd</th>
-                            <th class="p-3 w-32">Vlr. Unit. (R$)</th>
-                            <th class="p-3 w-32">Total (R$)</th>
+                            <th class="p-3 w-24 text-center">Qtd</th>
+                            <th class="p-3 w-32 text-right">Vlr. Unit. (R$)</th>
+                            <th class="p-3 w-32 text-right">Total (R$)</th>
                             <th class="p-3 w-10"></th>
                         </tr>
                     </thead>
-                    <tbody id="listaItens">
+                    <tbody id="listaItens" class="divide-y divide-gray-100">
                         </tbody>
                 </table>
             </div>
             
+            <div id="emptyStateItens" class="text-center py-8 text-gray-400">
+                <p>Nenhum item adicionado.</p>
+            </div>
+
             <div class="mt-4 flex justify-end">
-                <div class="text-right">
+                <div class="text-right bg-gray-50 px-4 py-2 rounded-lg">
                     <span class="text-gray-500 text-xs uppercase font-bold">Subtotal Itens:</span>
                     <span class="text-xl font-bold text-navy-900 block">R$ <span id="displaySubtotal">0.00</span></span>
                 </div>
@@ -77,197 +117,225 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-            <h3 class="font-bold text-navy-900 border-b pb-2 mb-4">3. Valores Finais</h3>
+            <h3 class="font-bold text-navy-900 border-b pb-2 mb-4 flex items-center">
+                <i data-lucide="dollar-sign" class="w-5 h-5 mr-2 text-blue-500"></i> 3. Valores Finais
+            </h3>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">Acréscimo (R$)</label>
-                    <input type="number" name="acrescimo" id="inputAcrescimo" step="0.01" value="0" class="w-full p-2 border rounded font-bold text-blue-600" oninput="calcularFinal()">
+                    <label class="block text-xs font-bold text-blue-600 mb-1 uppercase">Acréscimo (R$)</label>
+                    <input type="number" name="acrescimo" id="inputAcrescimo" step="0.01" value="0" class="input-navy font-bold text-blue-600 text-right" oninput="calcularFinal()">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">Desconto</label>
+                    <label class="block text-xs font-bold text-red-500 mb-1 uppercase">Desconto</label>
                     <div class="flex gap-2">
-                        <select name="tipo_desconto" id="tipoDesconto" class="border rounded bg-gray-50 text-xs" onchange="calcularFinal()">
+                        <select name="tipo_desconto" id="tipoDesconto" class="border border-gray-300 rounded-lg bg-gray-50 text-xs font-bold text-gray-600 focus:outline-none" onchange="calcularFinal()">
                             <option value="real">R$</option>
                             <option value="perc">%</option>
                         </select>
-                        <input type="number" name="valor_desconto" id="inputDesconto" step="0.01" value="0" class="w-full p-2 border rounded font-bold text-red-600" oninput="calcularFinal()">
+                        <input type="number" name="valor_desconto" id="inputDesconto" step="0.01" value="0" class="input-navy font-bold text-red-600 text-right" oninput="calcularFinal()">
                     </div>
                 </div>
 
-                <div class="bg-navy-900 text-white p-4 rounded-lg flex flex-col justify-center items-end">
-                    <span class="text-xs uppercase opacity-70">Valor Final</span>
-                    <span class="text-3xl font-bold">R$ <span id="displayTotalFinal">0.00</span></span>
+                <div class="bg-navy-900 text-white p-4 rounded-xl flex flex-col justify-center items-end shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-electric-500"></div>
+                    <span class="text-xs uppercase opacity-70 font-bold tracking-wider">Valor Final</span>
+                    <span class="text-3xl font-black tracking-tight">R$ <span id="displayTotalFinal">0.00</span></span>
                     <input type="hidden" name="valor_final_calculado" id="hiddenTotalFinal">
                 </div>
             </div>
             
             <div class="mt-4">
                 <label class="block text-xs font-bold text-gray-500 mb-1">Observações Internas</label>
-                <textarea name="obs_internas" class="w-full p-2 border rounded h-20 bg-yellow-50"></textarea>
+                <textarea name="obs_internas" class="input-navy bg-yellow-50 border-yellow-200 focus:ring-yellow-500" rows="3" placeholder="Anotações para produção..."></textarea>
             </div>
         </div>
 
         <div class="flex justify-end gap-4 pb-10">
-            <a href="{{ url_for('dashboard.painel') }}" class="px-6 py-3 border rounded text-gray-600 hover:bg-gray-50">Cancelar</a>
-            <button type="submit" class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded shadow-lg">
-                Finalizar Venda
+            <a href="{{ url_for('dashboard.painel') }}" class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">
+                Cancelar
+            </a>
+            <button type="submit" class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 flex items-center">
+                <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Finalizar Venda
             </button>
         </div>
 
     </form>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-    const CORES_DISPONIVEIS = JSON.parse('{{ cores_json|tojson|safe }}');
-</script>
-
-<script>
-    // --- LÓGICA DE ITENS DINÂMICOS ---
-    let contadorLinhas = 0;
-
-    function adicionarLinha() {
-        const tbody = document.getElementById('listaItens');
-        const index = contadorLinhas++;
+    document.addEventListener('DOMContentLoaded', function() {
         
-        // Monta opções de cores
-        let optionsCores = '<option value="">Selecione...</option>';
-        CORES_DISPONIVEIS.forEach(c => {
-            optionsCores += `<option value="${c.id}">${c.nome} (${c.unidade})</option>`;
-        });
-
-        const row = document.createElement('tr');
-        row.className = 'border-b hover:bg-gray-50 transition-colors';
-        row.id = `linha-${index}`;
-        row.innerHTML = `
-            <td class="p-2">
-                <input type="text" name="itens[${index}][descricao]" class="w-full p-2 border rounded" placeholder="Ex: Cadeira de Ferro" required>
-            </td>
-            <td class="p-2">
-                <select name="itens[${index}][cor_id]" class="w-full p-2 border rounded bg-white" required>
-                    ${optionsCores}
-                </select>
-            </td>
-            <td class="p-2">
-                <input type="number" name="itens[${index}][qtd]" id="qtd-${index}" value="1" min="1" class="w-full p-2 border rounded text-center" oninput="calcLinha(${index}, 'qtd')">
-            </td>
-            <td class="p-2">
-                <input type="number" name="itens[${index}][unit]" id="unit-${index}" step="0.01" class="w-full p-2 border rounded" placeholder="0.00" oninput="calcLinha(${index}, 'unit')">
-            </td>
-            <td class="p-2">
-                <input type="number" name="itens[${index}][total]" id="total-${index}" step="0.01" class="w-full p-2 border rounded bg-gray-50 font-bold" placeholder="0.00" oninput="calcLinha(${index}, 'total')">
-            </td>
-            <td class="p-2 text-center">
-                <button type="button" onclick="removerLinha(${index})" class="text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-            </td>
-        `;
-        tbody.appendChild(row);
-        lucide.createIcons();
-    }
-
-    function removerLinha(index) {
-        document.getElementById(`linha-${index}`).remove();
-        calcularFinal();
-    }
-
-    // Lógica de Cálculo Bidirecional (Unitário <-> Total)
-    function calcLinha(idx, origem) {
-        const qtdEl = document.getElementById(`qtd-${idx}`);
-        const unitEl = document.getElementById(`unit-${idx}`);
-        const totalEl = document.getElementById(`total-${idx}`);
-
-        let qtd = parseFloat(qtdEl.value) || 1;
-        
-        if (origem === 'total') {
-            // Se mudou o total, calcula o unitário
-            let total = parseFloat(totalEl.value) || 0;
-            if (qtd > 0) {
-                unitEl.value = (total / qtd).toFixed(2);
+        // 1. CARREGA AS CORES DE FORMA SEGURA (Sem erro de sintaxe)
+        let CORES_DISPONIVEIS = [];
+        const form = document.getElementById('formMultiplo');
+        if(form && form.dataset.cores) {
+            try {
+                CORES_DISPONIVEIS = JSON.parse(form.dataset.cores);
+            } catch(e) {
+                console.error("Erro ao ler cores:", e);
             }
-        } else {
-            // Se mudou qtd ou unitário, calcula o total
-            let unit = parseFloat(unitEl.value) || 0;
-            totalEl.value = (qtd * unit).toFixed(2);
-        }
-        calcularFinal();
-    }
-
-    function calcularFinal() {
-        // 1. Soma Subtotal dos Itens
-        let subtotal = 0;
-        const inputsTotal = document.querySelectorAll('input[name*="[total]"]');
-        inputsTotal.forEach(inp => {
-            subtotal += parseFloat(inp.value) || 0;
-        });
-        document.getElementById('displaySubtotal').innerText = subtotal.toFixed(2);
-
-        // 2. Aplica Acréscimo e Desconto
-        const acrescimo = parseFloat(document.getElementById('inputAcrescimo').value) || 0;
-        const descValor = parseFloat(document.getElementById('inputDesconto').value) || 0;
-        const descTipo = document.getElementById('tipoDesconto').value;
-
-        let baseCalculo = subtotal + acrescimo;
-        let descontoReais = 0;
-
-        if (descTipo === 'perc') {
-            descontoReais = baseCalculo * (descValor / 100);
-        } else {
-            descontoReais = descValor;
         }
 
-        let final = baseCalculo - descontoReais;
-        if (final < 0) final = 0;
+        let contadorLinhas = 0;
+        const tbody = document.getElementById('listaItens');
+        const emptyState = document.getElementById('emptyStateItens');
 
-        document.getElementById('displayTotalFinal').innerText = final.toFixed(2);
-    }
+        // Função Global para adicionar linha
+        window.adicionarLinha = function() {
+            if(emptyState) emptyState.classList.add('hidden');
+            
+            const index = contadorLinhas++;
+            
+            // Monta opções de cores
+            let optionsCores = '<option value="">Selecione...</option>';
+            CORES_DISPONIVEIS.forEach(c => {
+                optionsCores += `<option value="${c.id}">${c.nome} (${c.unidade})</option>`;
+            });
 
-    // Toggle PF/PJ
-    function toggleTipoCliente() {
-        const tipo = document.getElementById('tipo_cliente').value;
-        const areaPf = document.getElementById('area-pf');
-        const areaPj = document.getElementById('area-pj');
-        const inputsPf = areaPf.querySelectorAll('input');
-        const inputsPj = areaPj.querySelectorAll('input');
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50 transition-colors group';
+            row.id = `linha-${index}`;
+            
+            row.innerHTML = `
+                <td class="p-2">
+                    <input type="text" name="itens[${index}][descricao]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy-900 outline-none" placeholder="Ex: Grade de Proteção" required>
+                </td>
+                <td class="p-2">
+                    <select name="itens[${index}][cor_id]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-navy-900 outline-none" required>
+                        ${optionsCores}
+                    </select>
+                </td>
+                <td class="p-2">
+                    <input type="number" name="itens[${index}][qtd]" id="qtd-${index}" value="1" min="1" class="w-full px-2 py-2 border border-gray-300 rounded-lg text-center text-sm font-bold focus:ring-2 focus:ring-navy-900 outline-none" oninput="calcLinha(${index}, 'qtd')">
+                </td>
+                <td class="p-2">
+                    <input type="number" name="itens[${index}][unit]" id="unit-${index}" step="0.01" class="w-full px-2 py-2 border border-gray-300 rounded-lg text-right text-sm focus:ring-2 focus:ring-navy-900 outline-none" placeholder="0.00" oninput="calcLinha(${index}, 'unit')">
+                </td>
+                <td class="p-2">
+                    <input type="number" name="itens[${index}][total]" id="total-${index}" step="0.01" class="w-full px-2 py-2 border border-gray-300 rounded-lg bg-gray-100 text-right text-sm font-bold text-navy-900 focus:ring-2 focus:ring-navy-900 outline-none" placeholder="0.00" oninput="calcLinha(${index}, 'total')">
+                </td>
+                <td class="p-2 text-center">
+                    <button type="button" onclick="removerLinha(${index})" class="text-gray-400 hover:text-red-600 transition-colors p-1 rounded-full hover:bg-red-50">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+            
+            // Re-renderiza ícones
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+        };
 
-        if (tipo === 'PF') {
-            areaPf.classList.remove('hidden');
-            areaPj.classList.add('hidden');
-            inputsPf.forEach(i => i.required = true);
-            inputsPj.forEach(i => i.required = false);
-            // CPF não é obrigatório no DB, mas nome sim
-            document.querySelector('[name="pf_cpf"]').required = false; 
-        } else {
-            areaPf.classList.add('hidden');
-            areaPj.classList.remove('hidden');
-            inputsPf.forEach(i => i.required = false);
-            inputsPj.forEach(i => i.required = true);
-            document.querySelector('[name="pj_cnpj"]').required = false;
+        window.removerLinha = function(index) {
+            const linha = document.getElementById(`linha-${index}`);
+            if(linha) linha.remove();
+            
+            // Se não sobrar nada, mostra aviso
+            if(tbody.children.length === 0) {
+                if(emptyState) emptyState.classList.remove('hidden');
+            }
+            calcularFinal();
+        };
+
+        window.calcLinha = function(idx, origem) {
+            const qtdEl = document.getElementById(`qtd-${idx}`);
+            const unitEl = document.getElementById(`unit-${idx}`);
+            const totalEl = document.getElementById(`total-${idx}`);
+
+            let qtd = parseFloat(qtdEl.value) || 0;
+            
+            if (origem === 'total') {
+                let total = parseFloat(totalEl.value) || 0;
+                if (qtd > 0) {
+                    unitEl.value = (total / qtd).toFixed(2);
+                }
+            } else {
+                let unit = parseFloat(unitEl.value) || 0;
+                totalEl.value = (qtd * unit).toFixed(2);
+            }
+            calcularFinal();
+        };
+
+        window.calcularFinal = function() {
+            let subtotal = 0;
+            // Busca inputs de total dinâmicos
+            const inputsTotal = document.querySelectorAll('input[name*="[total]"]');
+            
+            inputsTotal.forEach(inp => {
+                subtotal += parseFloat(inp.value) || 0;
+            });
+            
+            document.getElementById('displaySubtotal').innerText = subtotal.toFixed(2);
+
+            const acrescimo = parseFloat(document.getElementById('inputAcrescimo').value) || 0;
+            const descValor = parseFloat(document.getElementById('inputDesconto').value) || 0;
+            const descTipo = document.getElementById('tipoDesconto').value;
+
+            let baseCalculo = subtotal + acrescimo;
+            let descontoReais = 0;
+
+            if (descTipo === 'perc') {
+                descontoReais = baseCalculo * (descValor / 100);
+            } else {
+                descontoReais = descValor;
+            }
+
+            let final = baseCalculo - descontoReais;
+            if (final < 0) final = 0;
+
+            document.getElementById('displayTotalFinal').innerText = final.toFixed(2);
+            document.getElementById('hiddenTotalFinal').value = final.toFixed(2);
+        };
+
+        // Lógica de Cliente (PF/PJ)
+        window.toggleTipoCliente = function() {
+            const tipo = document.getElementById('tipo_cliente').value;
+            const areaPf = document.getElementById('area-pf');
+            const areaPj = document.getElementById('area-pj');
+            
+            const inputsPf = areaPf.querySelectorAll('input');
+            const inputsPj = areaPj.querySelectorAll('input');
+
+            if (tipo === 'PF') {
+                areaPf.classList.remove('hidden');
+                areaPj.classList.add('hidden');
+                
+                inputsPf.forEach(i => { if(i.name !== 'pf_cpf') i.required = true; }); // CPF opcional
+                inputsPj.forEach(i => i.required = false);
+            } else {
+                areaPf.classList.add('hidden');
+                areaPj.classList.remove('hidden');
+                
+                inputsPf.forEach(i => i.required = false);
+                inputsPj.forEach(i => { if(i.name !== 'pj_cnpj') i.required = true; }); // CNPJ opcional
+            }
+        };
+
+        // Máscaras
+        window.mascaraCpf = function(i){
+            let v = i.value.replace(/\D/g,"");
+            v=v.replace(/(\d{3})(\d)/,"$1.$2");
+            v=v.replace(/(\d{3})(\d)/,"$1.$2");
+            v=v.replace(/(\d{3})(\d{1,2})$/,"$1-$2");
+            i.value = v.substring(0, 14);
         }
-    }
+        window.mascaraCnpj = function(i){
+            let v = i.value.replace(/\D/g,"");
+            v=v.replace(/^(\d{2})(\d)/,"$1.$2");
+            v=v.replace(/^(\d{2})\.(\d{3})(\d)/,"$1.$2.$3");
+            v=v.replace(/\.(\d{3})(\d)/,".$1/$2");
+            v=v.replace(/(\d{4})(\d)/,"$1-$2");
+            i.value = v.substring(0, 18);
+        }
 
-    // Máscaras Simples
-    function mascaraCpf(i){
-        let v = i.value.replace(/\D/g,"");
-        v=v.replace(/(\d{3})(\d)/,"$1.$2");
-        v=v.replace(/(\d{3})(\d)/,"$1.$2");
-        v=v.replace(/(\d{3})(\d{1,2})$/,"$1-$2");
-        i.value = v.substring(0, 14);
-    }
-    function mascaraCnpj(i){
-        let v = i.value.replace(/\D/g,"");
-        v=v.replace(/^(\d{2})(\d)/,"$1.$2");
-        v=v.replace(/^(\d{2})\.(\d{3})(\d)/,"$1.$2.$3");
-        v=v.replace(/\.(\d{3})(\d)/,".$1/$2");
-        v=v.replace(/(\d{4})(\d)/,"$1-$2");
-        i.value = v.substring(0, 18);
-    }
-
-    // Inicia com 1 linha
-    adicionarLinhas = adicionarLinha; // Global ref
-    window.onload = function() {
+        // Inicialização
+        if(typeof lucide !== 'undefined') lucide.createIcons();
         toggleTipoCliente();
-        adicionarLinha();
-    };
+        adicionarLinha(); // Começa com 1 item
+    });
 </script>
 {% endblock %}

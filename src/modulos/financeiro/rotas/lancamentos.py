@@ -2,7 +2,7 @@ from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-
+from src.modulos.autenticacao.permissoes import cargo_exigido # Importante
 from src.extensoes import banco_de_dados as db
 from src.modulos.financeiro.modelos import Despesa, Fornecedor
 from src.modulos.financeiro.formularios import FormularioDespesa
@@ -14,6 +14,7 @@ def add_months(source_date, months):
 
 @bp_financeiro.route('/nova', methods=['GET', 'POST'])
 @login_required
+@cargo_exigido('financeiro_acesso') # <--- GARANTIR QUE ESTEJA AQUI
 def nova_despesa():
     form = FormularioDespesa()
     
