@@ -1,0 +1,25 @@
+{% macro nav_link(endpoint, icon, text, active_endpoints=[]) %}
+    {# 
+       Lógica: Verifica se a rota atual (request.endpoint) está na lista de ativos 
+       ou se é exatamente igual ao endpoint passado.
+    #}
+    {% set is_active = (request.endpoint == endpoint) or (request.endpoint in active_endpoints) %}
+    
+    <a href="{{ url_for(endpoint) }}" 
+       class="nav-item group {{ 'active' if is_active else '' }}">
+        
+        <i data-lucide="{{ icon }}" class="nav-icon"></i>
+        
+        <span class="nav-text">{{ text }}</span>
+        
+        {% if is_active %}
+            <div class="active-indicator"></div>
+        {% endif %}
+    </a>
+{% endmacro %}
+
+{% macro nav_header(text) %}
+    <div class="px-4 mt-6 mb-2">
+        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">{{ text }}</p>
+    </div>
+{% endmacro %}

@@ -1,3 +1,5 @@
+{% from "macros/sidebar.html" import nav_link, nav_header %}
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -10,165 +12,106 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <script src="{{ url_for('static', filename='js/tema.js') }}"></script>
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
 
     {% block styles %}{% endblock %}
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans antialiased">
+<body class="bg-gray-100 text-gray-800 font-sans antialiased overflow-hidden">
 
-    <div class="flex h-screen overflow-hidden bg-gray-100">
+    <div class="flex h-screen">
 
         <div id="mobile-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-20 hidden transition-opacity opacity-0 md:hidden"></div>
 
-        <aside id="sidebar" class="fixed inset-y-0 left-0 z-30 w-64 bg-navy-900 text-white shadow-xl transform -translate-x-full transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto flex flex-col">
+        <aside id="sidebar" class="sidebar-container w-72 fixed inset-y-0 left-0 z-30 transform -translate-x-full md:translate-x-0 md:static">
             
-            <div class="h-16 flex items-center justify-between px-6 border-b border-navy-700 bg-navy-900">
-                <div class="flex items-center">
-                    <i data-lucide="zap" class="text-yellow-400 w-8 h-8 mr-2 fill-current"></i>
-                    <div>
-                        <h1 class="font-bold text-xl tracking-wide">ELETROMASTER</h1>
-                        <span class="text-xs text-gray-400 uppercase tracking-wider">ERP System</span>
+            <div class="sidebar-logo-area justify-between">
+                <a href="{{ url_for('dashboard.painel') }}" class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-electric-500 flex items-center justify-center shadow-lg shadow-electric-500/30">
+                        <i data-lucide="zap" class="text-white w-6 h-6 fill-current"></i>
                     </div>
-                </div>
+                    <div>
+                        <h1 class="font-bold text-lg tracking-wide text-white leading-none">ELETROMASTER</h1>
+                        <span class="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-bold">ERP System</span>
+                    </div>
+                </a>
+                
                 <button id="btn-close-sidebar" class="md:hidden text-gray-400 hover:text-white">
                     <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
             </div>
 
-            <nav class="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+            <nav class="flex-1 overflow-y-auto py-4 custom-scrollbar">
                 
-                {% set ativo_dash = request.endpoint == 'dashboard' %}
-                <a href="{{ url_for('dashboard.painel') }}" 
-                   class="flex items-center px-3 py-2.5 rounded-lg text-gray-300 hover:bg-navy-800 hover:text-white transition-colors group {{ 'bg-navy-800 text-white' if request.endpoint and 'dashboard' in request.endpoint else '' }}">
-                    <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 group-hover:text-electric-400 transition-colors"></i>
-                    <span class="font-medium">Dashboard</span>
-                </a>
+                {{ nav_link('dashboard.painel', 'layout-dashboard', 'Visão Geral') }}
+
+                {{ nav_header('Operacional') }}
                 
-                {% if current_user.tem_permissao('rh_equipe') %}
-                    {% set ativo_rh = request.endpoint in ['autenticacao.listar_usuarios', 'autenticacao.novo_usuario'] %}
-                    <a href="{{ url_for('autenticacao.listar_usuarios') }}" 
-                       class="flex items-center px-4 py-3 rounded-lg group transition-colors shadow-sm
-                       {{ 'bg-navy-800 text-white border-l-4 border-electric-500' if ativo_rh else 'text-gray-400 hover:text-white hover:bg-navy-800' }}">
-                        <i data-lucide="users" class="w-5 h-5 mr-3 {{ 'text-electric-500' if ativo_rh }}"></i>
-                        <span>Equipe & RH</span>
-                    </a>
-                {% endif %}
-
-                {% if current_user.tem_permissao('estoque_ver') %}
-                <a href="#" 
-                   class="flex items-center px-4 py-3 rounded-lg group transition-colors shadow-sm text-gray-400 hover:text-white hover:bg-navy-800">
-                    <i data-lucide="package" class="w-5 h-5 mr-3"></i>
-                    <span>Estoque</span>
-                </a>
-                {% endif %}
-
-                {% if current_user.tem_permissao('produtos_gerir') %}
-                    {% set ativo_prod = request.endpoint in ['produtos.gerenciar'] %}
-                    <a href="{{ url_for('produtos.gerenciar') }}" 
-                       class="flex items-center px-4 py-3 rounded-lg group transition-colors shadow-sm
-                       {{ 'bg-navy-800 text-white border-l-4 border-electric-500' if ativo_prod else 'text-gray-400 hover:text-white hover:bg-navy-800' }}">
-                        <i data-lucide="tag" class="w-5 h-5 mr-3 {{ 'text-electric-500' if ativo_prod }}"></i>
-                        <span>Catálogo</span>
-                    </a>
-                {% endif %}
-
                 {% if current_user.tem_permissao('vendas_operar') %}
-                    {% set ativo_vendas = request.endpoint in ['vendas.nova_venda'] %}
-                    <a href="{{ url_for('vendas.nova_venda') }}" 
-                       class="flex items-center px-4 py-3 rounded-lg group transition-colors shadow-sm
-                       {{ 'bg-navy-800 text-white border-l-4 border-electric-500' if ativo_vendas else 'text-gray-400 hover:text-white hover:bg-navy-800' }}">
-                        <i data-lucide="shopping-cart" class="w-5 h-5 mr-3 {{ 'text-electric-500' if ativo_vendas }}"></i>
-                        <span>Nova Venda</span>
-                    </a>
-                {% endif %}
-
-                {% if current_user.tem_permissao('vendas_operar') %}
-                    {% set ativo_serv = request.endpoint == 'vendas.gestao_servicos' %}
-                    <a href="{{ url_for('vendas.gestao_servicos') }}" 
-                       class="flex items-center px-4 py-3 rounded-lg group transition-colors shadow-sm
-                       {{ 'bg-navy-800 text-white border-l-4 border-electric-500' if ativo_serv else 'text-gray-400 hover:text-white hover:bg-navy-800' }}">
-                        <i data-lucide="clipboard-list" class="w-5 h-5 mr-3 {{ 'text-electric-500' if ativo_serv }}"></i>
-                        <span>Gestão de Serviços</span>
-                    </a>
-                {% endif %}
-
-                {% if current_user.tem_permissao('vendas_operar') or current_user.cargo in ['admin', 'supervisor', 'gerente'] %}
-                    {% set ativo_metas = request.endpoint and 'metas' in request.endpoint %}
-                    <a href="{{ url_for('metas.painel') }}" 
-                       class="flex items-center px-4 py-3 rounded-lg group transition-colors shadow-sm
-                       {{ 'bg-navy-800 text-white border-l-4 border-electric-500' if ativo_metas else 'text-gray-400 hover:text-white hover:bg-navy-800' }}">
-                        
-                        <i data-lucide="target" class="w-5 h-5 mr-3 {{ 'text-electric-500' if ativo_metas }}"></i>
-                        
-                        <span>Metas & Objetivos</span>
-                    </a>
-                {% endif %}
-
-                {% if current_user.tem_permissao('financeiro_ver') %}
-                    {% set ativo_fin = request.endpoint and 'financeiro' in request.endpoint %}
-                    <a href="{{ url_for('financeiro.painel') }}" 
-                       class="flex items-center px-4 py-3 rounded-lg group transition-colors shadow-sm
-                       {{ 'bg-navy-800 text-white border-l-4 border-electric-500' if ativo_fin else 'text-gray-400 hover:text-white hover:bg-navy-800' }}">
-                        <i data-lucide="dollar-sign" class="w-5 h-5 mr-3 {{ 'text-electric-500' if ativo_fin }}"></i>
-                        <span>Financeiro</span>
-                    </a>
+                    {{ nav_link('vendas.nova_venda', 'plus-circle', 'Nova Venda', ['vendas.nova_venda_multipla']) }}
+                    {{ nav_link('vendas.gestao_servicos', 'clipboard-list', 'Gestão de Serviços') }}
                 {% endif %}
 
                 {% if current_user.tem_permissao('producao_operar') %}
-                    {% set ativo_op = request.endpoint == 'operacional.painel' %}
-                    <a href="{{ url_for('operacional.painel') }}" 
-                       class="flex items-center px-4 py-3 rounded-lg group transition-colors shadow-sm
-                       {{ 'bg-navy-800 text-white border-l-4 border-electric-500' if ativo_op else 'text-gray-400 hover:text-white hover:bg-navy-800' }}">
-                        <i data-lucide="hammer" class="w-5 h-5 mr-3 {{ 'text-electric-500' if ativo_op }}"></i>
-                        <span>Produção (Operacional)</span>
-                    </a>
+                    {{ nav_link('operacional.painel', 'hammer', 'Linha de Produção') }}
                 {% endif %}
-                
+
+                {{ nav_header('Gestão') }}
+
+                {% if current_user.tem_permissao('financeiro_ver') %}
+                    {{ nav_link('financeiro.painel', 'dollar-sign', 'Financeiro', ['financeiro.nova_despesa', 'financeiro.fornecedores']) }}
+                {% endif %}
+
+                {% if current_user.tem_permissao('vendas_operar') or current_user.cargo in ['admin', 'gerente'] %}
+                    {{ nav_link('metas.painel', 'target', 'Metas & Objetivos', ['metas.nova_meta']) }}
+                {% endif %}
+
+                {% if current_user.tem_permissao('produtos_gerir') %}
+                    {{ nav_link('produtos.gerenciar', 'tag', 'Catálogo de Preços') }}
+                {% endif %}
+
+                {% if current_user.tem_permissao('rh_equipe') %}
+                    {{ nav_header('Administrativo') }}
+                    {{ nav_link('autenticacao.listar_usuarios', 'users', 'Equipe & Acessos', ['autenticacao.novo_usuario', 'autenticacao.editar_usuario']) }}
+                {% endif %}
 
             </nav>
 
-            <div class="p-4 border-t border-navy-700 bg-navy-800">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="h-10 w-10 min-w-[2.5rem] rounded-full bg-electric-500 text-white flex items-center justify-center font-bold text-lg">
+            <div class="sidebar-footer">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-electric-500 to-navy-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-navy-800">
                         {{ current_user.nome[0] }}
                     </div>
-                    <div class="overflow-hidden">
+                    <div class="flex-1 overflow-hidden">
                         <p class="text-sm font-semibold text-white truncate">{{ current_user.nome }}</p>
-                        <p class="text-xs text-gray-400 uppercase truncate">{{ current_user.cargo }}</p>
+                        <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider truncate">{{ current_user.cargo }}</p>
                     </div>
+                    <a href="{{ url_for('autenticacao.logout') }}" class="p-2 text-gray-400 hover:text-red-400 transition-colors" title="Sair do Sistema">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </a>
                 </div>
-                <a href="{{ url_for('autenticacao.logout') }}" class="flex items-center justify-center px-4 py-2 text-red-400 hover:text-white hover:bg-red-600 rounded-lg transition-colors text-xs font-bold uppercase tracking-wider">
-                    <i data-lucide="log-out" class="w-4 h-4 mr-2"></i> Sair
-                </a>
             </div>
+
         </aside>
 
         <div class="flex-1 flex flex-col h-screen overflow-hidden relative w-full">
             
-            <header class="h-16 bg-white shadow-sm flex items-center justify-between px-4 sm:px-6 z-10 shrink-0">
-                <div class="flex items-center">
-                    <button id="btn-mobile-menu" class="md:hidden text-gray-500 focus:outline-none mr-4 p-2 rounded hover:bg-gray-100">
-                        <i data-lucide="menu" class="w-6 h-6"></i>
-                    </button>
-                    <h2 class="text-navy-900 font-bold text-lg truncate">Painel Gerencial</h2>
-                </div>
-                <div class="flex items-center space-x-2 sm:space-x-4">
-                    <button class="relative p-2 text-gray-400 hover:text-navy-900 transition-colors">
-                        <i data-lucide="bell" class="w-6 h-6"></i>
-                        <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                    </button>
-                </div>
-            </header>
+            <header class="md:hidden h-16 bg-white shadow-sm flex items-center justify-between px-4 z-10 shrink-0">
+                <button id="btn-mobile-menu" class="text-navy-900 p-2">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+                <span class="font-bold text-navy-900">Eletromaster</span>
+                <div class="w-6"></div> </header>
 
             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 sm:p-6 lg:p-8">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
-                            <div class="alert-dismissible mb-6 p-4 rounded-lg flex items-start shadow-sm transition-opacity duration-500
+                            <div class="alert-dismissible mb-6 p-4 rounded-lg flex items-start shadow-sm transition-opacity duration-500 animate-fade-in
                                         {{ 'bg-red-50 text-red-700 border-l-4 border-red-500' if category == 'error' else 'bg-green-50 text-green-700 border-l-4 border-green-500' }}">
                                 <i data-lucide="{{ 'alert-circle' if category == 'error' else 'check-circle' }}" class="w-5 h-5 mr-3 mt-0.5 shrink-0"></i>
-                                <span class="font-medium text-sm sm:text-base">{{ message }}</span>
+                                <span class="font-medium text-sm">{{ message }}</span>
                             </div>
                         {% endfor %}
                     {% endif %}
@@ -176,15 +119,14 @@
 
                 {% block conteudo %}{% endblock %}
 
-                <footer class="mt-8 text-center text-sm text-gray-400 pb-4">
-                    &copy; 2026 Eletromaster ERP.
+                <footer class="mt-8 text-center text-xs text-gray-400 pb-4">
+                    &copy; 2026 Eletromaster ERP - Versão 2.5
                 </footer>
             </main>
         </div>
     </div>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    
     {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,116 @@
+/* src/static/css/sidebar.css */
+
+/* Definição de Cores (Design Tokens)
+   Isso simula o config do Tailwind para o CSS puro 
+*/
+:root {
+    --color-navy-900: #0f172a;    /* Fundo Escuro */
+    --color-navy-800: #1e293b;    /* Hover/Ativo */
+    --color-electric-500: #3b82f6; /* Destaque/Azul Elétrico */
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;    /* Cinza Claro */
+}
+
+/* Container Principal */
+.sidebar-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--color-navy-900);
+    color: var(--text-primary);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+/* Área da Logo */
+.sidebar-logo-area {
+    height: 5rem; /* 80px */
+    display: flex;
+    align-items: center;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background-color: var(--color-navy-900);
+}
+
+/* Item de Navegação (Link) */
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    margin: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    color: var(--text-secondary);
+    position: relative;
+    overflow: hidden;
+    text-decoration: none; /* Remove sublinhado padrão */
+    transition: all 0.2s ease;
+}
+
+/* Hover Effect */
+.nav-item:hover {
+    background-color: var(--color-navy-800);
+    color: var(--text-primary);
+    transform: translateX(4px);
+}
+
+/* Estado Ativo (Selecionado) */
+.nav-item.active {
+    background-color: var(--color-navy-800);
+    color: var(--text-primary);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Ícone dentro do Item */
+.nav-item .nav-icon {
+    width: 1.25rem;  /* 20px */
+    height: 1.25rem;
+    margin-right: 0.75rem;
+    transition: color 0.2s;
+}
+
+/* Ícone quando Ativo */
+.nav-item.active .nav-icon {
+    color: var(--color-electric-500);
+}
+
+/* Texto do Item */
+.nav-text {
+    font-weight: 500;
+    font-size: 0.875rem; /* 14px */
+    letter-spacing: 0.025em;
+}
+
+/* Indicador Visual (Barra lateral colorida) */
+.active-indicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: var(--color-electric-500);
+    border-top-right-radius: 9999px;
+    border-bottom-right-radius: 9999px;
+}
+
+/* Rodapé do Usuário */
+.sidebar-footer {
+    padding: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background-color: rgba(15, 23, 42, 0.5); /* Navy 900 com transparência */
+}
+
+/* Barra de Rolagem Customizada (Opcional, mas elegante) */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 20px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}

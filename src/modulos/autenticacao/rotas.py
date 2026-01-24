@@ -64,7 +64,9 @@ def novo_usuario():
     form.cargo.choices = cargos_permitidos
 
     # --- 2. LÓGICA DE SEGURANÇA DE MÓDULOS (PERMISSÕES) ---
-    todos_modulos = Modulo.query.all()
+    todos_modulos = Modulo.query.filter(
+        Modulo.nome.notin_(['Estoque', 'Produtos'])
+    ).all()
     
     if current_user.cargo == 'dono':
         # Dono vê tudo e pode dar tudo
