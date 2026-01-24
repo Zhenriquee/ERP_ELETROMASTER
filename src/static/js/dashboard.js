@@ -1,3 +1,57 @@
+// Funções de Modal Globais
+function abrirModal(modalId) {
+    const modal = document.getElementById(modalId);
+    const modalContent = modal.querySelector('div'); // O container branco dentro do modal
+    
+    if (modal) {
+        modal.classList.remove('hidden');
+        // Pequeno delay para permitir a animação CSS
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            if (modalContent) {
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }
+        }, 10);
+    }
+}
+
+function fecharModal(modalId) {
+    const modal = document.getElementById(modalId);
+    const modalContent = modal.querySelector('div');
+    
+    if (modal) {
+        modal.classList.add('opacity-0');
+        if (modalContent) {
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+        }
+        // Espera a animação acabar para esconder
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+}
+
+// Fechar ao clicar fora
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal-overlay')) {
+        fecharModal(e.target.id);
+    }
+});
+
+// ESC para fechar
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(m => {
+            if (!m.classList.contains('hidden')) {
+                fecharModal(m.id);
+            }
+        });
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     
     // 1. GRÁFICO DE LINHA (Financeiro)

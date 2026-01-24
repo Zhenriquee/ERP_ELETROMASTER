@@ -173,7 +173,8 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     {% for d in despesas %}
-                    <tr class="hover:bg-gray-50 transition-colors">
+                    <tr class="transition-colors {{ 'bg-yellow-100 border-l-4 border-yellow-500' if request.args.get('destaque_id')|int == d.id else 'hover:bg-gray-50' }}" 
+                         {% if request.args.get('destaque_id')|int == d.id %} id="linha-destaque" {% endif %}>
                         <td class="px-6 py-4 font-medium text-gray-800">
                             {{ d.data_vencimento.strftime('%d/%m/%Y') }}
                         </td>
@@ -247,6 +248,14 @@
 {% endblock %}
 
 {% block scripts %}
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const linha = document.getElementById("linha-destaque");
+        if (linha) {
+            linha.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+    });
+</script>
     <script src="{{ url_for('static', filename='js/financeiro.js') }}"></script>
     <script>
         function copiarCodigo(codigo) {
