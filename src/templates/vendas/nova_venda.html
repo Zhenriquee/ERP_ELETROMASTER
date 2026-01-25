@@ -2,18 +2,6 @@
 
 {% block styles %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/vendas.css') }}">
-    <style>
-        .sticky-summary { position: sticky; top: 1.5rem; }
-        .hidden-force { display: none !important; }
-        input:focus, select:focus, textarea:focus { transform: translateY(-1px); }
-        
-        /* Estilo para campo travado (readonly visual) */
-        .input-locked {
-            background-color: #f3f4f6;
-            cursor: not-allowed;
-            color: #6b7280;
-        }
-    </style>
 {% endblock %}
 
 {% block conteudo %}
@@ -50,13 +38,13 @@
                         <label class="text-xs font-bold text-gray-500 uppercase mb-2 block">Tipo de Pessoa</label>
                         <div class="flex gap-4">
                             <label class="cursor-pointer">
-                                <input type="radio" name="tipo_cliente" value="PF" class="peer sr-only" onchange="toggleCliente()" checked>
+                                <input type="radio" name="tipo_cliente" value="PF" class="peer sr-only" checked>
                                 <div class="px-4 py-2 rounded-lg border border-gray-300 text-gray-500 font-bold hover:bg-gray-50 peer-checked:bg-navy-900 peer-checked:text-white peer-checked:border-navy-900 transition-all shadow-sm">
                                     Pessoa Física
                                 </div>
                             </label>
                             <label class="cursor-pointer">
-                                <input type="radio" name="tipo_cliente" value="PJ" class="peer sr-only" onchange="toggleCliente()">
+                                <input type="radio" name="tipo_cliente" value="PJ" class="peer sr-only">
                                 <div class="px-4 py-2 rounded-lg border border-gray-300 text-gray-500 font-bold hover:bg-gray-50 peer-checked:bg-navy-900 peer-checked:text-white peer-checked:border-navy-900 transition-all shadow-sm">
                                     Pessoa Jurídica
                                 </div>
@@ -71,9 +59,9 @@
                         </div>
                         <div>
                             <label class="label-padrao">CPF</label>
-                            {{ form.pf_cpf(class="input-navy", placeholder="000.000.000-00", oninput="mascaraCpf(this)") }}
+                            {{ form.pf_cpf(class="input-navy", placeholder="000.000.000-00") }}
                         </div>
-                        </div>
+                    </div>
 
                     <div id="bloco-pj" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden-force">
                         <div>
@@ -86,14 +74,14 @@
                         </div>
                         <div>
                             <label class="label-padrao">CNPJ</label>
-                            {{ form.pj_cnpj(class="input-navy", oninput="mascaraCnpj(this)") }}
+                            {{ form.pj_cnpj(class="input-navy") }}
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-50">
                         <div>
                             <label class="label-padrao">Telefone/WhatsApp *</label>
-                            {{ form.telefone(class="input-navy", placeholder="(00) 00000-0000", oninput="mascaraTel(this)") }}
+                            {{ form.telefone(class="input-navy", placeholder="(00) 00000-0000") }}
                         </div>
                         <div>
                             <label class="label-padrao">E-mail</label>
@@ -121,12 +109,10 @@
                         
                         <div>
                             <label class="label-padrao">Acabamento / Cor *</label>
-                            <select name="cor_id" id="select-cor" class="input-navy bg-white cursor-pointer" onchange="atualizarUnidadeECalcular()">
+                            <select name="cor_id" id="select-cor" class="input-navy bg-white cursor-pointer">
                                 <option value="" data-preco="0" data-unidade="">Selecione...</option>
                                 {% for id, label in form.cor_id.choices %}
-                                    {# Recupera dados extras do JSON enviado pelo backend #}
                                     {% set dados_cor = cores_json | selectattr("id", "equalto", id) | first %}
-                                    
                                     <option value="{{ id }}" 
                                             data-preco="{{ dados_cor.preco if dados_cor else 0 }}"
                                             data-unidade="{{ dados_cor.unidade if dados_cor else 'm2' }}">
@@ -138,7 +124,7 @@
 
                         <div>
                             <label class="label-padrao">Unidade de Medida</label>
-                            {{ form.tipo_medida(id="select-medida", class="input-navy bg-white cursor-pointer", onchange="calculateAll()") }}
+                            {{ form.tipo_medida(id="select-medida", class="input-navy bg-white cursor-pointer") }}
                             <p class="text-[10px] text-gray-400 mt-1 flex items-center">
                                 <i data-lucide="lock" class="w-3 h-3 mr-1"></i>
                                 Definido pelo cadastro do acabamento
@@ -150,19 +136,19 @@
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
                             <div>
                                 <label class="label-mini">Altura (m)</label>
-                                {{ form.dim_1(class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00", oninput="calculateAll()") }}
+                                {{ form.dim_1(class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00") }}
                             </div>
                             <div>
                                 <label class="label-mini">Largura (m)</label>
-                                {{ form.dim_2(class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00", oninput="calculateAll()") }}
+                                {{ form.dim_2(class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00") }}
                             </div>
                             <div id="div-dim-3" class="hidden-force">
                                 <label class="label-mini">Profund. (m)</label>
-                                {{ form.dim_3(class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00", oninput="calculateAll()") }}
+                                {{ form.dim_3(class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00") }}
                             </div>
                             <div>
                                 <label class="label-mini">Quantidade</label>
-                                {{ form.qtd_pecas(class="input-calc input-navy text-center font-bold", type="number", min="1", value="1", oninput="calculateAll()") }}
+                                {{ form.qtd_pecas(class="input-calc input-navy text-center font-bold", type="number", min="1", value="1") }}
                             </div>
                         </div>
 
@@ -196,26 +182,54 @@
                             </h2>
                         </div>
 
-                        <div class="bg-white p-6 text-gray-800 space-y-4">
-                            <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-                                <span class="text-sm font-bold text-gray-500">Valor Base</span>
-                                <span class="font-bold text-navy-900">R$ <span id="resumo-base">0.00</span></span>
+                        <div class="bg-white p-6 text-gray-800 space-y-5">
+                            
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                                <span class="text-sm font-medium text-gray-500">Valor Base</span>
+                                <span class="font-bold text-navy-900 text-lg">R$ <span id="resumo-base">0.00</span></span>
                             </div>
                             
-                            <div class="flex items-center justify-between">
-                                <label class="text-xs font-bold text-blue-600 uppercase">Acréscimo</label>
-                                {{ form.input_acrescimo(class="input-calc w-24 text-right border-b border-blue-200 font-bold text-blue-600 outline-none", placeholder="0.00", type="number", step="0.01", oninput="calculateAll()") }}
+                            <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                <label class="flex items-center text-xs font-bold text-blue-700 uppercase mb-2">
+                                    <i data-lucide="plus-circle" class="w-3 h-3 mr-1"></i> Adicionar Acréscimo
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 font-bold">R$</span>
+                                    {{ form.input_acrescimo(class="input-calc w-full pl-10 pr-3 py-2 border border-blue-200 rounded bg-white text-blue-800 font-bold focus:ring-2 focus:ring-blue-500 outline-none", placeholder="0.00", type="number", step="0.01") }}
+                                </div>
                             </div>
 
-                            <div class="flex items-center justify-between">
-                                <label class="text-xs font-bold text-red-500 uppercase">Desconto</label>
-                                {{ form.input_desconto(class="input-calc w-24 text-right border-b border-red-200 font-bold text-red-600 outline-none", placeholder="0.00", type="number", step="0.01", oninput="calculateAll()") }}
+                            <div class="bg-red-50 p-3 rounded-lg border border-red-100">
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="flex items-center text-xs font-bold text-red-700 uppercase">
+                                        <i data-lucide="minus-circle" class="w-3 h-3 mr-1"></i> Desconto
+                                    </label>
+                                    
+                                    <div class="flex bg-white rounded border border-red-200 overflow-hidden">
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="tipo_desconto" value="real" checked class="peer sr-only">
+                                            <span class="px-2 py-1 text-xs font-bold text-gray-400 peer-checked:bg-red-100 peer-checked:text-red-700 transition-colors">R$</span>
+                                        </label>
+                                        <div class="w-px bg-red-100"></div>
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="tipo_desconto" value="perc" class="peer sr-only">
+                                            <span class="px-2 py-1 text-xs font-bold text-gray-400 peer-checked:bg-red-100 peer-checked:text-red-700 transition-colors">%</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="relative">
+                                    <span id="prefixo-desconto" class="absolute left-3 top-1/2 -translate-y-1/2 text-red-400 font-bold">R$</span>
+                                    {{ form.input_desconto(class="input-calc w-full pl-10 pr-3 py-2 border border-red-200 rounded bg-white text-red-800 font-bold focus:ring-2 focus:ring-red-500 outline-none", placeholder="0.00", type="number", step="0.01") }}
+                                </div>
                             </div>
 
-                            <button type="submit" class="w-full py-4 mt-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg transition-all transform hover:-translate-y-1 active:scale-95 group">
-                                <span class="mr-2">CONFIRMAR VENDA</span>
-                                <i data-lucide="check" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
-                            </button>
+                            <div class="pt-2">
+                                <button type="submit" class="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg shadow-green-600/20 flex items-center justify-center transition-all transform hover:-translate-y-1 active:scale-95 group">
+                                    <span class="mr-2">CONFIRMAR VENDA</span>
+                                    <i data-lucide="check" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -227,146 +241,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        if(typeof lucide !== 'undefined') lucide.createIcons();
-        toggleCliente(); 
-        atualizarUnidadeECalcular(); // Inicializa corretamente
-    });
-
-    // 1. Lógica PF/PJ (TELEFONE MOVIDO)
-    window.toggleCliente = function() {
-        const radioPf = document.querySelector('input[name="tipo_cliente"][value="PF"]');
-        const isPf = radioPf ? radioPf.checked : true;
-        
-        const blocoPf = document.getElementById('bloco-pf');
-        const blocoPj = document.getElementById('bloco-pj');
-        
-        const inputsPf = blocoPf.querySelectorAll('input');
-        const inputsPj = blocoPj.querySelectorAll('input');
-
-        if (isPf) {
-            blocoPf.classList.remove('hidden-force');
-            blocoPj.classList.add('hidden-force');
-            inputsPf.forEach(i => i.required = true);
-            inputsPj.forEach(i => i.required = false);
-        } else {
-            blocoPf.classList.add('hidden-force');
-            blocoPj.classList.remove('hidden-force');
-            inputsPf.forEach(i => i.required = false);
-            inputsPj.forEach(i => i.required = true);
-        }
-    };
-
-    // 2. FUNÇÃO INTELIGENTE DE UNIDADE
-    window.atualizarUnidadeECalcular = function() {
-        const selectCor = document.getElementById('select-cor');
-        const selectMedida = document.getElementById('select-medida');
-        
-        if (selectCor.selectedIndex >= 0) {
-            const option = selectCor.options[selectCor.selectedIndex];
-            const unidadeCadastrada = option.getAttribute('data-unidade'); // Ex: 'm2' ou 'm3' ou 'un'
-            
-            // Lógica de mapeamento e travamento
-            if (unidadeCadastrada) {
-                // Remove caracteres estranhos e normaliza
-                const und = unidadeCadastrada.toLowerCase().trim();
-                
-                // Tenta selecionar no dropdown se existir
-                let encontrou = false;
-                for (let i = 0; i < selectMedida.options.length; i++) {
-                    if (selectMedida.options[i].value === und) {
-                        selectMedida.selectedIndex = i;
-                        encontrou = true;
-                        break;
-                    }
-                }
-                
-                // Se encontrou, trava o campo para o usuário não mudar
-                // Se não encontrou (ex: unidade 'un' e dropdown só tem m2/m3), deixa livre ou trava no padrão
-                if (encontrou) {
-                    selectMedida.classList.add('input-locked', 'pointer-events-none'); // Trava visual e clique
-                    // Opcional: selectMedida.disabled = true; (Cuidado: disabled não envia no POST)
-                } else {
-                    selectMedida.classList.remove('input-locked', 'pointer-events-none');
-                }
-            } else {
-                // Se não tem unidade definida (ex: "Selecione..."), destrava
-                selectMedida.classList.remove('input-locked', 'pointer-events-none');
-            }
-        }
-        
-        // Chama o cálculo normal
-        calculateAll();
-    }
-
-    // 3. Lógica de Cálculo
-    window.calculateAll = function() {
-        const dim1 = parseFloat(document.querySelector('[name="dim_1"]').value) || 0;
-        const dim2 = parseFloat(document.querySelector('[name="dim_2"]').value) || 0;
-        const dim3 = parseFloat(document.querySelector('[name="dim_3"]').value) || 0;
-        const qtd  = parseFloat(document.querySelector('[name="qtd_pecas"]').value) || 1;
-        
-        const selectMedida = document.getElementById('select-medida');
-        const tipoMedida = selectMedida ? selectMedida.value : 'm2';
-        const divDim3 = document.getElementById('div-dim-3');
-        const displayUnidade = document.getElementById('display-unidade');
-
-        let metragem = 0;
-
-        if (tipoMedida === 'm3') {
-            divDim3.classList.remove('hidden-force');
-            displayUnidade.innerText = 'm³';
-            metragem = dim1 * dim2 * (dim3 > 0 ? dim3 : 1);
-        } else {
-            divDim3.classList.add('hidden-force');
-            displayUnidade.innerText = 'm²';
-            metragem = dim1 * dim2;
-        }
-
-        document.getElementById('display-metragem').innerText = metragem.toFixed(2);
-        document.getElementById('metragem_calculada').value = metragem.toFixed(2);
-
-        // Busca Preço
-        let precoCor = 0;
-        const selectCor = document.getElementById('select-cor');
-        if (selectCor.selectedIndex >= 0) {
-            const option = selectCor.options[selectCor.selectedIndex];
-            precoCor = parseFloat(option.getAttribute('data-preco')) || 0;
-        }
-
-        const valorBase = (metragem * precoCor) * qtd;
-        const acrescimo = parseFloat(document.querySelector('[name="input_acrescimo"]').value) || 0;
-        const desconto = parseFloat(document.querySelector('[name="input_desconto"]').value) || 0;
-
-        let final = valorBase + acrescimo - desconto;
-        if (final < 0) final = 0;
-
-        document.getElementById('resumo-base').innerText = valorBase.toFixed(2);
-        document.getElementById('resumo-total').innerText = final.toFixed(2);
-    };
-
-    // 4. Máscaras
-    window.mascaraCpf = function(i){
-        let v = i.value.replace(/\D/g,"");
-        v=v.replace(/(\d{3})(\d)/,"$1.$2");
-        v=v.replace(/(\d{3})(\d)/,"$1.$2");
-        v=v.replace(/(\d{3})(\d{1,2})$/,"$1-$2");
-        i.value = v.substring(0, 14);
-    }
-    window.mascaraCnpj = function(i){
-        let v = i.value.replace(/\D/g,"");
-        v=v.replace(/^(\d{2})(\d)/,"$1.$2");
-        v=v.replace(/^(\d{2})\.(\d{3})(\d)/,"$1.$2.$3");
-        v=v.replace(/\.(\d{3})(\d)/,".$1/$2");
-        v=v.replace(/(\d{4})(\d)/,"$1-$2");
-        i.value = v.substring(0, 18);
-    }
-    window.mascaraTel = function(i){
-        let v = i.value.replace(/\D/g,"");
-        v=v.replace(/^(\d{2})(\d)/,"($1) $2");
-        v=v.replace(/(\d{5})(\d)/,"$1-$2");
-        i.value = v.substring(0, 15);
-    }
-</script>
+    <script src="{{ url_for('static', filename='js/vendas.js') }}"></script>
 {% endblock %}
