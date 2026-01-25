@@ -50,7 +50,7 @@
                 
                 {% if current_user.tem_permissao('vendas_operar') %}
                     {{ nav_link('vendas.nova_venda', 'plus-circle', 'Nova Venda', ['vendas.nova_venda_multipla']) }}
-                    {{ nav_link('vendas.gestao_servicos', 'clipboard-list', 'Gestão de Serviços') }}
+                    {{ nav_link('vendas.listar_vendas', 'clipboard-list', 'Gestão de Serviços') }}
                 {% endif %}
 
                 {% if current_user.tem_permissao('producao_operar') %}

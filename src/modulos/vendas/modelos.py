@@ -11,8 +11,8 @@ class CorServico(db.Model):
     __tablename__ = 'cores_servico'
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
-    unidade_medida = db.Column(db.String(5), nullable=False)
-    preco_unitario = db.Column(db.Numeric(10, 2), nullable=False)
+    preco_m2 = db.Column(db.Numeric(10, 2), nullable=True)
+    preco_m3 = db.Column(db.Numeric(10, 2), nullable=True)
     ativo = db.Column(db.Boolean, default=True)
     historico = db.relationship('HistoricoPrecoCor', backref='cor', lazy=True)
 
@@ -20,8 +20,10 @@ class HistoricoPrecoCor(db.Model):
     __tablename__ = 'historico_precos_cor'
     id = db.Column(db.Integer, primary_key=True)
     cor_id = db.Column(db.Integer, db.ForeignKey('cores_servico.id'), nullable=False)
-    preco_anterior = db.Column(db.Numeric(10, 2), nullable=False)
-    preco_novo = db.Column(db.Numeric(10, 2), nullable=False)
+    preco_m2_anterior = db.Column(db.Numeric(10, 2), nullable=True)
+    preco_m2_novo = db.Column(db.Numeric(10, 2), nullable=True)
+    preco_m3_anterior = db.Column(db.Numeric(10, 2), nullable=True)
+    preco_m3_novo = db.Column(db.Numeric(10, 2), nullable=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     data_alteracao = db.Column(db.DateTime, default=datetime.utcnow)
     usuario = db.relationship('Usuario')

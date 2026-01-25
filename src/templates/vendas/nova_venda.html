@@ -110,12 +110,12 @@
                         <div>
                             <label class="label-padrao">Acabamento / Cor *</label>
                             <select name="cor_id" id="select-cor" class="input-navy bg-white cursor-pointer">
-                                <option value="" data-preco="0" data-unidade="">Selecione...</option>
+                                <option value="" data-m2="0" data-m3="0">Selecione...</option>
                                 {% for id, label in form.cor_id.choices %}
                                     {% set dados_cor = cores_json | selectattr("id", "equalto", id) | first %}
                                     <option value="{{ id }}" 
-                                            data-preco="{{ dados_cor.preco if dados_cor else 0 }}"
-                                            data-unidade="{{ dados_cor.unidade if dados_cor else 'm2' }}">
+                                            data-m2="{{ dados_cor.preco_m2 }}"
+                                            data-m3="{{ dados_cor.preco_m3 }}">
                                         {{ label }}
                                     </option>
                                 {% endfor %}
@@ -126,8 +126,8 @@
                             <label class="label-padrao">Unidade de Medida</label>
                             {{ form.tipo_medida(id="select-medida", class="input-navy bg-white cursor-pointer") }}
                             <p class="text-[10px] text-gray-400 mt-1 flex items-center">
-                                <i data-lucide="lock" class="w-3 h-3 mr-1"></i>
-                                Definido pelo cadastro do acabamento
+                                <i data-lucide="info" class="w-3 h-3 mr-1"></i>
+                                Disponibilidade baseada na cor.
                             </p>
                         </div>
                     </div>
@@ -136,19 +136,19 @@
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
                             <div>
                                 <label class="label-mini">Altura (m)</label>
-                                {{ form.dim_1(class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00") }}
+                                {{ form.dimensao_1(id="dimensao_1", class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00") }}
                             </div>
                             <div>
                                 <label class="label-mini">Largura (m)</label>
-                                {{ form.dim_2(class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00") }}
+                                {{ form.dimensao_2(id="dimensao_2", class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00") }}
                             </div>
                             <div id="div-dim-3" class="hidden-force">
                                 <label class="label-mini">Profund. (m)</label>
-                                {{ form.dim_3(class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00") }}
+                                {{ form.dimensao_3(id="dimensao_3", class="input-calc input-navy text-center font-bold", type="number", step="0.01", placeholder="0.00") }}
                             </div>
                             <div>
                                 <label class="label-mini">Quantidade</label>
-                                {{ form.qtd_pecas(class="input-calc input-navy text-center font-bold", type="number", min="1", value="1") }}
+                                {{ form.quantidade_pecas(id="quantidade_pecas", class="input-calc input-navy text-center font-bold", type="number", min="1", value="1") }}
                             </div>
                         </div>
 
@@ -158,7 +158,7 @@
                                 <span id="display-metragem">0.00</span> 
                                 <small id="display-unidade" class="text-gray-400 text-sm">m²</small>
                             </div>
-                            {{ form.metragem_calculada(type="hidden", id="metragem_calculada") }}
+                            {{ form.metragem_total(type="hidden", id="metragem_total") }}
                         </div>
                     </div>
 
@@ -187,6 +187,8 @@
                             <div class="flex justify-between items-center pb-3 border-b border-gray-100">
                                 <span class="text-sm font-medium text-gray-500">Valor Base</span>
                                 <span class="font-bold text-navy-900 text-lg">R$ <span id="resumo-base">0.00</span></span>
+                                {{ form.valor_base(type="hidden", id="valor_base") }}
+                                {{ form.valor_final(type="hidden", id="valor_final") }}
                             </div>
                             
                             <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
@@ -195,7 +197,7 @@
                                 </label>
                                 <div class="relative">
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 font-bold">R$</span>
-                                    {{ form.input_acrescimo(class="input-calc w-full pl-10 pr-3 py-2 border border-blue-200 rounded bg-white text-blue-800 font-bold focus:ring-2 focus:ring-blue-500 outline-none", placeholder="0.00", type="number", step="0.01") }}
+                                    {{ form.valor_acrescimo(id="valor_acrescimo", class="input-calc w-full pl-10 pr-3 py-2 border border-blue-200 rounded bg-white text-blue-800 font-bold focus:ring-2 focus:ring-blue-500 outline-none", placeholder="0.00", type="number", step="0.01") }}
                                 </div>
                             </div>
 
@@ -206,21 +208,20 @@
                                     </label>
                                     
                                     <div class="flex bg-white rounded border border-red-200 overflow-hidden">
+                                        {% for subfield in form.tipo_desconto %}
                                         <label class="cursor-pointer">
-                                            <input type="radio" name="tipo_desconto" value="real" checked class="peer sr-only">
-                                            <span class="px-2 py-1 text-xs font-bold text-gray-400 peer-checked:bg-red-100 peer-checked:text-red-700 transition-colors">R$</span>
+                                            {{ subfield(class="peer sr-only") }}
+                                            <span class="px-2 py-1 text-xs font-bold text-gray-400 peer-checked:bg-red-100 peer-checked:text-red-700 transition-colors">
+                                                {{ subfield.label.text }}
+                                            </span>
                                         </label>
-                                        <div class="w-px bg-red-100"></div>
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="tipo_desconto" value="perc" class="peer sr-only">
-                                            <span class="px-2 py-1 text-xs font-bold text-gray-400 peer-checked:bg-red-100 peer-checked:text-red-700 transition-colors">%</span>
-                                        </label>
+                                        {% endfor %}
                                     </div>
                                 </div>
                                 
                                 <div class="relative">
                                     <span id="prefixo-desconto" class="absolute left-3 top-1/2 -translate-y-1/2 text-red-400 font-bold">R$</span>
-                                    {{ form.input_desconto(class="input-calc w-full pl-10 pr-3 py-2 border border-red-200 rounded bg-white text-red-800 font-bold focus:ring-2 focus:ring-red-500 outline-none", placeholder="0.00", type="number", step="0.01") }}
+                                    {{ form.valor_desconto_aplicado(id="valor_desconto_aplicado", class="input-calc w-full pl-10 pr-3 py-2 border border-red-200 rounded bg-white text-red-800 font-bold focus:ring-2 focus:ring-red-500 outline-none", placeholder="0.00", type="number", step="0.01") }}
                                 </div>
                             </div>
 

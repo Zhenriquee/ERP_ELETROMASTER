@@ -13,60 +13,50 @@ from . import bp_vendas
 
 @bp_vendas.route('/servicos', methods=['GET'])
 @login_required
-def gestao_servicos():
+def listar_vendas():
     # ==========================================
     # 1. CAPTURA DE FILTROS DA URL
     # ==========================================
     page = request.args.get('page', 1, type=int)
     per_page = 10
     
-    # Filtros vindos do GET
     filtro_q = request.args.get('q', '').strip()
     filtro_status = request.args.get('status', '')
     filtro_vendedor = request.args.get('vendedor', '')
     filtro_data = request.args.get('data', '')
 
     # ==========================================
-    # 2. CONSTRUÇÃO DA QUERY (BUSCA NO BANCO)
+    # 2. QUERY
     # ==========================================
     query = Venda.query.filter(Venda.status != 'orcamento')
 
-    # A) Filtro de Texto (ID, Cliente, Descrição ou Item)
     if filtro_q:
         query = query.outerjoin(ItemVenda)
-        
         condicoes = [
             Venda.cliente_nome.ilike(f'%{filtro_q}%'),
             Venda.descricao_servico.ilike(f'%{filtro_q}%'),
             ItemVenda.descricao.ilike(f'%{filtro_q}%'),
             Venda.cor_nome_snapshot.ilike(f'%{filtro_q}%')
         ]
-        
         if filtro_q.isdigit():
             condicoes.append(Venda.id == int(filtro_q))
-            
         query = query.filter(or_(*condicoes)).distinct()
 
-    # B) Filtro de Status
     if filtro_status:
         query = query.filter(Venda.status == filtro_status)
 
-    # C) Filtro de Vendedor (Nome)
     if filtro_vendedor:
-        # Agora o Usuario já está importado no topo, funciona sempre
         query = query.join(Usuario, Venda.vendedor_id == Usuario.id).filter(Usuario.nome == filtro_vendedor)
 
-    # D) Filtro de Data
     if filtro_data:
         query = query.filter(func.date(Venda.criado_em) == filtro_data)
 
-    # Ordenação e Paginação
     query = query.order_by(Venda.id.desc())
     paginacao = query.paginate(page=page, per_page=per_page, error_out=False)
     servicos = paginacao.items 
     
     # ==========================================
-    # 3. KPIS (Mantidos)
+    # 3. KPIS
     # ==========================================
     hoje = hora_brasilia().date()
     inicio_mes = hoje.replace(day=1)
@@ -97,10 +87,6 @@ def gestao_servicos():
 
     form_pgto = FormularioPagamento()
     
-    # ==========================================
-    # 4. PREENCHIMENTO DOS FILTROS (SELECTS)
-    # ==========================================
-    # Agora 'Usuario' está disponível aqui independente do if acima
     vendedores_query = db.session.query(Usuario.nome).join(Venda, Venda.vendedor_id == Usuario.id).distinct().all()
     vendedores = [v[0] for v in vendedores_query]
 

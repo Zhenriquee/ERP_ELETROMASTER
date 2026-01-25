@@ -82,7 +82,7 @@
             </div>
         </div>
         <div class="mt-2 text-right">
-            <a href="{{ url_for('vendas.gestao_servicos') }}" class="text-xs text-blue-500 hover:underline">Limpar filtros</a>
+            <a href="{{ url_for('vendas.listar_vendas') }}" class="text-xs text-blue-500 hover:underline">Limpar filtros</a>
         </div>
     </div>
 
@@ -171,7 +171,8 @@
                                     'descricao': item.descricao,
                                     'cor': item.cor.nome,
                                     'status': item.status,
-                                    'log_completo': log_acoes,  'hist_producao': item.data_inicio_producao.strftime('%d/%m/%Y %H:%M') if item.data_inicio_producao else None,
+                                    'log_completo': log_acoes,  
+                                    'hist_producao': item.data_inicio_producao.strftime('%d/%m/%Y %H:%M') if item.data_inicio_producao else None,
                                     'user_producao': item.usuario_producao.nome if item.usuario_producao else None,
                                     
                                     'hist_pronto': item.data_pronto.strftime('%d/%m/%Y %H:%M') if item.data_pronto else None,
@@ -233,11 +234,11 @@
             </span>
             <div class="flex gap-2">
             {% if paginacao.has_prev %}
-                <a href="{{ url_for('vendas.gestao_servicos', page=paginacao.prev_num, q=filtros.q, status=filtros.status, vendedor=filtros.vendedor, data=filtros.data) }}" 
+                <a href="{{ url_for('vendas.listar_vendas', page=paginacao.prev_num, q=filtros.q, status=filtros.status, vendedor=filtros.vendedor, data=filtros.data) }}" 
                    class="px-4 py-2 bg-white border border-gray-300 rounded hover:bg-gray-100 text-sm font-medium text-gray-700">Anterior</a>
             {% endif %}
             {% if paginacao.has_next %}
-                <a href="{{ url_for('vendas.gestao_servicos', page=paginacao.next_num, q=filtros.q, status=filtros.status, vendedor=filtros.vendedor, data=filtros.data) }}" 
+                <a href="{{ url_for('vendas.listar_vendas', page=paginacao.next_num, q=filtros.q, status=filtros.status, vendedor=filtros.vendedor, data=filtros.data) }}" 
                    class="px-4 py-2 bg-navy-900 text-white rounded hover:bg-navy-800 text-sm font-medium">Próximo</a>
             {% endif %}
         </div>
@@ -362,11 +363,10 @@
 </div>
 <script>
     setTimeout(function(){
-       // Só recarrega se não tiver nenhum modal aberto para não atrapalhar o usuário
        if (document.getElementById('modalServico').classList.contains('hidden')) {
            window.location.reload();
        }
-    }, 60000); // 60000 ms = 1 minuto
+    }, 60000);
 </script>
 {% endblock %}
 

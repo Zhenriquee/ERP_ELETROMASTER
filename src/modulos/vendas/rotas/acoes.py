@@ -68,7 +68,7 @@ def mudar_status(id, novo_status):
         db.session.commit()
         flash(f'Status atualizado para: {mapa_status[novo_status]} (Itens sincronizados)', 'success')
     
-    return redirect(url_for('vendas.gestao_servicos'))
+    return redirect(url_for('vendas.listar_vendas'))
 
 @bp_vendas.route('/itens/<int:id>/status/<novo_status>')
 @login_required
@@ -122,7 +122,7 @@ def mudar_status_item(id, novo_status):
         db.session.commit()
         flash(f'Item "{item.descricao}" atualizado com sucesso.', 'success')
     
-    return redirect(url_for('vendas.gestao_servicos'))
+    return redirect(url_for('vendas.listar_vendas'))
 
 # --- CANCELAR VENDA ---
 @bp_vendas.route('/servicos/<int:id>/cancelar', methods=['POST'])
@@ -133,13 +133,13 @@ def cancelar_venda(id):
     # Bloqueia cancelamento se já foi entregue e pago
     if venda.status == 'entregue' and venda.valor_restante <= 0.01:
         flash('Não é possível cancelar um serviço finalizado e totalmente pago.', 'error')
-        return redirect(url_for('vendas.gestao_servicos'))
+        return redirect(url_for('vendas.listar_vendas'))
         
     motivo = request.form.get('motivo_cancelamento')
     
     if not motivo or len(motivo.strip()) < 5:
         flash('É obrigatório informar o motivo do cancelamento (mínimo 5 caracteres).', 'error')
-        return redirect(url_for('vendas.gestao_servicos'))
+        return redirect(url_for('vendas.listar_vendas'))
     
     venda.status = 'cancelado'
     venda.motivo_cancelamento = motivo
@@ -148,4 +148,4 @@ def cancelar_venda(id):
     
     db.session.commit()
     flash('Serviço cancelado com sucesso.', 'info')
-    return redirect(url_for('vendas.gestao_servicos'))
+    return redirect(url_for('vendas.listar_vendas'))

@@ -1,7 +1,7 @@
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from src.extensoes import banco_de_dados as db
-from src.modulos.vendas.modelos import Venda, CorServico, hora_brasilia, ItemVenda
+from src.modulos.vendas.modelos import Venda, CorServico, hora_brasilia, ItemVenda, ItemVendaHistorico
 from src.modulos.vendas.formularios import FormularioVendaWizard
 from decimal import Decimal
 
@@ -9,79 +9,138 @@ from decimal import Decimal
 from . import bp_vendas
 
 
-# --- ROTAS DE CRIAÇÃO (MANTIDAS) ---
+# Função auxiliar para converter "1.234,56" em Decimal(1234.56)
+def converter_decimal(valor_str):
+    if not valor_str:
+        return Decimal('0.00')
+    if isinstance(valor_str, (float, int, Decimal)):
+        return Decimal(valor_str)
+    
+    # Remove pontos de milhar e troca vírgula por ponto
+    limpo = str(valor_str).replace('.', '').replace(',', '.')
+    try:
+        return Decimal(limpo)
+    except:
+        return Decimal('0.00')
+
 @bp_vendas.route('/nova', methods=['GET', 'POST'])
 @login_required
 def nova_venda():
     form = FormularioVendaWizard()
-    form.cor_id.choices = [(c.id, f"{c.nome} (R$ {c.preco_unitario}/{c.unidade_medida})") 
-                           for c in CorServico.query.filter_by(ativo=True).all()]
+    
+    # 1. Popula o select com as cores ativas
+    cores_ativas = CorServico.query.filter_by(ativo=True).order_by(CorServico.nome).all()
+    form.cor_id.choices = [(c.id, c.nome) for c in cores_ativas]
 
-    if request.method == 'POST':
-        cor = CorServico.query.get(form.cor_id.data)
-        
-        if form.tipo_cliente.data == 'PF':
-            nome_final = form.pf_nome.data
-            doc_final = form.pf_cpf.data
-            solicitante_final = None
-        else:
-            nome_final = form.pj_fantasia.data
-            doc_final = form.pj_cnpj.data
-            solicitante_final = form.pj_solicitante.data
+    # 2. Lógica do POST (Salvar)
+    if form.validate_on_submit():
+        try:
+            # --- Dados do Cliente ---
+            if form.tipo_cliente.data == 'PJ':
+                c_nome = form.pj_fantasia.data
+                c_doc = form.pj_cnpj.data
+                c_solicitante = form.pj_solicitante.data
+            else:
+                c_nome = form.pf_nome.data
+                c_doc = form.pf_cpf.data
+                c_solicitante = None
 
-        nova = Venda(
-            tipo_cliente=form.tipo_cliente.data,
-            cliente_nome=nome_final,
-            cliente_solicitante=solicitante_final,
-            cliente_documento=doc_final,
-            cliente_contato=form.telefone.data,
-            cliente_email=form.email.data,
-            cliente_endereco=form.endereco.data,
-            descricao_servico=form.descricao_servico.data,
-            observacoes_internas=form.observacoes_internas.data,
-            tipo_medida=form.tipo_medida.data,
-            dimensao_1=form.dim_1.data or 0,
-            dimensao_2=form.dim_2.data or 0,
-            dimensao_3=form.dim_3.data or 0,
-            metragem_total=Decimal(form.metragem_calculada.data or 0),
-            quantidade_pecas=form.qtd_pecas.data,
-            cor_id=cor.id,
-            cor_nome_snapshot=cor.nome,
-            preco_unitario_snapshot=cor.preco_unitario,
-            vendedor_id=current_user.id,
-            # Se criado agora, entra como Pendente (Venda Confirmada)
-            status='pendente' 
-        )
-
-        valor_bruto = nova.metragem_total * nova.quantidade_pecas * cor.preco_unitario
-        nova.valor_base = valor_bruto
-        
-        acrescimo = Decimal(form.input_acrescimo.data or 0)
-        nova.valor_acrescimo = acrescimo
-        valor_com_acrescimo = valor_bruto + acrescimo
-
-        desc_input = Decimal(form.input_desconto.data or 0)
-        desconto_reais = Decimal(0)
-        
-        if form.tipo_desconto.data == 'perc':
-            desconto_reais = valor_com_acrescimo * (desc_input / 100)
-        elif form.tipo_desconto.data == 'real':
-            desconto_reais = desc_input
+            # --- Preço ---
+            cor_selecionada = CorServico.query.get(form.cor_id.data)
             
-        nova.tipo_desconto = form.tipo_desconto.data
-        nova.valor_desconto_aplicado = desconto_reais
-        nova.valor_final = valor_com_acrescimo - desconto_reais
+            preco_snapshot = 0.0
+            if form.tipo_medida.data == 'm3':
+                preco_snapshot = cor_selecionada.preco_m3 if cor_selecionada.preco_m3 else 0.0
+            else:
+                preco_snapshot = cor_selecionada.preco_m2 if cor_selecionada.preco_m2 else 0.0
 
-        db.session.add(nova)
-        db.session.commit()
-        flash(f'Venda #{nova.id} registrada e enviada para produção!', 'success')
-        return redirect(url_for('vendas.gestao_servicos'))
+            # --- CORREÇÃO: Conversão dos Valores Monetários/Numéricos ---
+            # O form traz strings com vírgula (ex: "45,000") que quebram o banco
+            metragem_limpa = converter_decimal(form.metragem_total.data)
+            base_limpa = converter_decimal(form.valor_base.data)
+            final_limpa = converter_decimal(form.valor_final.data)
+            acrescimo_limpo = converter_decimal(form.valor_acrescimo.data)
+            desconto_limpo = converter_decimal(form.valor_desconto_aplicado.data)
 
+            # --- Criação da Venda ---
+            nova_venda = Venda(
+                tipo_cliente=form.tipo_cliente.data,
+                cliente_nome=c_nome,
+                cliente_documento=c_doc,
+                cliente_solicitante=c_solicitante,
+                cliente_contato=form.telefone.data,
+                cliente_email=form.email.data,
+                cliente_endereco=form.endereco.data,
+                
+                cor_id=cor_selecionada.id,
+                cor_nome_snapshot=cor_selecionada.nome,
+                preco_unitario_snapshot=preco_snapshot,
+                
+                tipo_medida=form.tipo_medida.data,
+                dimensao_1=form.dimensao_1.data, # Esses campos o WTForms já converteu pois são DecimalField
+                dimensao_2=form.dimensao_2.data,
+                dimensao_3=form.dimensao_3.data,
+                
+                metragem_total=metragem_limpa, # Usando valor limpo
+                quantidade_pecas=form.quantidade_pecas.data,
+                
+                valor_base=base_limpa,         # Usando valor limpo
+                valor_acrescimo=acrescimo_limpo,
+                tipo_desconto=form.tipo_desconto.data,
+                valor_desconto_aplicado=desconto_limpo,
+                valor_final=final_limpa,       # Usando valor limpo
+                
+                descricao_servico=form.descricao_servico.data,
+                observacoes_internas=form.observacoes_internas.data,
+                
+                vendedor_id=current_user.id,
+                status='orcamento'
+            )
+            
+            db.session.add(nova_venda)
+            db.session.commit()
+
+            # --- Cria ItemVenda ---
+            # Item também precisa receber os valores limpos se usasse esses campos, 
+            # mas valor_total vem da venda que já está limpo no objeto Python (Decimal)
+            novo_item = ItemVenda(
+                venda_id=nova_venda.id,
+                descricao=f"{cor_selecionada.nome} ({form.tipo_medida.data})",
+                cor_id=cor_selecionada.id,
+                quantidade=form.quantidade_pecas.data,
+                valor_unitario=preco_snapshot,
+                valor_total=nova_venda.valor_final,
+                status='pendente'
+            )
+            db.session.add(novo_item)
+            db.session.commit()
+
+            # --- Histórico ---
+            hist = ItemVendaHistorico(
+                item_id=novo_item.id,
+                usuario_id=current_user.id,
+                status_anterior='-',
+                status_novo='pendente',
+                acao='Criado na venda'
+            )
+            db.session.add(hist)
+            db.session.commit()
+
+            flash('Venda registrada com sucesso!', 'success')
+            return redirect(url_for('vendas.listar_vendas'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao registrar venda: {str(e)}', 'error')
+            print(f"Erro Nova Venda: {e}")
+
+    # 3. Lógica do GET
     cores_json = [{
         'id': c.id, 
-        'preco': float(c.preco_unitario), 
-        'unidade': c.unidade_medida
-    } for c in CorServico.query.filter_by(ativo=True).all()]
+        'nome': c.nome,
+        'preco_m2': float(c.preco_m2) if c.preco_m2 else 0.0,
+        'preco_m3': float(c.preco_m3) if c.preco_m3 else 0.0
+    } for c in cores_ativas]
 
     return render_template('vendas/nova_venda.html', form=form, cores_json=cores_json)
 
