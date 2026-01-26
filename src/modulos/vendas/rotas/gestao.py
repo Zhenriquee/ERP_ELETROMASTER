@@ -6,17 +6,15 @@ from datetime import timedelta
 from src.extensoes import banco_de_dados as db
 from src.modulos.vendas.modelos import Venda, ItemVenda, Pagamento, hora_brasilia
 from src.modulos.vendas.formularios import FormularioPagamento
-# IMPORTAÇÃO DO USUÁRIO MOVIDA PARA O TOPO (CORREÇÃO)
 from src.modulos.autenticacao.modelos import Usuario
 
 from . import bp_vendas
 
-@bp_vendas.route('/servicos', methods=['GET'])
+# NOME PADRONIZADO: listar_vendas
+@bp_vendas.route('/lista', methods=['GET'])
 @login_required
 def listar_vendas():
-    # ==========================================
-    # 1. CAPTURA DE FILTROS DA URL
-    # ==========================================
+    # 1. Filtros
     page = request.args.get('page', 1, type=int)
     per_page = 10
     
@@ -25,9 +23,7 @@ def listar_vendas():
     filtro_vendedor = request.args.get('vendedor', '')
     filtro_data = request.args.get('data', '')
 
-    # ==========================================
-    # 2. QUERY
-    # ==========================================
+    # 2. Query
     query = Venda.query.filter(Venda.status != 'orcamento')
 
     if filtro_q:
@@ -56,7 +52,7 @@ def listar_vendas():
     servicos = paginacao.items 
     
     # ==========================================
-    # 3. KPIS
+    # 3. KPIS (CORRIGIDO)
     # ==========================================
     hoje = hora_brasilia().date()
     inicio_mes = hoje.replace(day=1)
@@ -70,15 +66,19 @@ def listar_vendas():
     
     recebido_mes = db.session.query(func.sum(Pagamento.valor)).filter(Pagamento.data_pagamento >= inicio_mes).scalar() or 0
     
-    # KPIs Operacionais
-    itens_pendente = ItemVenda.query.filter_by(status='pendente').join(Venda).filter(Venda.status != 'cancelado').count()
-    itens_producao = ItemVenda.query.filter_by(status='producao').join(Venda).filter(Venda.status != 'cancelado').count()
-    itens_pronto = ItemVenda.query.filter_by(status='pronto').join(Venda).filter(Venda.status != 'cancelado').count()
+    # --- LÓGICA CORRIGIDA: Separação estrita entre Multipla (Itens) e Simples (Venda) ---
     
+    # 1. Contagem de Itens (Apenas de Vendas Múltiplas)
+    itens_pendente = ItemVenda.query.join(Venda).filter(ItemVenda.status=='pendente', Venda.status!='cancelado', Venda.modo=='multipla').count()
+    itens_producao = ItemVenda.query.join(Venda).filter(ItemVenda.status=='producao', Venda.status!='cancelado', Venda.modo=='multipla').count()
+    itens_pronto = ItemVenda.query.join(Venda).filter(ItemVenda.status=='pronto', Venda.status!='cancelado', Venda.modo=='multipla').count()
+    
+    # 2. Contagem de Vendas Simples (Pelo status da Venda Pai)
     vendas_simples_pendente = Venda.query.filter(Venda.modo == 'simples', Venda.status == 'pendente').count()
     vendas_simples_producao = Venda.query.filter(Venda.modo == 'simples', Venda.status == 'producao').count()
     vendas_simples_pronto = Venda.query.filter(Venda.modo == 'simples', Venda.status == 'pronto').count()
     
+    # 3. Soma
     qtd_pendente = itens_pendente + vendas_simples_pendente
     qtd_producao = itens_producao + vendas_simples_producao
     qtd_pronto = itens_pronto + vendas_simples_pronto

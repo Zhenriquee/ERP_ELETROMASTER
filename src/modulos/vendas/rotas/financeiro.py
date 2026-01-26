@@ -6,7 +6,6 @@ from src.modulos.vendas.formularios import FormularioPagamento
 from decimal import Decimal
 from datetime import datetime
 
-
 from . import bp_vendas
 
 @bp_vendas.route('/servicos/<int:id>/pagamento', methods=['POST'])
@@ -26,15 +25,18 @@ def registrar_pagamento(id):
             valor_pagamento = Decimal(request.form.get('valor').replace(',', '.'))
         except:
             flash('Valor inválido.', 'error')
-            return redirect(url_for('vendas.gestao_servicos'))
+            # CORREÇÃO AQUI: Mudado de 'vendas.gestao_servicos' para 'vendas.listar_vendas'
+            return redirect(url_for('vendas.listar_vendas'))
 
     if valor_pagamento <= 0:
         flash('O valor do pagamento deve ser maior que zero.', 'error')
-        return redirect(url_for('vendas.gestao_servicos'))
+        # CORREÇÃO AQUI
+        return redirect(url_for('vendas.listar_vendas'))
 
     if valor_pagamento > venda.valor_restante:
         flash(f'Erro: O valor informado (R$ {valor_pagamento}) é maior que o restante (R$ {venda.valor_restante}).', 'error')
-        return redirect(url_for('vendas.gestao_servicos'))
+        # CORREÇÃO AQUI
+        return redirect(url_for('vendas.listar_vendas'))
 
     # Registra o Pagamento
     novo_pgto = Pagamento(
@@ -47,7 +49,6 @@ def registrar_pagamento(id):
     db.session.add(novo_pgto)
     
     # Atualiza status financeiro da venda
-    # Precisamos commitar o pagamento antes para calcular o novo total pago
     db.session.commit() 
     
     if venda.valor_restante <= 0.01: # Margem de erro float
@@ -58,4 +59,5 @@ def registrar_pagamento(id):
     db.session.commit()
     
     flash('Pagamento registrado com sucesso!', 'success')
-    return redirect(url_for('vendas.gestao_servicos'))
+    # CORREÇÃO AQUI: O redirecionamento final também precisava ser corrigido
+    return redirect(url_for('vendas.listar_vendas'))

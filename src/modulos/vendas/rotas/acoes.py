@@ -2,28 +2,17 @@ from flask import redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from src.extensoes import banco_de_dados as db
 from src.modulos.vendas.modelos import Venda,  hora_brasilia, ItemVenda, ItemVendaHistorico
-
-# Importa o Blueprint da pasta atual (o arquivo __init__.py)
 from . import bp_vendas
-
 
 @bp_vendas.route('/servicos/<int:id>/status/<novo_status>')
 @login_required
 def mudar_status(id, novo_status):
     venda = Venda.query.get_or_404(id)
     agora = hora_brasilia()
-    
-    mapa_status = {
-        'producao': 'Em Produção', 
-        'pronto': 'Pronto', 
-        'entregue': 'Entregue'
-    }
+    mapa_status = {'producao': 'Em Produção', 'pronto': 'Pronto', 'entregue': 'Entregue'}
     
     if novo_status in mapa_status:
-        # 1. Atualiza a VENDA PAI
         venda.status = novo_status
-        
-        # Atualiza quem mexeu na VENDA PAI
         if novo_status == 'producao':
             venda.data_inicio_producao = agora
             venda.usuario_producao_id = current_user.id
@@ -34,16 +23,11 @@ def mudar_status(id, novo_status):
             venda.data_entrega = agora
             venda.usuario_entrega_id = current_user.id
 
-        # 2. CASCATA: Se for Venda Múltipla, atualiza TODOS os ITENS
         if venda.modo == 'multipla':
             for item in venda.itens:
-                status_antigo = item.status
-                
-                # Só atualiza se o status for diferente para evitar logs duplicados
                 if item.status != novo_status:
+                    status_antigo = item.status
                     item.status = novo_status
-                    
-                    # Atualiza datas e usuários do ITEM
                     if novo_status == 'producao':
                         item.data_inicio_producao = agora
                         item.usuario_producao_id = current_user.id
@@ -54,7 +38,6 @@ def mudar_status(id, novo_status):
                         item.data_entregue = agora
                         item.usuario_entrega_id = current_user.id
                     
-                    # 3. Gera Histórico Individual para cada Item (Para aparecer no modal)
                     log = ItemVendaHistorico(
                         item_id=item.id,
                         usuario_id=current_user.id,
@@ -66,7 +49,7 @@ def mudar_status(id, novo_status):
                     db.session.add(log)
 
         db.session.commit()
-        flash(f'Status atualizado para: {mapa_status[novo_status]} (Itens sincronizados)', 'success')
+        flash(f'Status atualizado para: {mapa_status[novo_status]}', 'success')
     
     return redirect(url_for('vendas.listar_vendas'))
 
@@ -77,32 +60,23 @@ def mudar_status_item(id, novo_status):
     venda_pai = Venda.query.get(item.venda_id)
     agora = hora_brasilia()
     
-    mapa_status = {
-        'pendente': 'Pendente',
-        'producao': 'Em Produção',
-        'pronto': 'Pronto',
-        'entregue': 'Entregue'
-    }
+    mapa_status = {'pendente': 'Pendente', 'producao': 'Em Produção', 'pronto': 'Pronto', 'entregue': 'Entregue'}
     
     if novo_status in mapa_status:
         item.status = novo_status
-        
-        # --- CORREÇÃO: GRAVAR QUEM FEZ A AÇÃO ---
         if novo_status == 'producao':
             item.data_inicio_producao = agora
-            item.usuario_producao_id = current_user.id  # <--- LINHA ADICIONADA
+            item.usuario_producao_id = current_user.id
         elif novo_status == 'pronto':
             item.data_pronto = agora
-            item.usuario_pronto_id = current_user.id    # <--- LINHA ADICIONADA
+            item.usuario_pronto_id = current_user.id
         elif novo_status == 'entregue':
             item.data_entregue = agora
-            item.usuario_entrega_id = current_user.id   # <--- LINHA ADICIONADA
+            item.usuario_entrega_id = current_user.id
             
-        # Lógica da Venda Pai (Macro Status) - Mantém igual
         todos_itens = ItemVenda.query.filter_by(venda_id=venda_pai.id).all()
         status_set = set(i.status for i in todos_itens)
         
-        # ... (Resto da lógica da venda pai permanece igual) ...
         if status_set == {'entregue'}:
             if venda_pai.status != 'entregue':
                 venda_pai.status = 'entregue'
@@ -120,25 +94,21 @@ def mudar_status_item(id, novo_status):
                 venda_pai.usuario_producao_id = current_user.id
 
         db.session.commit()
-        flash(f'Item "{item.descricao}" atualizado com sucesso.', 'success')
+        flash(f'Item atualizado.', 'success')
     
     return redirect(url_for('vendas.listar_vendas'))
 
-# --- CANCELAR VENDA ---
 @bp_vendas.route('/servicos/<int:id>/cancelar', methods=['POST'])
 @login_required
 def cancelar_venda(id):
     venda = Venda.query.get_or_404(id)
-    
-    # Bloqueia cancelamento se já foi entregue e pago
     if venda.status == 'entregue' and venda.valor_restante <= 0.01:
-        flash('Não é possível cancelar um serviço finalizado e totalmente pago.', 'error')
+        flash('Não é possível cancelar um serviço finalizado e pago.', 'error')
         return redirect(url_for('vendas.listar_vendas'))
         
     motivo = request.form.get('motivo_cancelamento')
-    
     if not motivo or len(motivo.strip()) < 5:
-        flash('É obrigatório informar o motivo do cancelamento (mínimo 5 caracteres).', 'error')
+        flash('Informe o motivo (min 5 chars).', 'error')
         return redirect(url_for('vendas.listar_vendas'))
     
     venda.status = 'cancelado'
@@ -147,5 +117,6 @@ def cancelar_venda(id):
     venda.usuario_cancelamento_id = current_user.id
     
     db.session.commit()
-    flash('Serviço cancelado com sucesso.', 'info')
+    flash('Serviço cancelado.', 'info')
+    
     return redirect(url_for('vendas.listar_vendas'))

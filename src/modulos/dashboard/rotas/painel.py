@@ -1,5 +1,5 @@
 from flask import render_template
-from flask_login import login_required, current_user # Adicione current_user se não tiver
+from flask_login import login_required, current_user
 from sqlalchemy import func, extract, desc
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
@@ -22,10 +22,9 @@ def painel():
     ano_atual = hoje.year
 
     # --- VERIFICAÇÃO DE PERMISSÃO ---
-    # Só exibe dados financeiros se for Dono ou tiver permissão no módulo Financeiro
     exibir_financeiro = current_user.cargo == 'dono' or current_user.tem_permissao('financeiro_acesso')
 
-    # Inicializa variáveis financeiras com 0 ou vazio caso não tenha acesso
+    # Inicializa variáveis
     recebido_mes = 0
     a_receber = 0
     vendas_hoje = 0
@@ -46,7 +45,7 @@ def painel():
     doughnut_labels = []
     doughnut_data = []
 
-    # === BLOCO FINANCEIRO (SÓ EXECUTA SE TIVER PERMISSÃO) ===
+    # === BLOCO FINANCEIRO ===
     if exibir_financeiro:
         # 1. ENTRADAS & PREVISÃO
         recebido_mes = db.session.query(func.sum(Pagamento.valor))\
@@ -123,35 +122,86 @@ def painel():
         doughnut_labels = [c[0].title() for c in cats_db]
         doughnut_data = [float(c[1]) for c in cats_db]
 
-    # === FIM DO BLOCO FINANCEIRO ===
-
     # =================================================================
-    # --- INDICADORES OPERACIONAIS (SEMPRE VISÍVEIS) ---
+    # --- INDICADORES OPERACIONAIS (NORMALIZADOS) ---
     # =================================================================
     
-    op_fila = db.session.query(ItemVenda).join(Venda).filter(ItemVenda.status == 'pendente', Venda.status != 'cancelada', Venda.status != 'orcamento').all()
-    op_execucao = db.session.query(ItemVenda).join(Venda).filter(ItemVenda.status == 'producao', Venda.status != 'cancelada').all()
-    op_prontos = db.session.query(ItemVenda).join(Venda).filter(ItemVenda.status == 'pronto', Venda.status != 'cancelada').all()
-    op_finalizados = db.session.query(ItemVenda).join(Venda).filter(ItemVenda.status == 'entregue', extract('month', Venda.criado_em) == mes_atual, extract('year', Venda.criado_em) == ano_atual).all()
+    # Função auxiliar para padronizar o objeto para o template
+    def formatar_tarefa(obj, tipo):
+        if tipo == 'item': # É um ItemVenda
+            return {
+                'id': obj.id,
+                'descricao': obj.descricao,
+                'venda_id': obj.venda_id,
+                'cliente_nome': obj.venda.cliente_nome,
+                'quantidade': obj.quantidade
+            }
+        else: # É uma Venda (Simples)
+            return {
+                'id': obj.id, # O ID aqui é usado apenas para referência visual se necessário
+                'descricao': obj.descricao_servico,
+                'venda_id': obj.id,
+                'cliente_nome': obj.cliente_nome,
+                'quantidade': obj.quantidade_pecas
+            }
+
+    # 1. Busca Itens de Vendas Múltiplas (FILTRADO POR MODO)
+    itens_multi = db.session.query(ItemVenda).join(Venda).filter(
+        Venda.status != 'cancelado', 
+        Venda.status != 'orcamento',
+        Venda.modo == 'multipla' # <--- IMPORTANTE: Evita duplicar venda simples
+    ).all()
+
+    # 2. Busca Vendas Simples (FILTRADO POR MODO)
+    vendas_simples = Venda.query.filter(
+        Venda.modo == 'simples',
+        Venda.status != 'cancelado', 
+        Venda.status != 'orcamento'
+    ).all()
+
+    # 3. Listas Finais para o Template
+    op_fila = []
+    op_execucao = []
+    op_prontos = []
+    op_finalizados = []
+
+    # Processa Itens
+    for i in itens_multi:
+        tarefa = formatar_tarefa(i, 'item')
+        if i.status == 'pendente': op_fila.append(tarefa)
+        elif i.status == 'producao': op_execucao.append(tarefa)
+        elif i.status == 'pronto': op_prontos.append(tarefa)
+        elif i.status == 'entregue': 
+            # Filtro opcional: só mostra entregues deste mês no KPI de finalizados
+            if i.data_entregue and i.data_entregue.month == mes_atual and i.data_entregue.year == ano_atual:
+                op_finalizados.append(tarefa)
+
+    # Processa Vendas Simples
+    for v in vendas_simples:
+        tarefa = formatar_tarefa(v, 'venda')
+        if v.status == 'pendente': op_fila.append(tarefa)
+        elif v.status == 'producao': op_execucao.append(tarefa)
+        elif v.status == 'pronto': op_prontos.append(tarefa)
+        elif v.status == 'entregue':
+            if v.data_entrega and v.data_entrega.month == mes_atual and v.data_entrega.year == ano_atual:
+                op_finalizados.append(tarefa)
 
     # =================================================================
     # --- TOP PRODUTOS (ÚLTIMOS 30 DIAS) ---
     # =================================================================
-    
     data_limite_30_dias = hoje - timedelta(days=30)
     
-    # Busca vendas criadas nos últimos 30 dias
     top_produtos = db.session.query(CorServico.nome, func.sum(ItemVenda.quantidade).label('total_qtd'))\
         .join(ItemVenda, ItemVenda.cor_id == CorServico.id)\
         .join(Venda, ItemVenda.venda_id == Venda.id)\
-        .filter(Venda.criado_em >= data_limite_30_dias,  # CORREÇÃO: Filtro de data
+        .filter(Venda.criado_em >= data_limite_30_dias,
                 Venda.status != 'cancelada')\
         .group_by(CorServico.nome)\
         .order_by(desc('total_qtd'))\
         .limit(5).all()
 
     return render_template('dashboard/painel.html',
-                           exibir_financeiro=exibir_financeiro, # Flag para o HTML
+                           exibir_financeiro=exibir_financeiro,
                            
                            kpi_recebido=fmt_moeda(recebido_mes),
                            kpi_receber=fmt_moeda(a_receber),
@@ -164,10 +214,12 @@ def painel():
                            lista_vencidos=lista_vencidos,
                            lista_proximos=lista_proximos,
                            
+                           # Passamos as listas processadas
                            op_fila=op_fila,
                            op_execucao=op_execucao,
                            op_prontos=op_prontos,
                            op_finalizados=op_finalizados,
+                           # Contagens baseadas nas listas unificadas
                            qtd_fila=len(op_fila),
                            qtd_execucao=len(op_execucao),
                            qtd_prontos=len(op_prontos),
