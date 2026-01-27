@@ -33,6 +33,9 @@ def criar_app(nome_configuracao='desenvolvimento'):
 
     from src.modulos.dashboard import bp_dashboard
     app.register_blueprint(bp_dashboard)
+
+    from src.modulos.estoque import bp_estoque
+    app.register_blueprint(bp_estoque)
     
     # --- COMANDOS CLI (Terminal) ---
 

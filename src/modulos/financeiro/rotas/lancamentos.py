@@ -1,5 +1,5 @@
 from flask import render_template, redirect, url_for, flash, request
-from flask_login import login_required
+from flask_login import login_required, current_user
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from src.modulos.autenticacao.permissoes import cargo_exigido # Importante
@@ -8,6 +8,7 @@ from src.modulos.financeiro.modelos import Despesa, Fornecedor
 from src.modulos.financeiro.formularios import FormularioDespesa
 from src.modulos.autenticacao.modelos import Usuario
 from . import bp_financeiro
+from src.modulos.estoque.modelos import ProdutoEstoque, MovimentacaoEstoque
 
 def add_months(source_date, months):
     return source_date + relativedelta(months=+months)
@@ -23,6 +24,8 @@ def nova_despesa():
         [(f.id, f.nome_fantasia) for f in Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome_fantasia).all()]
     form.usuario_id.choices = [(0, '--- Selecione (Opcional) ---')] + \
         [(u.id, u.nome) for u in Usuario.query.order_by(Usuario.nome).all()]
+    form.produto_estoque_id.choices = [(0, '--- Não Movimentar Estoque ---')] + \
+        [(p.id, p.nome) for p in ProdutoEstoque.query.filter_by(ativo=True).all()]
 
     if form.validate_on_submit():
         # Lógica de Recorrência
@@ -76,6 +79,27 @@ def nova_despesa():
                 despesa.usuario_id = form.usuario_id.data
 
             db.session.add(despesa)
+            db.session.flush() # Gera o ID da despesa
+
+    # Lógica de Estoque
+    if form.produto_estoque_id.data and form.produto_estoque_id.data > 0 and form.qtd_estoque.data:
+        prod = ProdutoEstoque.query.get(form.produto_estoque_id.data)
+        qtd = form.qtd_estoque.data
+        
+        if prod:
+            mov = MovimentacaoEstoque(
+                produto_id=prod.id,
+                tipo='entrada',
+                quantidade=qtd,
+                saldo_anterior=prod.quantidade_atual,
+                saldo_novo=prod.quantidade_atual + qtd,
+                origem='compra',
+                referencia_id=despesa.id,
+                usuario_id=current_user.id,
+                observacao=f"Compra via Despesa #{despesa.id}"
+            )
+            prod.quantidade_atual += qtd
+            db.session.add(mov)
 
         db.session.commit()
         msg = 'Despesa lançada com sucesso!' if repeticoes == 1 else f'{repeticoes} despesas lançadas!'

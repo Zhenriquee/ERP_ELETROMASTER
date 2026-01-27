@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, DecimalField, DateField, SelectField, TextAreaField, IntegerField, BooleanField
 from wtforms.validators import DataRequired, Optional, Length, NumberRange
+from src.modulos.estoque.modelos import ProdutoEstoque # Importe no topo
 
 class FormularioFornecedor(FlaskForm):
     nome_fantasia = StringField('Nome Fantasia', validators=[DataRequired(), Length(min=2, max=100)])
@@ -73,3 +74,6 @@ class FormularioDespesa(FlaskForm):
     qtd_repeticoes = IntegerField('Repetir por quantos meses?', 
                                   default=1, 
                                   validators=[Optional(), NumberRange(min=1, max=60)])
+    
+    produto_estoque_id = SelectField('Vincular Produto (Estoque)', coerce=int, validators=[Optional()])
+    qtd_estoque = DecimalField('Quantidade Comprada', places=3, validators=[Optional()])

@@ -1,8 +1,11 @@
-from flask import Blueprint, render_template, redirect, url_for
+from flask import Blueprint, render_template, redirect, url_for, request
 from flask_login import login_required, current_user
 from src.extensoes import banco_de_dados as db
 from src.modulos.vendas.modelos import ItemVenda, Venda, ItemVendaHistorico, hora_brasilia
 from src.modulos.autenticacao.permissoes import cargo_exigido
+from src.modulos.estoque.modelos import ProdutoEstoque, MovimentacaoEstoque
+from decimal import Decimal
+
 
 bp_operacional = Blueprint('operacional', __name__, url_prefix='/operacional')
 
@@ -69,12 +72,14 @@ def painel():
     qtd_fila = sum(1 for t in tarefas if t['status'] == 'pendente')
     qtd_producao = sum(1 for t in tarefas if t['status'] == 'producao')
     qtd_pronto = sum(1 for t in tarefas if t['status'] == 'pronto')
+    produtos_estoque = ProdutoEstoque.query.filter_by(ativo=True).all()
 
     return render_template('operacional/painel.html', 
                            tarefas=tarefas,
                            qtd_fila=qtd_fila, 
                            qtd_producao=qtd_producao, 
-                           qtd_pronto=qtd_pronto)
+                           qtd_pronto=qtd_pronto,
+                           produtos_estoque=produtos_estoque)
 
 
 # --- ROTA DE AVANÇAR (COM HISTÓRICO) ---
@@ -254,5 +259,64 @@ def voltar_venda(id):
                 item.data_pronto = None
                 item.usuario_pronto_id = None
 
+    db.session.commit()
+    return redirect(url_for('operacional.painel'))
+
+# Crie uma nova rota específica para finalizar com baixa
+@bp_operacional.route('/item/<int:id>/finalizar_com_baixa', methods=['POST'])
+@login_required
+def finalizar_com_baixa(id):
+    item = ItemVenda.query.get_or_404(id)
+    
+    # 1. Atualiza Status do Item (Código existente de 'avancar_item' adaptado)
+    item.status = 'pronto'
+    item.data_pronto = hora_brasilia()
+    item.usuario_pronto_id = current_user.id
+    
+    # 2. Registra Baixa de Estoque (Múltiplos produtos possíveis)
+    # O form enviará arrays: produtos[] e quantidades[]
+    produtos_ids = request.form.getlist('produtos_ids[]')
+    quantidades = request.form.getlist('quantidades[]')
+    
+    consumo_texto = []
+
+    for p_id, qtd_str in zip(produtos_ids, quantidades):
+        if p_id and qtd_str:
+            try:
+                qtd = Decimal(qtd_str.replace(',', '.'))
+                if qtd > 0:
+                    prod = ProdutoEstoque.query.get(int(p_id))
+                    
+                    # Registra Movimentação
+                    mov = MovimentacaoEstoque(
+                        produto_id=prod.id,
+                        tipo='saida',
+                        quantidade=qtd,
+                        saldo_anterior=prod.quantidade_atual,
+                        saldo_novo=prod.quantidade_atual - qtd,
+                        origem='producao',
+                        referencia_id=item.id,
+                        usuario_id=current_user.id,
+                        observacao=f"Produção Item #{item.id} - {item.descricao}"
+                    )
+                    prod.quantidade_atual -= qtd
+                    db.session.add(mov)
+                    consumo_texto.append(f"{qtd} {prod.unidade} de {prod.nome}")
+            except ValueError:
+                pass # Ignora valores inválidos
+
+    # 3. Log de Histórico
+    log = ItemVendaHistorico(
+        item_id=item.id,
+        usuario_id=current_user.id,
+        status_anterior='producao',
+        status_novo='pronto',
+        acao=f"Finalizou (Baixa: {', '.join(consumo_texto)})" if consumo_texto else "Finalizou Produção",
+        data_acao=hora_brasilia()
+    )
+    db.session.add(log)
+    
+    # ... (Lógica de sincronizar Venda Pai) ...
+    
     db.session.commit()
     return redirect(url_for('operacional.painel'))
