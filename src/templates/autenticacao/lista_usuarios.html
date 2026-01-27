@@ -95,11 +95,17 @@
                         </td>
 
                         <td class="px-6 py-4 text-right">
-                            <a href="{{ url_for('autenticacao.editar_usuario', id=u.id) }}" 
-                               class="text-gray-400 hover:text-electric-500 transition-colors p-1 inline-block" 
-                               title="Editar">
-                                <i data-lucide="edit-2" class="w-4 h-4"></i>
-                            </a>
+                            <a href="{{ url_for('autenticacao.gerenciar_documentos', id=u.id) }}" 
+                               class="text-gray-400 hover:text-blue-600 transition-colors p-1 inline-block mr-1" 
+                               title="Documentos">
+                                    <i data-lucide="folder" class="w-4 h-4"></i>
+                                </a>
+
+                                <a href="{{ url_for('autenticacao.editar_usuario', id=u.id) }}" 
+                                class="text-gray-400 hover:text-electric-500 transition-colors p-1 inline-block" 
+                                title="Editar">
+                                    <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                </a>
                         </td>
                     </tr>
                     {% endfor %}

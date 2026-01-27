@@ -1,12 +1,14 @@
-from flask import render_template, redirect, url_for, flash, request
+import os
+from flask import render_template, redirect, url_for, flash, request, send_from_directory, current_app
 from flask_login import login_required, current_user
 from wtforms.validators import Optional
-
+from werkzeug.utils import secure_filename
 from src.extensoes import banco_de_dados as db
 from src.modulos.autenticacao import bp_autenticacao
-from src.modulos.autenticacao.modelos import Usuario, Modulo
-from src.modulos.autenticacao.formularios import FormularioCadastroUsuario
+from src.modulos.autenticacao.modelos import Usuario, Modulo, DocumentoUsuario
+from src.modulos.autenticacao.formularios import FormularioCadastroUsuario, FormularioDocumento
 from src.modulos.autenticacao.permissoes import cargo_exigido
+from datetime import datetime
 
 @bp_autenticacao.route('/usuarios', methods=['GET'])
 @login_required
@@ -170,3 +172,103 @@ def editar_usuario(id):
             print(f"Erro DB: {e}")
 
     return render_template('autenticacao/cadastro_usuario.html', form=form, editando=True)
+
+@bp_autenticacao.route('/usuarios/<int:id>/documentos', methods=['GET', 'POST'])
+@login_required
+@cargo_exigido('rh_equipe')
+def gerenciar_documentos(id):
+    usuario_alvo = Usuario.query.get_or_404(id)
+    form = FormularioDocumento()
+    
+    # Verifica/Cria pasta de upload
+    upload_path = current_app.config['UPLOAD_FOLDER']
+    if not os.path.exists(upload_path):
+        os.makedirs(upload_path)
+
+    if form.validate_on_submit():
+        arquivo = form.arquivo.data
+        filename_original = secure_filename(arquivo.filename)
+        extensao = filename_original.rsplit('.', 1)[1].lower() if '.' in filename_original else ''
+        
+        # Gera nome único: ID_USUARIO_TIMESTAMP.ext
+        novo_nome = f"{usuario_alvo.id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{extensao}"
+        
+        # Salva no disco
+        caminho_completo = os.path.join(upload_path, novo_nome)
+        arquivo.save(caminho_completo)
+        
+        # Calcula tamanho em KB
+        tamanho = os.path.getsize(caminho_completo) / 1024
+
+        # Salva no banco
+        doc = DocumentoUsuario(
+            usuario_id=usuario_alvo.id,
+            nome_arquivo=novo_nome,
+            nome_original=form.descricao.data, # Usamos a descrição como nome visível
+            tipo_arquivo=extensao,
+            tamanho_kb=tamanho,
+            enviado_por_id=current_user.id
+        )
+        db.session.add(doc)
+        db.session.commit()
+        
+        flash('Documento anexado com sucesso!', 'success')
+        return redirect(url_for('autenticacao.gerenciar_documentos', id=usuario_alvo.id))
+
+    documentos = DocumentoUsuario.query.filter_by(usuario_id=usuario_alvo.id).order_by(DocumentoUsuario.criado_em.desc()).all()
+    
+    return render_template('autenticacao/documentos.html', 
+                           usuario=usuario_alvo, 
+                           form=form, 
+                           documentos=documentos)
+
+@bp_autenticacao.route('/documentos/baixar/<int:doc_id>')
+@login_required
+@cargo_exigido('rh_equipe')
+def baixar_documento(doc_id):
+    doc = DocumentoUsuario.query.get_or_404(doc_id)
+    path = current_app.config['UPLOAD_FOLDER']
+    return send_from_directory(path, doc.nome_arquivo, as_attachment=True, download_name=f"{doc.nome_original}.{doc.tipo_arquivo}")
+
+@bp_autenticacao.route('/documentos/deletar/<int:doc_id>')
+@login_required
+@cargo_exigido('rh_equipe')
+def deletar_documento(doc_id):
+    doc = DocumentoUsuario.query.get_or_404(doc_id)
+    usuario_id = doc.usuario_id
+    
+    try:
+        # Remove do disco
+        path = os.path.join(current_app.config['UPLOAD_FOLDER'], doc.nome_arquivo)
+        if os.path.exists(path):
+            os.remove(path)
+            
+        # Remove do banco
+        db.session.delete(doc)
+        db.session.commit()
+        flash('Documento removido.', 'success')
+    except Exception as e:
+        flash(f'Erro ao deletar: {str(e)}', 'error')
+        
+    return redirect(url_for('autenticacao.gerenciar_documentos', id=usuario_id))
+
+# src/modulos/autenticacao/rotas/usuarios.py
+
+# ... (rota baixar_documento existente) ...
+
+@bp_autenticacao.route('/documentos/visualizar/<int:doc_id>')
+@login_required
+@cargo_exigido('rh_equipe')
+def visualizar_documento(doc_id):
+    """
+    Rota para pré-visualização inline (no navegador).
+    Diferente do 'baixar', esta rota não força o download (as_attachment=False).
+    """
+    doc = DocumentoUsuario.query.get_or_404(doc_id)
+    path = current_app.config['UPLOAD_FOLDER']
+    
+    # O Flask detecta automaticamente o Content-Type baseado na extensão do arquivo.
+    # as_attachment=False diz ao navegador para tentar exibir o arquivo se puder.
+    return send_from_directory(path, doc.nome_arquivo, as_attachment=False)
+
+# ... (rota deletar_documento existente) ...

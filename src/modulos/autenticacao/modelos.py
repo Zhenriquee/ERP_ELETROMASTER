@@ -82,3 +82,21 @@ class Usuario(UserMixin, db.Model):
 
     def __repr__(self):
         return f'<Usuario {self.usuario}>'
+    
+class DocumentoUsuario(db.Model):
+    __tablename__ = 'documentos_usuarios'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    
+    nome_arquivo = db.Column(db.String(255), nullable=False) # Nome salvo no disco
+    nome_original = db.Column(db.String(255), nullable=False) # Nome que o usuário enviou
+    tipo_arquivo = db.Column(db.String(10), nullable=True) # pdf, png, etc
+    tamanho_kb = db.Column(db.Numeric(10, 2), nullable=True)
+    
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+    enviado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+
+    # Relacionamentos
+    usuario = db.relationship('Usuario', foreign_keys=[usuario_id], backref='documentos')
+    quem_enviou = db.relationship('Usuario', foreign_keys=[enviado_por_id])    

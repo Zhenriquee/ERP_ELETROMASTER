@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+<div class="container mx-auto max-w-5xl relative">
+    
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-4">
+            <a href="{{ url_for('autenticacao.listar_usuarios') }}" class="p-2 rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-navy-900 transition-colors">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            </a>
+            <div>
+                <h2 class="text-2xl font-bold text-navy-900">Documentos do Colaborador</h2>
+                <p class="text-sm text-gray-500">Gestão de arquivos de {{ usuario.nome }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-1">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-navy-900 mb-4 flex items-center">
+                    <i data-lucide="upload-cloud" class="w-5 h-5 mr-2 text-blue-500"></i> Novo Arquivo
+                </h3>
+                
+                <form method="POST" enctype="multipart/form-data" class="space-y-4">
+                    {{ form.hidden_tag() }}
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Documento</label>
+                        {{ form.descricao(class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="Ex: RG, Contrato, Foto...") }}
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Arquivo</label>
+                        
+                        <div id="area-upload" class="relative border-2 border-dashed border-gray-300 rounded-lg p-6 hover:bg-gray-50 transition-all text-center cursor-pointer group">
+                            
+                            <div class="pointer-events-none">
+                                <i id="icone-upload" data-lucide="file-up" class="w-8 h-8 text-gray-400 mx-auto mb-2 transition-colors"></i>
+                                <span id="texto-upload" class="text-xs text-gray-500 font-medium block">
+                                    Clique para selecionar PDF ou Imagem
+                                </span>
+                                <span id="nome-arquivo" class="text-sm text-green-600 font-bold hidden mt-1 break-all"></span>
+                            </div>
+
+                            {{ form.arquivo(class="absolute inset-0 w-full h-full opacity-0 cursor-pointer", id="input-arquivo", onchange="atualizarFeedbackArquivo(this)") }}
+                        </div>
+                    </div>
+
+                    {{ form.submit(class="w-full bg-navy-900 hover:bg-navy-800 text-white font-bold py-2.5 rounded-lg transition-colors cursor-pointer shadow-lg hover:shadow-xl") }}
+                </form>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="bg-gray-50 px-6 py-4 border-b border-gray-100">
+                    <h3 class="font-bold text-navy-900">Arquivos Armazenados ({{ documentos|length }})</h3>
+                </div>
+                
+                {% if documentos %}
+                <div class="divide-y divide-gray-100">
+                    {% for doc in documentos %}
+                    <div class="p-4 hover:bg-gray-50 transition-colors flex items-center justify-between group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center 
+                                {{ 'bg-red-100 text-red-600' if doc.tipo_arquivo == 'pdf' else 
+                                   'bg-blue-100 text-blue-600' if doc.tipo_arquivo in ['png', 'jpg', 'jpeg'] else 
+                                   'bg-gray-100 text-gray-600' }}">
+                                {% if doc.tipo_arquivo == 'pdf' %}
+                                    <i data-lucide="file-text" class="w-5 h-5"></i>
+                                {% elif doc.tipo_arquivo in ['png', 'jpg', 'jpeg'] %}
+                                    <i data-lucide="image" class="w-5 h-5"></i>
+                                {% else %}
+                                    <i data-lucide="file" class="w-5 h-5"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-navy-900 text-sm">{{ doc.nome_original }}</h4>
+                                <p class="text-xs text-gray-400">
+                                    {{ doc.criado_em.strftime('%d/%m/%Y %H:%M') }} • {{ "%.1f"|format(doc.tamanho_kb) }} KB
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            {% if doc.tipo_arquivo in ['pdf', 'png', 'jpg', 'jpeg'] %}
+                            <button onclick="abrirPreview('{{ url_for('autenticacao.visualizar_documento', doc_id=doc.id) }}', '{{ doc.tipo_arquivo }}', '{{ doc.nome_original }}')" 
+                                    class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" title="Pré-visualizar">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
+                            {% endif %}
+
+                            <a href="{{ url_for('autenticacao.baixar_documento', doc_id=doc.id) }}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Baixar">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                            </a>
+                            <a href="{{ url_for('autenticacao.deletar_documento', doc_id=doc.id) }}" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" onclick="return confirm('Excluir este arquivo permanentemente?')" title="Excluir">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="p-12 text-center text-gray-400">
+                    <i data-lucide="folder-open" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+                    <p>Nenhum documento anexado para este colaborador.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div id="previewModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300 opacity-0">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 flex flex-col max-h-[90vh] transform scale-95 transition-all duration-300" id="previewContainer">
+            <div class="flex justify-between items-center p-4 border-b border-gray-200">
+                <h3 class="font-bold text-navy-900 truncate" id="previewTitle">Visualização</h3>
+                <button onclick="fecharPreview()" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="flex-1 p-4 overflow-auto bg-gray-100 flex items-center justify-center relative h-full">
+                <div id="previewLoading" class="absolute inset-0 flex items-center justify-center text-blue-500 hidden">
+                    <i data-lucide="loader-2" class="w-10 h-10 animate-spin"></i>
+                </div>
+                <img id="previewImage" src="" alt="Preview" class="max-w-full max-h-full object-contain shadow-lg hidden rounded">
+                <iframe id="previewFrame" src="" class="w-full h-full min-h-[60vh] shadow-lg hidden rounded bg-white" frameborder="0"></iframe>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // --- FUNÇÃO PARA ATUALIZAR FEEDBACK DE UPLOAD ---
+    function atualizarFeedbackArquivo(input) {
+        const area = document.getElementById('area-upload');
+        const icone = document.getElementById('icone-upload');
+        const texto = document.getElementById('texto-upload');
+        const nomeArquivo = document.getElementById('nome-arquivo');
+
+        if (input.files && input.files[0]) {
+            const arquivo = input.files[0];
+            
+            // 1. Muda a cor da borda e fundo
+            area.classList.remove('border-gray-300', 'hover:bg-gray-50');
+            area.classList.add('border-green-400', 'bg-green-50');
+            
+            // 2. Muda o ícone para check
+            icone.classList.remove('text-gray-400');
+            icone.classList.add('text-green-600');
+            icone.setAttribute('data-lucide', 'check-circle'); // Muda o ícone
+            
+            // 3. Esconde texto padrão e mostra nome do arquivo
+            texto.classList.add('hidden');
+            nomeArquivo.textContent = arquivo.name;
+            nomeArquivo.classList.remove('hidden');
+            
+            // Atualiza os ícones na tela
+            lucide.createIcons();
+        } else {
+            // Se cancelar, reseta (opcional)
+            area.classList.add('border-gray-300', 'hover:bg-gray-50');
+            area.classList.remove('border-green-400', 'bg-green-50');
+            texto.classList.remove('hidden');
+            nomeArquivo.classList.add('hidden');
+        }
+    }
+
+    // --- FUNÇÕES DO MODAL (MANTIDAS) ---
+    const modal = document.getElementById('previewModal');
+    const modalContainer = document.getElementById('previewContainer');
+    const previewImage = document.getElementById('previewImage');
+    const previewFrame = document.getElementById('previewFrame');
+    const previewTitle = document.getElementById('previewTitle');
+    const previewLoading = document.getElementById('previewLoading');
+
+    function abrirPreview(url, tipo, titulo) {
+        previewImage.classList.add('hidden');
+        previewFrame.classList.add('hidden');
+        previewLoading.classList.remove('hidden');
+        previewImage.src = '';
+        previewFrame.src = '';
+        previewTitle.textContent = titulo;
+
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modalContainer.classList.remove('scale-95');
+        }, 10);
+
+        if (['jpg', 'jpeg', 'png'].includes(tipo)) {
+            previewImage.src = url;
+            previewImage.onload = () => {
+                previewLoading.classList.add('hidden');
+                previewImage.classList.remove('hidden');
+            };
+        } else if (tipo === 'pdf') {
+            previewFrame.src = url;
+            setTimeout(() => {
+                 previewLoading.classList.add('hidden');
+                 previewFrame.classList.remove('hidden');
+            }, 500);
+             previewFrame.onload = () => {
+                 previewLoading.classList.add('hidden');
+                 previewFrame.classList.remove('hidden');
+             };
+        }
+        lucide.createIcons();
+    }
+
+    function fecharPreview() {
+        modal.classList.add('opacity-0');
+        modalContainer.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            previewImage.src = '';
+            previewFrame.src = '';
+        }, 300);
+    }
+
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) fecharPreview();    
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) fecharPreview();
+    });
+</script>
+{% endblock %}

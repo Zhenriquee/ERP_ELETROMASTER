@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, BooleanField, SelectField, DecimalField, SelectMultipleField, widgets
 from wtforms.validators import DataRequired, Optional, Email, Length, EqualTo
+from flask_wtf.file import FileField, FileAllowed, FileRequired
 
 # Widget personalizado para transformar SelectMultiple em Checkboxes
 class MultiCheckboxField(SelectMultipleField):
@@ -59,3 +60,11 @@ class FormularioCadastroUsuario(FlaskForm):
     ativo = BooleanField('Usuário Ativo?', default=True)
     
     botao_submit = SubmitField('Salvar Funcionário')
+
+class FormularioDocumento(FlaskForm):
+    arquivo = FileField('Selecione o Arquivo', validators=[
+        FileRequired(),
+        FileAllowed(['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'], 'Apenas imagens e documentos PDF/Word!')
+    ])
+    descricao = StringField('Descrição / Nome do Documento', validators=[DataRequired()])
+    submit = SubmitField('Enviar Documento')

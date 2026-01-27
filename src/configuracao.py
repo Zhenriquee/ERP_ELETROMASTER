@@ -8,6 +8,9 @@ load_dotenv()
 class ConfiguracaoBase:
     SECRET_KEY = os.getenv('SECRET_KEY', 'chave_padrao_desenvolvimento_insegura')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(basedir), 'uploads_colaboradores')
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024 # Limite de 16MB
 
 class ConfiguracaoDesenvolvimento(ConfiguracaoBase):
     DEBUG = True
