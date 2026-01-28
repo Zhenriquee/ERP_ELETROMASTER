@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estoque.css') }}">
+{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto px-0 sm:px-4">
+    
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div>
+            <h2 class="text-2xl font-bold text-navy-900 flex items-center gap-2">
+                <i data-lucide="package" class="w-6 h-6 text-blue-600"></i>
+                Controle de Estoque
+            </h2>
+            <p class="text-sm text-gray-500">Gerencie materiais, tintas e insumos.</p>
+        </div>
+        
+        <button onclick="abrirModalProduto()" class="bg-navy-900 hover:bg-navy-800 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors shadow-lg">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            Novo Produto
+        </button>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-gray-600">
+                <thead class="bg-gray-50 text-xs uppercase text-gray-500 font-semibold">
+                    <tr>
+                        <th class="px-6 py-4">Produto</th>
+                        <th class="px-6 py-4 text-center">Unidade</th>
+                        <th class="px-6 py-4 text-right">Saldo Atual</th>
+                        <th class="px-6 py-4 text-right bg-blue-50 text-blue-900">Preço M²</th>
+                        <th class="px-6 py-4 text-right bg-indigo-50 text-indigo-900">Preço M³</th>
+                        <th class="px-6 py-4 text-right">Mínimo</th>
+                        <th class="px-6 py-4 text-center">Status</th>
+                        <th class="px-6 py-4 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for p in produtos %}
+                    <tr class="hover:bg-gray-50 transition-colors group">
+                        <td class="px-6 py-4 font-medium text-navy-900">
+                            {{ p.nome }}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold">{{ p.unidade }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-right font-bold text-lg {{ 'text-red-600' if p.quantidade_atual <= p.estoque_minimo else 'text-navy-900' }}">
+                            {{ "%.3f"|format(p.quantidade_atual)|replace('.', ',') }}
+                        </td>
+                        
+                        <td class="px-6 py-4 text-right bg-blue-50 font-mono text-sm text-blue-700">
+                            {% if p.preco_m2 and p.preco_m2 > 0 %}
+                                R$ {{ "%.2f"|format(p.preco_m2)|replace('.', ',') }}
+                            {% else %}
+                                <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="px-6 py-4 text-right bg-indigo-50 font-mono text-sm text-indigo-700">
+                            {% if p.preco_m3 and p.preco_m3 > 0 %}
+                                R$ {{ "%.2f"|format(p.preco_m3)|replace('.', ',') }}
+                            {% else %}
+                                <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="px-6 py-4 text-right text-gray-400">
+                            {{ "%.3f"|format(p.estoque_minimo)|replace('.', ',') }}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if p.quantidade_atual <= p.estoque_minimo %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600">
+                                    <i data-lucide="alert-triangle" class="w-3 h-3 mr-1"></i> Baixo
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-600">
+                                    OK
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right flex justify-end gap-2">
+                            <button onclick="abrirModalEditar('{{ p.id }}', '{{ p.nome }}', '{{ p.unidade }}', '{{ p.estoque_minimo }}', '{{ p.preco_m2 }}', '{{ p.preco_m3 }}')" 
+                                    class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-200" title="Editar Produto">
+                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                            </button>
+
+                            <button onclick="abrirModalHistorico('{{ p.id }}', '{{ p.nome }}')" 
+                                    class="p-2 text-gray-500 hover:bg-gray-100 hover:text-navy-900 rounded-lg transition-colors" 
+                                    title="Ver Histórico">
+                                <i data-lucide="history" class="w-4 h-4"></i>
+                            </button>
+
+                            <button onclick="abrirModalMovimentacao('{{ p.id }}', '{{ p.nome }}', '{{ p.unidade }}')" 
+                                    class="text-gray-600 hover:text-navy-900 font-bold text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded transition-colors flex items-center">
+                                Movimentar
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center text-gray-400">
+                            <i data-lucide="package-open" class="w-12 h-12 mx-auto mb-2 opacity-20"></i>
+                            <p>Nenhum produto cadastrado.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modalProduto" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity opacity-0">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 transform scale-95 transition-transform">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-navy-900" id="tituloModalProduto">Novo Produto</h3>
+            <button onclick="fecharModal('modalProduto')" class="text-gray-400 hover:text-red-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        
+        <form method="POST" id="formProduto">
+            {{ form_prod.hidden_tag() }}
+            <div class="space-y-4">
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Produto</label>
+                    {{ form_prod.nome(id="inputNome", class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none") }}
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Unidade</label>
+                        {{ form_prod.unidade(id="inputUnidade", class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-navy-900 outline-none") }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Estoque Mínimo</label>
+                        {{ form_prod.estoque_minimo(id="inputMinimo", class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", type="number", step="0.001") }}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                    <div>
+                        <label class="block text-xs font-bold text-blue-800 uppercase mb-1">Preço M² (R$)</label>
+                        {{ form_prod.preco_m2(id="inputM2", class="w-full px-3 py-2 border border-blue-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500", placeholder="0,00", type="number", step="0.01") }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-blue-800 uppercase mb-1">Preço M³ (R$)</label>
+                        {{ form_prod.preco_m3(id="inputM3", class="w-full px-3 py-2 border border-blue-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500", placeholder="0,00", type="number", step="0.01") }}
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-navy-900 text-white font-bold py-2.5 rounded-lg hover:bg-navy-800 transition-colors mt-2">
+                    Salvar Produto
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modalMovimentacao" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity opacity-0">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 transform scale-95 transition-transform">
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <h3 class="text-lg font-bold text-navy-900">Ajuste de Estoque</h3>
+                <p class="text-xs text-gray-500" id="nomeProdutoMov">--</p>
+            </div>
+            <button onclick="fecharModal('modalMovimentacao')" class="text-gray-400 hover:text-red-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        
+        <form method="POST" id="formMovimentacao">
+            {{ form_mov.hidden_tag() }}
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo Movimento</label>
+                        {{ form_mov.tipo(class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-navy-900 outline-none") }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Quantidade</label>
+                        <div class="relative">
+                            {{ form_mov.quantidade(class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", type="number", step="0.001", placeholder="0,000") }}
+                            <span class="absolute right-3 top-2 text-xs text-gray-400 font-bold" id="unidadeProdutoMov">UN</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Motivo / Observação</label>
+                    {{ form_mov.observacao(class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", rows="2", placeholder="Ex: Inventário, Quebra, Ajuste...") }}
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition-colors mt-2">
+                    Confirmar Ajuste
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modalHistorico" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity opacity-0">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 p-0 flex flex-col max-h-[90vh] transform scale-95 transition-transform">
+        
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+            <div>
+                <h3 class="text-lg font-bold text-navy-900" id="tituloHistorico">Histórico do Produto</h3>
+                <p class="text-xs text-gray-500">Registro completo de entradas e saídas</p>
+            </div>
+            <button onclick="fecharModal('modalHistorico')" class="text-gray-400 hover:text-red-500 transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <div class="p-0 overflow-y-auto flex-1 custom-scrollbar">
+            <table class="w-full text-left text-sm text-gray-600">
+                <thead class="bg-white text-xs uppercase font-bold text-gray-400 sticky top-0 shadow-sm z-10">
+                    <tr>
+                        <th class="px-6 py-3 bg-gray-50">Data / Hora</th>
+                        <th class="px-6 py-3 bg-gray-50">Tipo</th>
+                        <th class="px-6 py-3 bg-gray-50">Origem</th>
+                        <th class="px-6 py-3 bg-gray-50 text-right">Qtd</th>
+                        <th class="px-6 py-3 bg-gray-50 text-right">Saldo Final</th>
+                        <th class="px-6 py-3 bg-gray-50">Usuário</th>
+                        <th class="px-6 py-3 bg-gray-50">Obs</th>
+                    </tr>
+                </thead>
+                <tbody id="corpoTabelaHistorico" class="divide-y divide-gray-100">
+                    </tbody>
+            </table>
+            
+            <div id="loadingHistorico" class="hidden py-10 flex justify-center items-center text-blue-500">
+                <i data-lucide="loader-2" class="w-8 h-8 animate-spin"></i>
+            </div>
+            
+            <div id="vazioHistorico" class="hidden py-12 text-center text-gray-400">
+                <i data-lucide="clipboard-x" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
+                <p>Nenhuma movimentação registrada.</p>
+            </div>
+        </div>
+        
+        <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 text-right rounded-b-xl">
+            <button onclick="fecharModal('modalHistorico')" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50">
+                Fechar
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/estoque.js') }}"></script>
+{% endblock %}

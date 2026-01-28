@@ -6,15 +6,16 @@ class ProdutoEstoque(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
-    unidade = db.Column(db.String(10), default='CX') # CX, UN, LT, KG
+    unidade = db.Column(db.String(10), default='CX')
     
-    # Quantidade atual (Numeric 10,3 permite ex: 150.333)
     quantidade_atual = db.Column(db.Numeric(10, 3), default=0.000)
     estoque_minimo = db.Column(db.Numeric(10, 3), default=5.000)
     
-    ativo = db.Column(db.Boolean, default=True)
+    # --- NOVOS CAMPOS DE PREÇO (Custo Base para Venda) ---
+    preco_m2 = db.Column(db.Numeric(10, 2), nullable=True, default=0.00)
+    preco_m3 = db.Column(db.Numeric(10, 2), nullable=True, default=0.00)
     
-    # Relacionamento com movimentações
+    ativo = db.Column(db.Boolean, default=True)
     movimentacoes = db.relationship('MovimentacaoEstoque', backref='produto', lazy=True)
 
 class MovimentacaoEstoque(db.Model):

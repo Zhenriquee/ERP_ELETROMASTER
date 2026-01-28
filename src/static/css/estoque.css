@@ -1,0 +1,30 @@
+/* src/static/css/estoque.css */
+
+/* Animações de Modal */
+.modal-enter {
+    opacity: 0;
+    transform: scale(0.95);
+}
+
+.modal-enter-active {
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+.modal-exit {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.modal-exit-active {
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 200ms ease-in, transform 200ms ease-in;
+}
+
+/* Utilitários específicos para tabela de estoque */
+.col-preco {
+    font-family: monospace;
+    font-weight: 600;
+}

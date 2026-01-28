@@ -6,6 +6,8 @@ class FormularioProdutoEstoque(FlaskForm):
     nome = StringField('Nome do Produto', validators=[DataRequired()])
     unidade = SelectField('Unidade', choices=[('CX', 'Caixa'), ('UN', 'Unidade'), ('LT', 'Litro'), ('KG', 'Quilo')], default='CX')
     estoque_minimo = DecimalField('Estoque Mínimo (Alerta)', places=3, default=0)
+    preco_m2 = DecimalField('Preço M² (R$)', places=2, validators=[Optional()])
+    preco_m3 = DecimalField('Preço M³ (R$)', places=2, validators=[Optional()])
     submit = SubmitField('Salvar Produto')
 
 class FormularioMovimentacaoManual(FlaskForm):

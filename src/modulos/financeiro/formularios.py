@@ -21,7 +21,15 @@ class FormularioFornecedor(FlaskForm):
     ], validators=[Optional()])
 
 class FormularioDespesa(FlaskForm):
-    descricao = StringField('Descrição da Despesa', validators=[DataRequired(), Length(min=3, max=100)])
+
+    # --- NOVO CAMPO: Decisor do Tipo de Despesa ---
+    eh_compra_produto = BooleanField('É compra de material para estoque?')
+    
+    # Campos de Estoque (Validadores Opcionais pois só usamos se o checkbox acima estiver marcado)
+    produto_estoque_id = SelectField('Produto (Estoque)', coerce=int, validators=[Optional()])
+    qtd_estoque = DecimalField('Quantidade Comprada', places=3, validators=[Optional()])
+
+    descricao = StringField('Descrição', validators=[Optional(), Length(max=100)])
     
     # Valores e Datas
     valor = DecimalField('Valor (R$)', places=2, validators=[DataRequired()])
@@ -74,6 +82,3 @@ class FormularioDespesa(FlaskForm):
     qtd_repeticoes = IntegerField('Repetir por quantos meses?', 
                                   default=1, 
                                   validators=[Optional(), NumberRange(min=1, max=60)])
-    
-    produto_estoque_id = SelectField('Vincular Produto (Estoque)', coerce=int, validators=[Optional()])
-    qtd_estoque = DecimalField('Quantidade Comprada', places=3, validators=[Optional()])
