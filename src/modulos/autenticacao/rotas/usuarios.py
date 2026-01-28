@@ -103,6 +103,8 @@ def novo_usuario():
     return render_template('autenticacao/cadastro_usuario.html', form=form, modulos_grupos=modulos_grupos)
 
 # --- ROTA EDITAR USUÁRIO ---
+# ... (Mantenha os imports e a função novo_usuario iguais) ...
+
 @bp_autenticacao.route('/usuarios/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 # Removemos a exigência estrita de 'rh_equipe' aqui para permitir que o usuário edite o PRÓPRIO perfil
