@@ -14,17 +14,15 @@ bp_operacional = Blueprint('operacional', __name__, url_prefix='/operacional')
 @cargo_exigido('producao_operar')
 def painel():
     
-    # 1. Busca ITENS (CORREÇÃO: Adicionado filtro Venda.modo == 'multipla')
-    # Isso impede que o item da venda simples apareça aqui duplicado, pois ele já será tratado na lista de vendas_simples abaixo.
+    # 1. Busca ITENS (Filtra apenas itens de vendas múltiplas)
     itens_multi = ItemVenda.query.join(Venda).filter(
         ItemVenda.status.in_(['pendente', 'producao', 'pronto']),
         Venda.status != 'cancelado',
         Venda.status != 'orcamento',
-        Venda.modo == 'multipla'  # <--- LINHA NOVA: Filtra apenas itens de vendas múltiplas
+        Venda.modo == 'multipla'
     ).all()
 
-    # 2. Busca VENDAS SIMPLES
-    # Estas são tratadas como um "card único" no painel
+    # 2. Busca VENDAS SIMPLES (Card único)
     vendas_simples = Venda.query.filter(
         Venda.modo == 'simples',
         Venda.status.in_(['pendente', 'producao', 'pronto']),
@@ -35,13 +33,19 @@ def painel():
 
     # Processa Itens Individuais (de Vendas Múltiplas)
     for i in itens_multi:
+        nome_acabamento = '-'
+        if i.produto:
+            nome_acabamento = i.produto.nome
+        elif i.cor:
+            nome_acabamento = i.cor.nome
+
         tarefas.append({
             'tipo': 'item',
             'id': i.id,
             'venda_id': i.venda_id,
             'descricao': i.descricao,
             'quantidade': i.quantidade,
-            'cor': i.cor.nome,
+            'cor': nome_acabamento,
             'status': i.status,
             'cliente': i.venda.cliente_nome,
             'obs': i.venda.observacoes_internas,
@@ -51,13 +55,20 @@ def painel():
 
     # Processa Vendas Simples (Card Unificado)
     for v in vendas_simples:
+        nome_acabamento = 'Padrão'
+        if v.produto:
+            nome_acabamento = v.produto.nome
+        elif v.cor:
+            nome_acabamento = v.cor.nome
+
         tarefas.append({
             'tipo': 'venda',
             'id': v.id,
             'venda_id': v.id,
+            'item_unico_id': v.itens[0].id if v.itens else None,
             'descricao': v.descricao_servico,
             'quantidade': v.quantidade_pecas,
-            'cor': v.cor.nome if v.cor else 'Padrão',
+            'cor': nome_acabamento,
             'status': v.status,
             'cliente': v.cliente_nome,
             'obs': v.observacoes_internas,
@@ -72,7 +83,8 @@ def painel():
     qtd_fila = sum(1 for t in tarefas if t['status'] == 'pendente')
     qtd_producao = sum(1 for t in tarefas if t['status'] == 'producao')
     qtd_pronto = sum(1 for t in tarefas if t['status'] == 'pronto')
-    produtos_estoque = ProdutoEstoque.query.filter_by(ativo=True).all()
+    
+    produtos_estoque = ProdutoEstoque.query.filter_by(ativo=True).order_by(ProdutoEstoque.nome).all()
 
     return render_template('operacional/painel.html', 
                            tarefas=tarefas,
@@ -106,7 +118,6 @@ def avancar_item(id):
         item.usuario_pronto_id = current_user.id
         acao_texto = "Finalizou Produção"
 
-    # 1. Grava no Histórico
     if acao_texto:
         log = ItemVendaHistorico(
             item_id=item.id,
@@ -118,7 +129,6 @@ def avancar_item(id):
         )
         db.session.add(log)
 
-    # 2. Sincroniza Venda Pai
     todos_itens = ItemVenda.query.filter_by(venda_id=venda_pai.id).all()
     status_set = set(i.status for i in todos_itens)
 
@@ -139,7 +149,7 @@ def avancar_item(id):
     return redirect(url_for('operacional.painel'))
 
 
-# --- ROTA DE VOLTAR (COM HISTÓRICO DE QUEM VOLTOU) ---
+# --- ROTA DE VOLTAR (COM ESTORNO DE ESTOQUE) ---
 @bp_operacional.route('/item/<int:id>/voltar')
 @login_required
 @cargo_exigido('producao_operar')
@@ -151,7 +161,7 @@ def voltar_item(id):
     status_anterior = item.status
     acao_texto = ""
 
-    # 1. Define a ação de regressão
+    # Lógica de Regressão
     if item.status == 'producao':
         acao_texto = "Retornou para Fila (Desfez Início)"
         item.status = 'pendente'
@@ -159,12 +169,29 @@ def voltar_item(id):
         item.usuario_producao_id = None
         
     elif item.status == 'pronto':
-        acao_texto = "Retornou para Produção (Desfez Finalização)"
+        acao_texto = "Retornou para Produção (Correção)"
         item.status = 'producao'
         item.data_pronto = None
         item.usuario_pronto_id = None
+        
+        # --- ESTORNO DE ESTOQUE (NOVO) ---
+        # Se estava pronto e voltou, precisamos devolver o material consumido
+        movimentacoes = MovimentacaoEstoque.query.filter_by(
+            referencia_id=item.id,
+            origem='producao',
+            tipo='saida'
+        ).all()
+        
+        for mov in movimentacoes:
+            # 1. Devolve a quantidade para o produto
+            prod = ProdutoEstoque.query.get(mov.produto_id)
+            if prod:
+                prod.quantidade_atual += mov.quantidade
+            
+            # 2. Apaga o registro de saída (como se nunca tivesse ocorrido)
+            db.session.delete(mov)
+        # ---------------------------------
 
-    # 2. Salva o Log de Auditoria
     if acao_texto:
         log = ItemVendaHistorico(
             item_id=item.id,
@@ -176,7 +203,6 @@ def voltar_item(id):
         )
         db.session.add(log)
 
-    # 3. Sincroniza Venda Pai (Recálculo Reverso)
     todos_itens = ItemVenda.query.filter_by(venda_id=venda_pai.id).all()
     status_set = set(i.status for i in todos_itens)
 
@@ -210,7 +236,6 @@ def avancar_venda(id):
         venda.data_inicio_producao = agora
         venda.usuario_producao_id = current_user.id
         
-        # Opcional: Atualizar também o item único vinculado
         if venda.itens:
             for item in venda.itens:
                 item.status = 'producao'
@@ -253,28 +278,41 @@ def voltar_venda(id):
         venda.data_pronto = None
         venda.usuario_pronto_id = None
         
+        # --- ESTORNO DE ESTOQUE VENDA SIMPLES (NOVO) ---
         if venda.itens:
             for item in venda.itens:
                 item.status = 'producao'
                 item.data_pronto = None
                 item.usuario_pronto_id = None
+                
+                movimentacoes = MovimentacaoEstoque.query.filter_by(
+                    referencia_id=item.id,
+                    origem='producao',
+                    tipo='saida'
+                ).all()
+                
+                for mov in movimentacoes:
+                    prod = ProdutoEstoque.query.get(mov.produto_id)
+                    if prod:
+                        prod.quantidade_atual += mov.quantidade
+                    db.session.delete(mov)
+        # -----------------------------------------------
 
     db.session.commit()
     return redirect(url_for('operacional.painel'))
 
-# Crie uma nova rota específica para finalizar com baixa
+# Rota para finalizar com baixa de estoque
 @bp_operacional.route('/item/<int:id>/finalizar_com_baixa', methods=['POST'])
 @login_required
 def finalizar_com_baixa(id):
     item = ItemVenda.query.get_or_404(id)
     
-    # 1. Atualiza Status do Item (Código existente de 'avancar_item' adaptado)
+    # 1. Atualiza Status do Item
     item.status = 'pronto'
     item.data_pronto = hora_brasilia()
     item.usuario_pronto_id = current_user.id
     
-    # 2. Registra Baixa de Estoque (Múltiplos produtos possíveis)
-    # O form enviará arrays: produtos[] e quantidades[]
+    # 2. Registra Baixa de Estoque
     produtos_ids = request.form.getlist('produtos_ids[]')
     quantidades = request.form.getlist('quantidades[]')
     
@@ -286,24 +324,24 @@ def finalizar_com_baixa(id):
                 qtd = Decimal(qtd_str.replace(',', '.'))
                 if qtd > 0:
                     prod = ProdutoEstoque.query.get(int(p_id))
-                    
-                    # Registra Movimentação
-                    mov = MovimentacaoEstoque(
-                        produto_id=prod.id,
-                        tipo='saida',
-                        quantidade=qtd,
-                        saldo_anterior=prod.quantidade_atual,
-                        saldo_novo=prod.quantidade_atual - qtd,
-                        origem='producao',
-                        referencia_id=item.id,
-                        usuario_id=current_user.id,
-                        observacao=f"Produção Item #{item.id} - {item.descricao}"
-                    )
-                    prod.quantidade_atual -= qtd
-                    db.session.add(mov)
-                    consumo_texto.append(f"{qtd} {prod.unidade} de {prod.nome}")
+                    if prod:
+                        # Registra Movimentação
+                        mov = MovimentacaoEstoque(
+                            produto_id=prod.id,
+                            tipo='saida',
+                            quantidade=qtd,
+                            saldo_anterior=prod.quantidade_atual,
+                            saldo_novo=prod.quantidade_atual - qtd,
+                            origem='producao',
+                            referencia_id=item.id,
+                            usuario_id=current_user.id,
+                            observacao=f"Produção Item #{item.id} - {item.descricao}"
+                        )
+                        prod.quantidade_atual -= qtd
+                        db.session.add(mov)
+                        consumo_texto.append(f"{qtd} {prod.unidade} de {prod.nome}")
             except ValueError:
-                pass # Ignora valores inválidos
+                pass 
 
     # 3. Log de Histórico
     log = ItemVendaHistorico(
@@ -316,7 +354,16 @@ def finalizar_com_baixa(id):
     )
     db.session.add(log)
     
-    # ... (Lógica de sincronizar Venda Pai) ...
-    
+    # 4. Sincroniza Venda Pai
+    venda_pai = Venda.query.get(item.venda_id)
+    todos_itens = ItemVenda.query.filter_by(venda_id=venda_pai.id).all()
+    status_set = set(i.status for i in todos_itens)
+
+    if all(s in ['pronto', 'entregue'] for s in status_set):
+        if venda_pai.status != 'pronto' and venda_pai.status != 'entregue':
+            venda_pai.status = 'pronto'
+            venda_pai.data_pronto = hora_brasilia()
+            venda_pai.usuario_pronto_id = current_user.id
+            
     db.session.commit()
     return redirect(url_for('operacional.painel'))
