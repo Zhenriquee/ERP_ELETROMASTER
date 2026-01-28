@@ -1,14 +1,15 @@
 from flask import render_template
 from flask_login import login_required, current_user
 from sqlalchemy import func, extract, desc
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime # Adicionado datetime
 from dateutil.relativedelta import relativedelta
 
 from src.extensoes import banco_de_dados as db
-from src.modulos.vendas.modelos import Venda, Pagamento, ItemVenda, CorServico
+from src.modulos.vendas.modelos import Venda, Pagamento, ItemVenda
 from src.modulos.financeiro.modelos import Despesa
 from src.modulos.metas.modelos import MetaMensal
 from src.modulos.dashboard import bp_dashboard
+from src.modulos.estoque.modelos import ProdutoEstoque
 
 def fmt_moeda(valor):
     if not valor: return "0,00"
@@ -52,7 +53,7 @@ def painel():
             .filter(extract('month', Pagamento.data_pagamento) == mes_atual, 
                     extract('year', Pagamento.data_pagamento) == ano_atual).scalar() or 0
 
-        total_vendido_geral = db.session.query(func.sum(Venda.valor_final)).filter(Venda.status != 'cancelada', Venda.status != 'orcamento').scalar() or 0
+        total_vendido_geral = db.session.query(func.sum(Venda.valor_final)).filter(Venda.status != 'cancelado', Venda.status != 'orcamento').scalar() or 0
         total_pago_geral = db.session.query(func.sum(Pagamento.valor)).scalar() or 0
         a_receber = total_vendido_geral - total_pago_geral
         if a_receber < 0: a_receber = 0
@@ -65,7 +66,7 @@ def painel():
 
         vendas_hoje = db.session.query(func.sum(Venda.valor_final))\
             .filter(func.date(Venda.criado_em) == hoje,
-                    Venda.status != 'cancelada', Venda.status != 'orcamento').scalar() or 0
+                    Venda.status != 'cancelado', Venda.status != 'orcamento').scalar() or 0
         
         atingimento_dia_perc = (float(vendas_hoje) / meta_diaria_alvo) * 100 if meta_diaria_alvo > 0 else 0
 
@@ -86,12 +87,12 @@ def painel():
         qtd_vendas_mes = db.session.query(func.count(Venda.id))\
             .filter(extract('month', Venda.criado_em) == mes_atual, 
                     extract('year', Venda.criado_em) == ano_atual,
-                    Venda.status != 'cancelada', Venda.status != 'orcamento').scalar() or 0
+                    Venda.status != 'cancelado', Venda.status != 'orcamento').scalar() or 0
         
         faturamento_mes = db.session.query(func.sum(Venda.valor_final))\
             .filter(extract('month', Venda.criado_em) == mes_atual, 
                     extract('year', Venda.criado_em) == ano_atual,
-                    Venda.status != 'cancelada', Venda.status != 'orcamento').scalar() or 0
+                    Venda.status != 'cancelado', Venda.status != 'orcamento').scalar() or 0
         
         ticket_medio = (float(faturamento_mes) / qtd_vendas_mes) if qtd_vendas_mes > 0 else 0
         perc_meta_mes = (float(faturamento_mes) / meta_valor_mes) * 100
@@ -107,7 +108,7 @@ def painel():
             soma_v = db.session.query(func.sum(Venda.valor_final))\
                 .filter(extract('month', Venda.criado_em) == mes_iter, 
                         extract('year', Venda.criado_em) == ano_iter,
-                        Venda.status != 'cancelada', Venda.status != 'orcamento').scalar() or 0
+                        Venda.status != 'cancelado', Venda.status != 'orcamento').scalar() or 0
             chart_data_vendas.append(float(soma_v))
 
             soma_d = db.session.query(func.sum(Despesa.valor))\
@@ -123,60 +124,56 @@ def painel():
         doughnut_data = [float(c[1]) for c in cats_db]
 
     # =================================================================
-    # --- INDICADORES OPERACIONAIS (NORMALIZADOS) ---
+    # --- INDICADORES OPERACIONAIS ---
     # =================================================================
     
-    # Função auxiliar para padronizar o objeto para o template
     def formatar_tarefa(obj, tipo):
-        if tipo == 'item': # É um ItemVenda
+        # ATUALIZADO: Inclui data_criacao para cálculo de atraso
+        if tipo == 'item': 
             return {
                 'id': obj.id,
                 'descricao': obj.descricao,
                 'venda_id': obj.venda_id,
                 'cliente_nome': obj.venda.cliente_nome,
-                'quantidade': obj.quantidade
+                'quantidade': obj.quantidade,
+                'data_criacao': obj.venda.criado_em
             }
-        else: # É uma Venda (Simples)
+        else: 
             return {
-                'id': obj.id, # O ID aqui é usado apenas para referência visual se necessário
+                'id': obj.id,
                 'descricao': obj.descricao_servico,
                 'venda_id': obj.id,
                 'cliente_nome': obj.cliente_nome,
-                'quantidade': obj.quantidade_pecas
+                'quantidade': obj.quantidade_pecas,
+                'data_criacao': obj.criado_em
             }
 
-    # 1. Busca Itens de Vendas Múltiplas (FILTRADO POR MODO)
     itens_multi = db.session.query(ItemVenda).join(Venda).filter(
         Venda.status != 'cancelado', 
         Venda.status != 'orcamento',
-        Venda.modo == 'multipla' # <--- IMPORTANTE: Evita duplicar venda simples
+        Venda.modo == 'multipla'
     ).all()
 
-    # 2. Busca Vendas Simples (FILTRADO POR MODO)
     vendas_simples = Venda.query.filter(
         Venda.modo == 'simples',
         Venda.status != 'cancelado', 
         Venda.status != 'orcamento'
     ).all()
 
-    # 3. Listas Finais para o Template
     op_fila = []
     op_execucao = []
     op_prontos = []
     op_finalizados = []
 
-    # Processa Itens
     for i in itens_multi:
         tarefa = formatar_tarefa(i, 'item')
         if i.status == 'pendente': op_fila.append(tarefa)
         elif i.status == 'producao': op_execucao.append(tarefa)
         elif i.status == 'pronto': op_prontos.append(tarefa)
         elif i.status == 'entregue': 
-            # Filtro opcional: só mostra entregues deste mês no KPI de finalizados
             if i.data_entregue and i.data_entregue.month == mes_atual and i.data_entregue.year == ano_atual:
                 op_finalizados.append(tarefa)
 
-    # Processa Vendas Simples
     for v in vendas_simples:
         tarefa = formatar_tarefa(v, 'venda')
         if v.status == 'pendente': op_fila.append(tarefa)
@@ -186,17 +183,29 @@ def painel():
             if v.data_entrega and v.data_entrega.month == mes_atual and v.data_entrega.year == ano_atual:
                 op_finalizados.append(tarefa)
 
+    # --- NOVO KPI: ATRASADOS (5 dias ou mais) ---
+    op_atrasados = []
+    # Data limite: Agora - 5 dias
+    limite_atraso = datetime.utcnow() - timedelta(days=5)
+    
+    # Verifica apenas Fila e Execução
+    for tarefa in op_fila + op_execucao:
+        if tarefa['data_criacao'] and tarefa['data_criacao'] <= limite_atraso:
+            op_atrasados.append(tarefa)
+            
+    qtd_atrasados = len(op_atrasados)
+
     # =================================================================
     # --- TOP PRODUTOS (ÚLTIMOS 30 DIAS) ---
     # =================================================================
     data_limite_30_dias = hoje - timedelta(days=30)
     
-    top_produtos = db.session.query(CorServico.nome, func.sum(ItemVenda.quantidade).label('total_qtd'))\
-        .join(ItemVenda, ItemVenda.cor_id == CorServico.id)\
+    top_produtos = db.session.query(ProdutoEstoque.nome, func.sum(ItemVenda.quantidade).label('total_qtd'))\
+        .join(ItemVenda, ItemVenda.produto_id == ProdutoEstoque.id)\
         .join(Venda, ItemVenda.venda_id == Venda.id)\
         .filter(Venda.criado_em >= data_limite_30_dias,
-                Venda.status != 'cancelada')\
-        .group_by(CorServico.nome)\
+                Venda.status != 'cancelado')\
+        .group_by(ProdutoEstoque.nome)\
         .order_by(desc('total_qtd'))\
         .limit(5).all()
 
@@ -214,12 +223,14 @@ def painel():
                            lista_vencidos=lista_vencidos,
                            lista_proximos=lista_proximos,
                            
-                           # Passamos as listas processadas
                            op_fila=op_fila,
                            op_execucao=op_execucao,
                            op_prontos=op_prontos,
                            op_finalizados=op_finalizados,
-                           # Contagens baseadas nas listas unificadas
+                           # Passa dados do novo KPI
+                           op_atrasados=op_atrasados, 
+                           qtd_atrasados=qtd_atrasados,
+                           
                            qtd_fila=len(op_fila),
                            qtd_execucao=len(op_execucao),
                            qtd_prontos=len(op_prontos),
