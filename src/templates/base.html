@@ -63,15 +63,14 @@
                     {{ nav_link('financeiro.painel', 'dollar-sign', 'Financeiro', ['financeiro.nova_despesa', 'financeiro.fornecedores']) }}
                 {% endif %}
 
-                {% if current_user.tem_permissao('producao_operar') %}
-                {{ nav_link('estoque.painel', 'package', 'Controle de Estoque') }}
+                {% if current_user.tem_permissao('estoque_gerir') %}
+                    {{ nav_link('estoque.painel', 'package', 'Controle de Estoque') }}
                 {% endif %}
 
                 {% if current_user.tem_permissao('metas_equipe') %}
-                {{ nav_link('metas.painel', 'target', 'Metas & Objetivos', ['metas.nova_meta']) }}
+                    {{ nav_link('metas.painel', 'target', 'Metas & Objetivos', ['metas.nova_meta']) }}
                 {% endif %}
                 
-
                 {% if current_user.tem_permissao('rh_equipe') %}
                     {{ nav_header('Administrativo') }}
                     {{ nav_link('autenticacao.listar_usuarios', 'users', 'Equipe & Acessos', ['autenticacao.novo_usuario', 'autenticacao.editar_usuario']) }}

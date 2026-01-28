@@ -5,6 +5,7 @@ from src.modulos.vendas.modelos import Venda, CorServico, hora_brasilia, ItemVen
 from src.modulos.vendas.formularios import FormularioVendaWizard
 from src.modulos.estoque.modelos import ProdutoEstoque # IMPORTANTE: Importar do Estoque
 from decimal import Decimal
+from src.modulos.autenticacao.permissoes import cargo_exigido  # <--- IMPORTAR ISTO
 from . import bp_vendas
 
 def converter_decimal(valor_str):
@@ -16,6 +17,7 @@ def converter_decimal(valor_str):
 
 @bp_vendas.route('/nova', methods=['GET', 'POST'])
 @login_required
+@cargo_exigido('vendas_operar')  # <--- PROTEÇÃO APLICADA
 def nova_venda():
     form = FormularioVendaWizard()
     
@@ -115,6 +117,7 @@ def nova_venda():
 
 @bp_vendas.route('/nova-multipla', methods=['GET'])
 @login_required
+@cargo_exigido('vendas_operar')
 def nova_venda_multipla():
     # ALTERADO: Busca do Estoque com Preços
     produtos_ativos = ProdutoEstoque.query.filter_by(ativo=True).order_by(ProdutoEstoque.nome).all()
@@ -131,6 +134,7 @@ def nova_venda_multipla():
 
 @bp_vendas.route('/salvar-multipla', methods=['POST'])
 @login_required
+@cargo_exigido('vendas_operar')
 def salvar_venda_multipla():
     try:
         # ... (Lógica de Cliente mantida) ...

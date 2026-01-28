@@ -8,11 +8,14 @@ from src.modulos.vendas.modelos import Venda, ItemVenda, Pagamento, hora_brasili
 from src.modulos.vendas.formularios import FormularioPagamento
 from src.modulos.autenticacao.modelos import Usuario
 
+from src.modulos.autenticacao.permissoes import cargo_exigido  # <--- IMPORTAR
+
 from . import bp_vendas
 
 # NOME PADRONIZADO: listar_vendas
 @bp_vendas.route('/lista', methods=['GET'])
 @login_required
+@cargo_exigido('vendas_ver_lista')  # <--- PROTEÇÃO APLICADA
 def listar_vendas():
     # 1. Filtros
     page = request.args.get('page', 1, type=int)

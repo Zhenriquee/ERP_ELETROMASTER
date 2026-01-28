@@ -2,10 +2,12 @@ from flask import redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from src.extensoes import banco_de_dados as db
 from src.modulos.vendas.modelos import Venda,  hora_brasilia, ItemVenda, ItemVendaHistorico
+from src.modulos.autenticacao.permissoes import cargo_exigido  # <--- IMPORTAR
 from . import bp_vendas
 
 @bp_vendas.route('/servicos/<int:id>/status/<novo_status>')
 @login_required
+@cargo_exigido('vendas_operar')  # <--- PROTEÇÃO APLICADA
 def mudar_status(id, novo_status):
     venda = Venda.query.get_or_404(id)
     agora = hora_brasilia()
@@ -55,6 +57,7 @@ def mudar_status(id, novo_status):
 
 @bp_vendas.route('/itens/<int:id>/status/<novo_status>')
 @login_required
+@cargo_exigido('vendas_operar')  # <--- PROTEÇÃO APLICADA
 def mudar_status_item(id, novo_status):
     item = ItemVenda.query.get_or_404(id)
     venda_pai = Venda.query.get(item.venda_id)
@@ -100,6 +103,7 @@ def mudar_status_item(id, novo_status):
 
 @bp_vendas.route('/servicos/<int:id>/cancelar', methods=['POST'])
 @login_required
+@cargo_exigido('vendas_operar')  # <--- PROTEÇÃO APLICADA
 def cancelar_venda(id):
     venda = Venda.query.get_or_404(id)
     if venda.status == 'entregue' and venda.valor_restante <= 0.01:

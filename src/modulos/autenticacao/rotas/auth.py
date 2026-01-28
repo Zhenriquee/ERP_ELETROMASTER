@@ -12,7 +12,14 @@ def login():
     form = FormularioLogin()
     if form.validate_on_submit():
         user_banco = Usuario.query.filter_by(usuario=form.usuario.data).first()
+        
         if user_banco and user_banco.verificar_senha(form.senha.data):
+            # --- VALIDAÇÃO DE USUÁRIO ATIVO ---
+            if not user_banco.ativo:
+                flash('Este usuário foi inativado. Contate o administrador.', 'error')
+                return render_template('autenticacao/login.html', form=form)
+            # ----------------------------------
+
             login_user(user_banco, remember=form.lembrar_de_mim.data)
             next_page = request.args.get('next')
             return redirect(next_page or url_for('dashboard.painel'))

@@ -37,72 +37,18 @@ def criar_app(nome_configuracao='desenvolvimento'):
     from src.modulos.estoque import bp_estoque
     app.register_blueprint(bp_estoque)
     
-    # --- COMANDOS CLI (Terminal) ---
-
-    @app.cli.command("criar-admin")
-    def criar_admin():
-        from src.modulos.autenticacao.modelos import Usuario, Modulo
-        
-        print("--- INICIANDO ATUALIZAÇÃO DE MÓDULOS ---")
-
-        # 1. LISTA OFICIAL E ÚNICA DE MÓDULOS (O que vale é isso aqui)
-        # Qualquer coisa no banco que não esteja aqui será APAGADA.
-        modulos_oficiais = [
-            {'codigo': 'rh_equipe',         'nome': 'RH - Gestão de Equipe'},
-            {'codigo': 'rh_salarios',       'nome': 'RH - Ver Salários'},
-            {'codigo': 'vendas_operar',     'nome': 'Vendas - Realizar Vendas'},
-            {'codigo': 'vendas_admin',      'nome': 'Vendas - Gestão/Preços'},
-            {'codigo': 'produtos_gerir',    'nome': 'Catálogo - Gestão'},
-            {'codigo': 'producao_operar',   'nome': 'Operacional - Produção'},
-            {'codigo': 'metas_equipe',      'nome': 'Metas - Visualizar'},
-            {'codigo': 'financeiro_acesso', 'nome': 'Financeiro - Acesso Completo'} 
-        ]
-        
-        codigos_oficiais = [m['codigo'] for m in modulos_oficiais]
-
-        # 2. LIMPEZA: Remove módulos que não existem mais (Estoque, Antigos, Duplicados)
-        modulos_no_banco = Modulo.query.all()
-        removidos = 0
-        for mod_db in modulos_no_banco:
-            if mod_db.codigo not in codigos_oficiais:
-                print(f"REMOVENDO módulo obsoleto: {mod_db.nome} ({mod_db.codigo})")
-                banco_de_dados.session.delete(mod_db)
-                removidos += 1
-        
-        if removidos > 0:
-            banco_de_dados.session.commit()
-            print(f"Limpeza concluída. {removidos} módulos antigos removidos.")
-
-        # 3. CRIAÇÃO/ATUALIZAÇÃO: Garante que os oficiais existam com o nome certo
-        criados = 0
-        atualizados = 0
-        for m_data in modulos_oficiais:
-            mod_existente = Modulo.query.filter_by(codigo=m_data['codigo']).first()
+    # --- AUTOMATIZAÇÃO: Atualiza Permissões ao Iniciar ---
+    with app.app_context():
+        try:
+            # Tenta criar tabelas se não existirem (segurança para dev)
+            banco_de_dados.create_all()
             
-            if not mod_existente:
-                # Cria se não existe
-                novo_m = Modulo(nome=m_data['nome'], codigo=m_data['codigo'])
-                banco_de_dados.session.add(novo_m)
-                criados += 1
-            else:
-                # Atualiza o nome se mudou (ex: corrigir Financeiro Total -> Completo)
-                if mod_existente.nome != m_data['nome']:
-                    mod_existente.nome = m_data['nome']
-                    atualizados += 1
-
-        banco_de_dados.session.commit()
-        print(f"Sincronização finalizada: {criados} criados, {atualizados} nomes corrigidos.")
-
-        # 4. GARANTIR ADMIN
-        if not Usuario.query.filter_by(usuario='admin').first():
-            u = Usuario(nome='Dono', usuario='admin', cargo='dono')
-            u.definir_senha('admin123')
-            banco_de_dados.session.add(u)
-            banco_de_dados.session.commit()
-            print("Usuário Admin criado com sucesso.")
+            # Sincroniza os módulos novos automaticamente
+            sincronizar_modulos_oficiais()
+        except Exception as e:
+            print(f"Nota: Banco de dados ainda não pronto ou erro de conexão. ({e})")
 
     # --- ROTAS GERAIS ---
-
     @app.route('/')
     def index():
         if current_user.is_authenticated:
@@ -111,3 +57,64 @@ def criar_app(nome_configuracao='desenvolvimento'):
             return redirect(url_for('autenticacao.login'))
 
     return app
+
+def sincronizar_modulos_oficiais():
+    """
+    Função que garante que todos os módulos definidos no código 
+    existam no banco de dados.
+    """
+    from src.modulos.autenticacao.modelos import Modulo
+    
+    # LISTA OFICIAL DE PERMISSÕES
+    modulos_oficiais = [
+        # 1. Dashboard (Novos que estavam faltando)
+        {'codigo': 'dash_financeiro',   'nome': 'Dashboard - Ver Financeiro'},
+        {'codigo': 'dash_despesas',     'nome': 'Dashboard - Ver Contas/Alertas'},
+        {'codigo': 'dash_performance',  'nome': 'Dashboard - Ver Performance'},
+        {'codigo': 'dash_operacional',  'nome': 'Dashboard - Ver Operacional'},
+
+        # 2. Vendas & Serviços
+        {'codigo': 'vendas_operar',       'nome': 'Vendas - Criar/Editar'},
+        {'codigo': 'vendas_ver_lista',    'nome': 'Vendas - Ver Lista Serviços'},
+        {'codigo': 'vendas_ver_valores',  'nome': 'Vendas - Ver Valores ($)'},
+        {'codigo': 'vendas_ver_metricas', 'nome': 'Vendas - Ver Métricas'},
+
+        # 3. Módulos de Gestão
+        {'codigo': 'financeiro_acesso', 'nome': 'Financeiro - Acesso Completo'},
+        {'codigo': 'producao_operar',   'nome': 'Produção - Painel Operacional'},
+        {'codigo': 'estoque_gerir',     'nome': 'Estoque - Gestão de Produtos'},
+        {'codigo': 'estoque_gerir',     'nome': 'Estoque - Gestão de Produtos'},
+        {'codigo': 'metas_equipe',      'nome': 'Metas - Acesso ao Painel'},
+        
+        # 4. RH
+        {'codigo': 'rh_equipe',         'nome': 'RH - Gestão de Equipe'},
+        {'codigo': 'rh_salarios',       'nome': 'RH - Ver Salários'}
+    ]
+    
+    codigos_no_codigo = [m['codigo'] for m in modulos_oficiais]
+    alteracoes = False
+
+    # 1. Cria ou Atualiza
+    for m_data in modulos_oficiais:
+        mod_db = Modulo.query.filter_by(codigo=m_data['codigo']).first()
+        if not mod_db:
+            print(f"[Sistema] Criando novo módulo de permissão: {m_data['nome']}")
+            novo = Modulo(nome=m_data['nome'], codigo=m_data['codigo'])
+            banco_de_dados.session.add(novo)
+            alteracoes = True
+        elif mod_db.nome != m_data['nome']:
+            mod_db.nome = m_data['nome']
+            alteracoes = True
+    
+    # 2. (Opcional) Limpa antigos
+    # Comentado para evitar apagar coisas por engano em produção, 
+    # mas descomente se quiser limpar permissões velhas.
+    # todos_db = Modulo.query.all()
+    # for m in todos_db:
+    #     if m.codigo not in codigos_no_codigo:
+    #         banco_de_dados.session.delete(m)
+    #         alteracoes = True
+
+    if alteracoes:
+        banco_de_dados.session.commit()
+        print("[Sistema] Permissões sincronizadas com sucesso.")

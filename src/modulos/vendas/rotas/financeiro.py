@@ -5,11 +5,13 @@ from src.modulos.vendas.modelos import Venda, Pagamento
 from src.modulos.vendas.formularios import FormularioPagamento
 from decimal import Decimal
 from datetime import datetime
+from src.modulos.autenticacao.permissoes import cargo_exigido  # <--- IMPORTAR
 
 from . import bp_vendas
 
 @bp_vendas.route('/servicos/<int:id>/pagamento', methods=['POST'])
 @login_required
+@cargo_exigido('vendas_operar')  # <--- PROTEÇÃO APLICADA
 def registrar_pagamento(id):
     venda = Venda.query.get_or_404(id)
     form = FormularioPagamento()

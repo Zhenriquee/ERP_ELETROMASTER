@@ -14,6 +14,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         
+        {% if current_user.tem_permissao('vendas_ver_valores') %}
         <div class="grid grid-cols-2 gap-4">
             <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-l-4 border-navy-900">
                 <p class="text-xs text-gray-400 font-bold uppercase">A Receber</p>
@@ -24,7 +25,13 @@
                 <h3 class="text-xl font-bold text-green-600 mt-1">R$ {{ kpi_recebido_mes|round(2) }}</h3>
             </div>
         </div>
+        {% else %}
+        <div class="bg-gray-50 rounded-xl border border-dashed border-gray-300 flex items-center justify-center p-4">
+            <p class="text-xs text-gray-400 font-bold flex items-center"><i data-lucide="lock" class="w-3 h-3 mr-1"></i> Indicadores Financeiros Ocultos</p>
+        </div>
+        {% endif %}
 
+        {% if current_user.tem_permissao('vendas_ver_metricas') %}
         <div class="grid grid-cols-4 gap-2">
             <div class="bg-white p-3 rounded-lg border border-gray-100 text-center">
                 <p class="text-[10px] text-gray-400 font-bold uppercase">Fila</p>
@@ -43,8 +50,15 @@
                 <h3 class="text-lg font-bold text-red-600">{{ qtd_cancelados }}</h3>
             </div>
         </div>
+        {% else %}
+        <div class="bg-gray-50 rounded-xl border border-dashed border-gray-300 flex items-center justify-center p-4">
+            <p class="text-xs text-gray-400 font-bold flex items-center"><i data-lucide="lock" class="w-3 h-3 mr-1"></i> Indicadores de Produção Ocultos</p>
+        </div>
+        {% endif %}
     </div>
 
+    {% if current_user.tem_permissao('vendas_ver_lista') %}
+    
     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
         <h4 class="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center">
             <i data-lucide="filter" class="w-3 h-3 mr-1"></i> Filtros
@@ -55,7 +69,6 @@
                        placeholder="Buscar ID, Cliente, Serviço ou Item..." 
                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none">
             </div>
-            
             <div>
                 <select id="filtroStatus" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none bg-white">
                     <option value="">Status: Todos</option>
@@ -66,7 +79,6 @@
                     <option value="cancelado" {{ 'selected' if filtros.status == 'cancelado' }}>Cancelado</option>
                 </select>
             </div>
-
             <div>
                 <select id="filtroVendedor" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none bg-white">
                     <option value="">Vendedor: Todos</option>
@@ -75,7 +87,6 @@
                     {% endfor %}
                 </select>
             </div>
-
             <div>
                 <input type="date" id="filtroData" value="{{ filtros.data }}" 
                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none text-gray-500">
@@ -101,126 +112,92 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     {% for s in servicos %}
-                    <tr class="hover:bg-gray-50 transition-colors linha-tabela"
-                        data-texto="{{ s.id }} {{ s.cliente_nome }} {{ s.descricao_servico }} {{ s.produto.nome if s.produto else (s.cor.nome if s.cor else '') }}"
-                        data-status="{{ s.status }}"
-                        data-vendedor="{{ s.vendedor.nome }}"
-                        data-data="{{ s.criado_em.strftime('%Y-%m-%d') }}">
-                        
-                        <td class="px-6 py-4">
-                            <span class="font-bold text-navy-900">#{{ s.id }}</span><br>
-                            {{ s.cliente_nome }}
-                            <div class="flex items-center text-xs text-gray-500 mt-1">
-                                <i data-lucide="phone" class="w-3 h-3 mr-1"></i>
-                                {{ s.cliente_contato }}
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 max-w-xs truncate">
-                            {% if s.modo == 'multipla' %}
-                                <span class="text-xs font-bold text-blue-600">Venda Múltipla ({{ s.itens|length }} itens)</span>
-                            {% else %}
-                                {{ s.produto.nome if s.produto else (s.cor.nome if s.cor else '-') }} ({{ s.quantidade_pecas }}x)
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4">
-                            {% if s.status == 'pendente' %}
-                                <span class="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs font-bold">Pendente</span>
-                            {% elif s.status == 'producao' %}
-                                <span class="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-bold animate-pulse">Em Produção</span>
-                            {% elif s.status == 'pronto' %}
-                                <span class="px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-xs font-bold">Pronto</span>
-                            {% elif s.status == 'entregue' %}
-                                <span class="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold">Entregue</span>
-                            {% elif s.status == 'cancelado' %}
-                                <span class="px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-bold">Cancelado</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="flex flex-col">
-                                <span class="font-bold text-navy-900">R$ {{ s.valor_final }}</span>
-                                <span class="text-xs {{ 'text-red-500' if s.valor_restante > 0 else 'text-green-500' }}">
-                                    Restante: R$ {{ s.valor_restante }}
-                                </span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="block text-navy-900 font-medium">{{ s.vendedor.nome }}</span>
-                            <span class="text-xs text-gray-400">{{ s.criado_em.strftime('%d/%m/%Y %H:%M') }}</span>
-                        </td>
-                        <td class="px-6 py-4 text-right">
+                        <tr class="hover:bg-gray-50 transition-colors linha-tabela"
+                            data-texto="{{ s.id }} {{ s.cliente_nome }} {{ s.descricao_servico }} {{ s.produto.nome if s.produto else (s.cor.nome if s.cor else '') }}"
+                            data-status="{{ s.status }}"
+                            data-vendedor="{{ s.vendedor.nome }}"
+                            data-data="{{ s.criado_em.strftime('%Y-%m-%d') }}">
                             
-                            {% set lista_itens_dados = [] %}
-                            {% set lista_descricoes = [] %}
-                            
-                            {% for item in s.itens %}
-                                
-                                {% set log_acoes = [] %}
-                                {% for log in item.historico_acoes|sort(attribute='data_acao', reverse=True) %}
-                                    {% set _ = log_acoes.append({
-                                        'data': log.data_acao.strftime('%d/%m %H:%M'),
-                                        'usuario': log.usuario.nome,
-                                        'acao': log.acao,
-                                        'de': log.status_anterior,
-                                        'para': log.status_novo
-                                    }) %}
+                            <td class="px-6 py-4">
+                                <span class="font-bold text-navy-900">#{{ s.id }}</span><br>
+                                {{ s.cliente_nome }}
+                                <div class="flex items-center text-xs text-gray-500 mt-1">
+                                    <i data-lucide="phone" class="w-3 h-3 mr-1"></i>
+                                    {{ s.cliente_contato }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 max-w-xs truncate">
+                                {% if s.modo == 'multipla' %}
+                                    <span class="text-xs font-bold text-blue-600">Venda Múltipla ({{ s.itens|length }} itens)</span>
+                                {% else %}
+                                    {{ s.produto.nome if s.produto else (s.cor.nome if s.cor else '-') }} ({{ s.quantidade_pecas }}x)
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if s.status == 'pendente' %}
+                                    <span class="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs font-bold">Pendente</span>
+                                {% elif s.status == 'producao' %}
+                                    <span class="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-bold animate-pulse">Em Produção</span>
+                                {% elif s.status == 'pronto' %}
+                                    <span class="px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-xs font-bold">Pronto</span>
+                                {% elif s.status == 'entregue' %}
+                                    <span class="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold">Entregue</span>
+                                {% elif s.status == 'cancelado' %}
+                                    <span class="px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-bold">Cancelado</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if current_user.tem_permissao('vendas_ver_valores') %}
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-navy-900">R$ {{ s.valor_final }}</span>
+                                        <span class="text-xs {{ 'text-red-500' if s.valor_restante > 0 else 'text-green-500' }}">
+                                            Restante: R$ {{ s.valor_restante }}
+                                        </span>
+                                    </div>
+                                {% else %}
+                                    <span class="text-xs text-gray-400 italic">Oculto</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="block text-navy-900 font-medium">{{ s.vendedor.nome }}</span>
+                                <span class="text-xs text-gray-400">{{ s.criado_em.strftime('%d/%m/%Y %H:%M') }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                {% set lista_itens_dados = [] %}
+                                {% set lista_descricoes = [] %}
+                                {% for item in s.itens %}
+                                    {% set log_acoes = [] %}
+                                    {% for log in item.historico_acoes|sort(attribute='data_acao', reverse=True) %}
+                                        {% set _ = log_acoes.append({ 'data': log.data_acao.strftime('%d/%m %H:%M'), 'usuario': log.usuario.nome, 'acao': log.acao, 'de': log.status_anterior, 'para': log.status_novo }) %}
+                                    {% endfor %}
+                                    {% set _ = lista_itens_dados.append({ 'id': item.id, 'qtd': item.quantidade, 'descricao': item.descricao, 'cor': item.produto.nome if item.produto else (item.cor.nome if item.cor else '-'), 'status': item.status, 'log_completo': log_acoes, 'hist_producao': item.data_inicio_producao.strftime('%d/%m/%Y %H:%M') if item.data_inicio_producao else None, 'user_producao': item.usuario_producao.nome if item.usuario_producao else None, 'hist_pronto': item.data_pronto.strftime('%d/%m/%Y %H:%M') if item.data_pronto else None, 'user_pronto': item.usuario_pronto.nome if item.usuario_pronto else None, 'hist_entregue': item.data_entregue.strftime('%d/%m/%Y %H:%M') if item.data_entregue else None, 'user_entregue': item.usuario_entrega.nome if item.usuario_entrega else None }) %}
+                                    {% set item_nome_visual = item.produto.nome if item.produto else (item.cor.nome if item.cor else '-') %}
+                                    {% set _ = lista_descricoes.append(item.quantidade ~ 'x ' ~ item.descricao ~ ' (' ~ item_nome_visual ~ ')') %}
                                 {% endfor %}
 
-                                {% set _ = lista_itens_dados.append({
-                                    'id': item.id,
-                                    'qtd': item.quantidade,
-                                    'descricao': item.descricao,
-                                    'cor': item.produto.nome if item.produto else (item.cor.nome if item.cor else '-'),
-                                    'status': item.status,
-                                    'log_completo': log_acoes,  
-                                    'hist_producao': item.data_inicio_producao.strftime('%d/%m/%Y %H:%M') if item.data_inicio_producao else None,
-                                    'user_producao': item.usuario_producao.nome if item.usuario_producao else None,
-                                    
-                                    'hist_pronto': item.data_pronto.strftime('%d/%m/%Y %H:%M') if item.data_pronto else None,
-                                    'user_pronto': item.usuario_pronto.nome if item.usuario_pronto else None,
-                                    
-                                    'hist_entregue': item.data_entregue.strftime('%d/%m/%Y %H:%M') if item.data_entregue else None,
-                                    'user_entregue': item.usuario_entrega.nome if item.usuario_entrega else None
-                                }) %}
+                                {% if s.modo == 'simples' %}
+                                    {% set desc_completa = s.descricao_servico %}
+                                {% else %}
+                                    {% set desc_completa = lista_descricoes|join(' | ') %}
+                                {% endif %}
                                 
-                                {% set item_nome_visual = item.produto.nome if item.produto else (item.cor.nome if item.cor else '-') %}
-                                {% set _ = lista_descricoes.append(item.quantidade ~ 'x ' ~ item.descricao ~ ' (' ~ item_nome_visual ~ ')') %}
-                            {% endfor %}
-
-                            {% if s.modo == 'simples' %}
-                                {% set desc_completa = s.descricao_servico %}
-                            {% else %}
-                                {% set desc_completa = lista_descricoes|join(' | ') %}
-                            {% endif %}
-                            
-                            {% set historico = {
-                                'criado_em': s.criado_em.strftime('%Y-%m-%d %H:%M') if s.criado_em else None,
-                                'vendedor': s.vendedor.nome,
-                                'data_producao': s.data_inicio_producao.strftime('%Y-%m-%d %H:%M') if s.data_inicio_producao else None,
-                                'user_producao': s.usuario_producao.nome if s.usuario_producao else None,
-                                'data_pronto': s.data_pronto.strftime('%Y-%m-%d %H:%M') if s.data_pronto else None,
-                                'user_pronto': s.usuario_pronto.nome if s.usuario_pronto else None,
-                                'data_entrega': s.data_entrega.strftime('%Y-%m-%d %H:%M') if s.data_entrega else None,
-                                'user_entrega': s.usuario_entrega.nome if s.usuario_entrega else None,
-                                'data_cancelamento': s.data_cancelamento.strftime('%Y-%m-%d %H:%M') if s.data_cancelamento else None,
-                                'user_cancelamento': s.usuario_cancelamento.nome if s.usuario_cancelamento else None,
-                                'motivo_cancelamento': s.motivo_cancelamento
-                            } %}
-                            
-                            <button class="btn-abrir-modal p-2 bg-navy-50 text-navy-900 rounded hover:bg-navy-100 transition-colors"
-                                title="Gerenciar"
-                                data-id="{{ s.id }}"
-                                data-cliente="{{ s.cliente_nome }}"
-                                data-contato="{{ s.cliente_contato }}"
-                                data-descricao="{{ desc_completa }}" 
-                                data-restante="{{ s.valor_restante }}"
-                                data-status="{{ s.status }}"
-                                data-modo="{{ s.modo }}"
-                                data-itens="{{ lista_itens_dados|tojson|forceescape }}"
-                                data-historico="{{ historico|tojson|forceescape }}">
-                                <i data-lucide="settings-2" class="w-4 h-4"></i>
-                            </button>
-                        </td>
-                    </tr>
+                                {% set historico = { 'criado_em': s.criado_em.strftime('%Y-%m-%d %H:%M') if s.criado_em else None, 'vendedor': s.vendedor.nome, 'data_producao': s.data_inicio_producao.strftime('%Y-%m-%d %H:%M') if s.data_inicio_producao else None, 'user_producao': s.usuario_producao.nome if s.usuario_producao else None, 'data_pronto': s.data_pronto.strftime('%Y-%m-%d %H:%M') if s.data_pronto else None, 'user_pronto': s.usuario_pronto.nome if s.usuario_pronto else None, 'data_entrega': s.data_entrega.strftime('%Y-%m-%d %H:%M') if s.data_entrega else None, 'user_entrega': s.usuario_entrega.nome if s.usuario_entrega else None, 'data_cancelamento': s.data_cancelamento.strftime('%Y-%m-%d %H:%M') if s.data_cancelamento else None, 'user_cancelamento': s.usuario_cancelamento.nome if s.usuario_cancelamento else None, 'motivo_cancelamento': s.motivo_cancelamento } %}
+                                
+                                <button class="btn-abrir-modal p-2 bg-navy-50 text-navy-900 rounded hover:bg-navy-100 transition-colors"
+                                    title="Gerenciar"
+                                    data-id="{{ s.id }}"
+                                    data-cliente="{{ s.cliente_nome }}"
+                                    data-contato="{{ s.cliente_contato }}"
+                                    data-descricao="{{ desc_completa }}" 
+                                    data-restante="{{ s.valor_restante }}"
+                                    data-status="{{ s.status }}"
+                                    data-modo="{{ s.modo }}"
+                                    data-itens="{{ lista_itens_dados|tojson|forceescape }}"
+                                    data-historico="{{ historico|tojson|forceescape }}">
+                                    <i data-lucide="settings-2" class="w-4 h-4"></i>
+                                </button>
+                            </td>
+                        </tr>
                     {% endfor %}
                     <tr id="semResultados" class="hidden">
                         <td colspan="6" class="px-6 py-8 text-center text-gray-400">Nenhum serviço encontrado.</td>
@@ -235,140 +212,132 @@
             </span>
             <div class="flex gap-2">
             {% if paginacao.has_prev %}
-                <a href="{{ url_for('vendas.listar_vendas', page=paginacao.prev_num, q=filtros.q, status=filtros.status, vendedor=filtros.vendedor, data=filtros.data) }}" 
-                   class="px-4 py-2 bg-white border border-gray-300 rounded hover:bg-gray-100 text-sm font-medium text-gray-700">Anterior</a>
+                <a href="{{ url_for('vendas.listar_vendas', page=paginacao.prev_num, q=filtros.q, status=filtros.status, vendedor=filtros.vendedor, data=filtros.data) }}" class="px-4 py-2 bg-white border border-gray-300 rounded hover:bg-gray-100 text-sm font-medium text-gray-700">Anterior</a>
             {% endif %}
             {% if paginacao.has_next %}
-                <a href="{{ url_for('vendas.listar_vendas', page=paginacao.next_num, q=filtros.q, status=filtros.status, vendedor=filtros.vendedor, data=filtros.data) }}" 
-                   class="px-4 py-2 bg-navy-900 text-white rounded hover:bg-navy-800 text-sm font-medium">Próximo</a>
+                <a href="{{ url_for('vendas.listar_vendas', page=paginacao.next_num, q=filtros.q, status=filtros.status, vendedor=filtros.vendedor, data=filtros.data) }}" class="px-4 py-2 bg-navy-900 text-white rounded hover:bg-navy-800 text-sm font-medium">Próximo</a>
             {% endif %}
-        </div>
+            </div>
         </div>
     </div>
-</div>
-
-<div id="modalServico" class="fixed inset-0 z-50 hidden">
-    <div id="modalOverlay" class="absolute inset-0 bg-gray-900 bg-opacity-50 transition-opacity cursor-pointer"></div>
-    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-        
-        <div class="bg-navy-900 px-6 py-4 flex justify-between items-center shrink-0">
-            <h3 class="text-white font-bold" id="modalTitulo">Gerenciar Serviço</h3>
-            <button id="btnFecharModal" class="text-white hover:text-gray-300"><i data-lucide="x" class="w-5 h-5"></i></button>
-        </div>
-
-        <div class="p-6 overflow-y-auto">
+    
+    {% else %}
+    <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-12 text-center">
+        <i data-lucide="lock" class="w-12 h-12 mx-auto text-gray-400 mb-4"></i>
+        <h3 class="text-lg font-bold text-gray-600">Acesso Restrito</h3>
+        <p class="text-sm text-gray-500">Você não tem permissão para visualizar a lista de serviços.</p>
+    </div>
+    {% endif %} <div id="modalServico" class="fixed inset-0 z-50 hidden">
+        <div id="modalOverlay" class="absolute inset-0 bg-gray-900 bg-opacity-50 transition-opacity cursor-pointer"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="bg-navy-900 px-6 py-4 flex justify-between items-center shrink-0">
+                <h3 class="text-white font-bold" id="modalTitulo">Gerenciar Serviço</h3>
+                <button id="btnFecharModal" class="text-white hover:text-gray-300"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
             
-            <div class="flex items-center justify-between bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 mb-4">
-                <div class="flex items-center text-blue-900">
-                    <i data-lucide="phone" class="w-4 h-4 mr-2"></i>
-                    <span class="text-sm font-bold" id="modalContato">--</span>
+            <div class="p-6 overflow-y-auto">
+                <div class="flex items-center justify-between bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 mb-4">
+                    <div class="flex items-center text-blue-900">
+                        <i data-lucide="phone" class="w-4 h-4 mr-2"></i>
+                        <span class="text-sm font-bold" id="modalContato">--</span>
+                    </div>
+                    <a id="btnWhatsapp" href="#" target="_blank" class="text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full font-bold flex items-center transition-colors">WhatsApp <i data-lucide="external-link" class="w-3 h-3 ml-1"></i></a>
                 </div>
-                <a id="btnWhatsapp" href="#" target="_blank" class="text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full font-bold flex items-center transition-colors">
-                    WhatsApp <i data-lucide="external-link" class="w-3 h-3 ml-1"></i>
-                </a>
-            </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                    <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Data Solicitação</p>
-                    <div class="flex items-center text-navy-900 font-bold text-sm">
-                        <i data-lucide="calendar" class="w-3 h-3 mr-2 text-gray-400"></i>
-                        <span id="modalDataVenda">--</span>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Data Solicitação</p>
+                        <div class="flex items-center text-navy-900 font-bold text-sm">
+                            <i data-lucide="calendar" class="w-3 h-3 mr-2 text-gray-400"></i>
+                            <span id="modalDataVenda">--</span>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Vendedor</p>
+                        <div class="flex items-center text-navy-900 font-bold text-sm">
+                            <i data-lucide="user" class="w-3 h-3 mr-2 text-gray-400"></i>
+                            <span id="modalVendedor">--</span>
+                        </div>
                     </div>
                 </div>
-                <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                    <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Vendedor</p>
-                    <div class="flex items-center text-navy-900 font-bold text-sm">
-                        <i data-lucide="user" class="w-3 h-3 mr-2 text-gray-400"></i>
-                        <span id="modalVendedor">--</span>
-                    </div>
-                </div>
-            </div>
-            <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <p class="text-xs text-gray-500 uppercase font-bold mb-1">Descrição</p>
-                <p class="text-navy-900 text-sm" id="modalDescricao">--</p>
-            </div>
-
-            <div id="containerItens" class="mb-6 hidden">
-                <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Itens do Serviço</h4>
-                <div class="bg-gray-50 rounded-lg border border-gray-100 overflow-hidden">
-                    <table class="w-full text-sm text-left">
-                        <tbody id="tabelaItensModal" class="divide-y divide-gray-100">
-                            </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="mb-8 px-2">
-                <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Histórico</h4>
-                <div class="timeline-container" id="timelineContainer"></div>
-            </div>
-
-            <div id="divStatusActions" class="mb-8">
-                <h4 class="text-sm font-bold text-navy-900 mb-3 border-b pb-1">Ações</h4>
-                <div id="botoesStatus" class="flex flex-wrap gap-2"></div>
                 
-                <div class="mt-4 pt-4 border-t border-gray-100 text-center">
-                    <button id="btnShowCancelar" class="text-xs text-red-400 hover:text-red-600 hover:underline">
-                        Cancelar Serviço
-                    </button>
+                <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                    <p class="text-xs text-gray-500 uppercase font-bold mb-1">Descrição</p>
+                    <p class="text-navy-900 text-sm" id="modalDescricao">--</p>
+                </div>
+
+                <div id="containerItens" class="mb-6 hidden">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Itens do Serviço</h4>
+                    <div class="bg-gray-50 rounded-lg border border-gray-100 overflow-hidden">
+                        <table class="w-full text-sm text-left">
+                            <tbody id="tabelaItensModal" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="mb-8 px-2">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Histórico</h4>
+                    <div class="timeline-container" id="timelineContainer"></div>
+                </div>
+
+                <div id="divStatusActions" class="mb-8">
+                    <h4 class="text-sm font-bold text-navy-900 mb-3 border-b pb-1">Ações</h4>
+                    <div id="botoesStatus" class="flex flex-wrap gap-2"></div>
+                    <div class="mt-4 pt-4 border-t border-gray-100 text-center">
+                        <button id="btnShowCancelar" class="text-xs text-red-400 hover:text-red-600 hover:underline">Cancelar Serviço</button>
+                    </div>
+                </div>
+
+                {% if current_user.tem_permissao('vendas_ver_valores') %}
+                <div id="areaPagamento" class="bg-blue-50 p-5 rounded-xl border border-blue-100 mb-4">
+                    <h4 class="text-sm font-bold text-navy-900 mb-3 flex items-center"><i data-lucide="dollar-sign" class="w-4 h-4 mr-1"></i> Recebimento</h4>
+                    <form method="POST" id="formPagamento">
+                        {{ form_pgto.hidden_tag() }}
+                        <div class="mb-4 flex gap-4">
+                            {% for subfield in form_pgto.tipo_recebimento %}
+                            <label class="flex items-center cursor-pointer">
+                                {{ subfield(class="text-navy-900 focus:ring-navy-900") }}
+                                <span class="ml-2 text-sm font-medium">{{ subfield.label.text }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        <div id="divValorInput" class="mb-4">
+                            {{ form_pgto.valor(class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-navy-900 outline-none bg-white", placeholder="Valor R$") }}
+                            <p class="text-xs text-gray-500 mt-1">Restante: R$ <span id="modalRestanteDisplay"></span></p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Data</label>
+                            {{ form_pgto.data_pagamento(class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-navy-900 outline-none bg-white") }}
+                        </div>
+                        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded shadow">Confirmar</button>
+                    </form>
+                </div>
+                {% endif %}
+                
+                <div id="msgPago" class="hidden bg-green-100 text-green-800 p-4 rounded text-center font-bold mb-4">Totalmente Pago.</div>
+
+                <div id="areaCancelamento" class="hidden bg-red-50 p-5 rounded-xl border border-red-200">
+                    <h4 class="text-sm font-bold text-red-800 mb-2 flex items-center"><i data-lucide="alert-circle" class="w-4 h-4 mr-1"></i> Cancelar Serviço</h4>
+                    <form method="POST" id="formCancelar">
+                        <label class="block text-xs text-red-700 font-bold mb-1">Motivo do Cancelamento *</label>
+                        <textarea name="motivo_cancelamento" rows="3" class="w-full px-3 py-2 border border-red-300 rounded focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="Descreva o motivo..." required minlength="5"></textarea>
+                        <div class="flex gap-2 mt-3">
+                            <button type="button" id="btnAbortarCancelamento" class="flex-1 py-2 border border-gray-300 bg-white text-gray-700 rounded text-sm font-bold">Voltar</button>
+                            <button type="submit" class="flex-1 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-bold">Confirmar Cancelamento</button>
+                        </div>
+                    </form>
                 </div>
             </div>
-
-            <div id="areaPagamento" class="bg-blue-50 p-5 rounded-xl border border-blue-100 mb-4">
-                <h4 class="text-sm font-bold text-navy-900 mb-3 flex items-center">
-                    <i data-lucide="dollar-sign" class="w-4 h-4 mr-1"></i> Recebimento
-                </h4>
-                <form method="POST" id="formPagamento">
-                    {{ form_pgto.hidden_tag() }}
-                    <div class="mb-4 flex gap-4">
-                        {% for subfield in form_pgto.tipo_recebimento %}
-                        <label class="flex items-center cursor-pointer">
-                            {{ subfield(class="text-navy-900 focus:ring-navy-900") }}
-                            <span class="ml-2 text-sm font-medium">{{ subfield.label.text }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
-                    <div id="divValorInput" class="mb-4">
-                        {{ form_pgto.valor(class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-navy-900 outline-none bg-white", placeholder="Valor R$") }}
-                        <p class="text-xs text-gray-500 mt-1">Restante: R$ <span id="modalRestanteDisplay"></span></p>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Data</label>
-                        {{ form_pgto.data_pagamento(class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-navy-900 outline-none bg-white") }}
-                    </div>
-                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded shadow">Confirmar</button>
-                </form>
-            </div>
-            
-            <div id="msgPago" class="hidden bg-green-100 text-green-800 p-4 rounded text-center font-bold mb-4">
-                Totalmente Pago.
-            </div>
-
-            <div id="areaCancelamento" class="hidden bg-red-50 p-5 rounded-xl border border-red-200">
-                <h4 class="text-sm font-bold text-red-800 mb-2 flex items-center">
-                    <i data-lucide="alert-circle" class="w-4 h-4 mr-1"></i> Cancelar Serviço
-                </h4>
-                <form method="POST" id="formCancelar">
-                    <label class="block text-xs text-red-700 font-bold mb-1">Motivo do Cancelamento *</label>
-                    <textarea name="motivo_cancelamento" rows="3" class="w-full px-3 py-2 border border-red-300 rounded focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="Descreva o motivo..." required minlength="5"></textarea>
-                    
-                    <div class="flex gap-2 mt-3">
-                        <button type="button" id="btnAbortarCancelamento" class="flex-1 py-2 border border-gray-300 bg-white text-gray-700 rounded text-sm font-bold">Voltar</button>
-                        <button type="submit" class="flex-1 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-bold">Confirmar Cancelamento</button>
-                    </div>
-                </form>
-            </div>
-
         </div>
     </div>
+    <script>
+        setTimeout(function(){
+           if (document.getElementById('modalServico').classList.contains('hidden')) {
+               window.location.reload();
+           }
+        }, 60000);
+    </script>
 </div>
-<script>
-    setTimeout(function(){
-       if (document.getElementById('modalServico').classList.contains('hidden')) {
-           window.location.reload();
-       }
-    }, 60000);
-</script>
 {% endblock %}
 
 {% block scripts %}
