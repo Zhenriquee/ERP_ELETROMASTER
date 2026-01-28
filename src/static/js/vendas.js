@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     toggleCliente(); 
     
-    // Pequeno delay para garantir carregamento
+    // Pequeno delay para garantir carregamento e aplicar regras iniciais
     setTimeout(atualizarUnidadeECalcular, 100);
 });
 
@@ -13,7 +13,6 @@ function setupEventListeners() {
     radiosTipo.forEach(radio => radio.addEventListener('change', toggleCliente));
 
     // Inputs de Cálculo (Dimensões, Qtd, Valores)
-    // Usando os IDs corretos do novo formulário
     const inputsCalculo = document.querySelectorAll(
         '#dimensao_1, #dimensao_2, #dimensao_3, #quantidade_pecas, #valor_acrescimo, #valor_desconto_aplicado'
     );
@@ -22,9 +21,10 @@ function setupEventListeners() {
         input.addEventListener('change', calculateAll);
     });
 
-    // Selects (Cor e Medida)
-    const selectCor = document.getElementById('select-cor');
-    if (selectCor) selectCor.addEventListener('change', atualizarUnidadeECalcular);
+    // Selects (Produto e Medida)
+    // CORREÇÃO AQUI: Agora buscamos pelo ID 'select-produto'
+    const selectProduto = document.getElementById('select-produto');
+    if (selectProduto) selectProduto.addEventListener('change', atualizarUnidadeECalcular);
 
     const selectMedida = document.getElementById('select-medida');
     if (selectMedida) selectMedida.addEventListener('change', calculateAll);
@@ -36,10 +36,11 @@ function setupEventListeners() {
     configurarMascaras();
 }
 
-// --- LÓGICA DE UNIDADE E BLOQUEIO (CORRIGIDA) ---
+// --- LÓGICA DE UNIDADE E BLOQUEIO ---
 
 function atualizarUnidadeECalcular() {
-    const selectCor = document.getElementById('select-cor');
+    // CORREÇÃO AQUI: Busca pelo novo ID
+    const selectProduto = document.getElementById('select-produto');
     const selectMedida = document.getElementById('select-medida');
     
     // Cria aviso de erro dinamicamente se não existir
@@ -48,15 +49,14 @@ function atualizarUnidadeECalcular() {
         avisoErro = document.createElement('div');
         avisoErro.id = 'aviso-sem-preco';
         avisoErro.className = 'text-red-600 text-xs mt-1 font-bold hidden';
-        avisoErro.innerText = 'Produto sem preço cadastrado!';
+        avisoErro.innerText = 'Produto sem preço cadastrado para esta unidade!';
         selectMedida.parentNode.appendChild(avisoErro);
     }
     
-    if (selectCor && selectCor.selectedIndex >= 0 && selectMedida) {
-        const option = selectCor.options[selectCor.selectedIndex];
+    if (selectProduto && selectProduto.selectedIndex >= 0 && selectMedida) {
+        const option = selectProduto.options[selectProduto.selectedIndex];
         
-        // Pega os preços (convertendo para número)
-        // Se for vazio ou nulo, vira 0
+        // Pega os preços vindos do Estoque (data attributes)
         const precoM2 = parseFloat(option.getAttribute('data-m2')) || 0;
         const precoM3 = parseFloat(option.getAttribute('data-m3')) || 0;
         
@@ -70,7 +70,7 @@ function atualizarUnidadeECalcular() {
         if(optionM2) optionM2.disabled = false;
         if(optionM3) optionM3.disabled = false;
 
-        // 2. REGRAS DE BLOQUEIO
+        // 2. REGRAS DE BLOQUEIO BASEADAS NOS PREÇOS DISPONÍVEIS
         if (precoM2 > 0 && precoM3 > 0) {
             // CASO A: Tem os dois -> Usuário escolhe livremente
             
@@ -85,7 +85,7 @@ function atualizarUnidadeECalcular() {
             if(optionM2) optionM2.disabled = true;
 
         } else {
-            // CASO D: Nenhum preço (ex: "Preto Fosco" sem valor) -> BLOQUEIA TUDO
+            // CASO D: Nenhum preço (ex: Produto recém criado sem valor) -> BLOQUEIA TUDO
             selectMedida.value = 'm2'; // Valor padrão dummy
             selectMedida.style.pointerEvents = 'none'; // Impede clique
             selectMedida.classList.add('bg-red-50', 'text-gray-400', 'border-red-500');
@@ -93,11 +93,12 @@ function atualizarUnidadeECalcular() {
         }
     }
     
+    // Recalcula os valores após ajustar a unidade
     calculateAll();
 }
 
 function calculateAll() {
-    // 1. Pega valores dos inputs (com IDs corretos)
+    // 1. Pega valores dos inputs
     const d1 = parseFloat(document.getElementById('dimensao_1')?.value) || 0;
     const d2 = parseFloat(document.getElementById('dimensao_2')?.value) || 0;
     const d3 = parseFloat(document.getElementById('dimensao_3')?.value) || 0;
@@ -106,16 +107,17 @@ function calculateAll() {
     const selectMedida = document.getElementById('select-medida');
     const tipoMedida = selectMedida ? selectMedida.value : 'm2';
     
-    // Controle de visibilidade da Profundidade
+    // Controle de visibilidade da Profundidade (Campo M3)
     const divDim3 = document.getElementById('div-dim-3');
     const displayUnidade = document.getElementById('display-unidade');
 
     // 2. Define Preço Unitário
     let precoUnitario = 0;
-    const selectCor = document.getElementById('select-cor');
+    // CORREÇÃO AQUI: Busca pelo novo ID
+    const selectProduto = document.getElementById('select-produto');
     
-    if (selectCor && selectCor.selectedIndex >= 0) {
-        const option = selectCor.options[selectCor.selectedIndex];
+    if (selectProduto && selectProduto.selectedIndex >= 0) {
+        const option = selectProduto.options[selectProduto.selectedIndex];
         const pM2 = parseFloat(option.getAttribute('data-m2')) || 0;
         const pM3 = parseFloat(option.getAttribute('data-m3')) || 0;
         
@@ -143,7 +145,7 @@ function calculateAll() {
         metragem = d1 * d2 * qtd;
     }
 
-    // 4. Atualiza tela
+    // 4. Atualiza visualização da Metragem
     const elDisplayMet = document.getElementById('display-metragem');
     const elInputMet = document.getElementById('metragem_total'); 
     
@@ -215,14 +217,11 @@ function configurarMascaras() {
     const inpTel = document.querySelector('[name="telefone"]');
 
     if(inpCpf) inpCpf.addEventListener('input', e => {
-        let v = e.target.value.replace(/\D/g,""); // Remove tudo que não é dígito
-        
-        if (v.length > 11) v = v.substring(0, 11); // Trava em 11 números
-
+        let v = e.target.value.replace(/\D/g,""); 
+        if (v.length > 11) v = v.substring(0, 11); 
         v=v.replace(/(\d{3})(\d)/,"$1.$2");
         v=v.replace(/(\d{3})(\d)/,"$1.$2");
         v=v.replace(/(\d{3})(\d{1,2})$/,"$1-$2");
-        
         e.target.value = v;
     });
 

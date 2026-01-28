@@ -38,21 +38,25 @@ class Pagamento(db.Model):
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     usuario = db.relationship('Usuario')
 
-# --- NOVO MODELO: ITENS DA VENDA ---
+
 class ItemVenda(db.Model):
     __tablename__ = 'venda_itens'
     id = db.Column(db.Integer, primary_key=True)
     venda_id = db.Column(db.Integer, db.ForeignKey('vendas.id'), nullable=False)
     
     descricao = db.Column(db.String(200), nullable=False)
-    cor_id = db.Column(db.Integer, db.ForeignKey('cores_servico.id'), nullable=False)
+    
+    # --- ALTERADO: Suporte a ProdutoEstoque ---
+    cor_id = db.Column(db.Integer, db.ForeignKey('cores_servico.id'), nullable=True) # Legado
+    produto_id = db.Column(db.Integer, db.ForeignKey('produtos_estoque.id'), nullable=True) # Novo
+    
     quantidade = db.Column(db.Integer, nullable=False)
     valor_unitario = db.Column(db.Numeric(10, 2), nullable=False)
     valor_total = db.Column(db.Numeric(10, 2), nullable=False)
     
     status = db.Column(db.String(20), default='pendente')
     
-    # Datas e Usuários Responsáveis
+    # Datas e Usuários
     data_inicio_producao = db.Column(db.DateTime, nullable=True)
     usuario_producao_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     
@@ -64,6 +68,8 @@ class ItemVenda(db.Model):
     
     # Relacionamentos
     cor = db.relationship('CorServico')
+    produto = db.relationship('ProdutoEstoque') # Novo relacionamento
+    
     usuario_producao = db.relationship('Usuario', foreign_keys=[usuario_producao_id])
     usuario_pronto = db.relationship('Usuario', foreign_keys=[usuario_pronto_id])
     usuario_entrega = db.relationship('Usuario', foreign_keys=[usuario_entrega_id])
@@ -72,10 +78,9 @@ class Venda(db.Model):
     __tablename__ = 'vendas'
     id = db.Column(db.Integer, primary_key=True)
     
-    # Identificador do Modo de Venda
-    modo = db.Column(db.String(20), default='simples') # 'simples' ou 'multipla'
+    modo = db.Column(db.String(20), default='simples')
 
-    # 1. Cliente
+    # Cliente
     tipo_cliente = db.Column(db.String(2), nullable=False)
     cliente_nome = db.Column(db.String(150), nullable=False)
     cliente_solicitante = db.Column(db.String(100), nullable=True)
@@ -84,7 +89,7 @@ class Venda(db.Model):
     cliente_email = db.Column(db.String(100), nullable=True)
     cliente_endereco = db.Column(db.String(255), nullable=True)
 
-    # 2. Campos Venda Simples (Tornam-se Opcionais/Nullable no banco se for multipla)
+    # Detalhes
     descricao_servico = db.Column(db.Text, nullable=True) 
     observacoes_internas = db.Column(db.Text, nullable=True)
     tipo_medida = db.Column(db.String(5), nullable=True)
@@ -93,18 +98,21 @@ class Venda(db.Model):
     dimensao_3 = db.Column(db.Numeric(10, 2), nullable=True)
     metragem_total = db.Column(db.Numeric(10, 2), nullable=True)
     quantidade_pecas = db.Column(db.Integer, default=1)
-    cor_id = db.Column(db.Integer, db.ForeignKey('cores_servico.id'), nullable=True)
-    cor_nome_snapshot = db.Column(db.String(100), nullable=True)
+    
+    # --- ALTERADO: Suporte a ProdutoEstoque ---
+    cor_id = db.Column(db.Integer, db.ForeignKey('cores_servico.id'), nullable=True) # Legado
+    produto_id = db.Column(db.Integer, db.ForeignKey('produtos_estoque.id'), nullable=True) # Novo
+    
+    cor_nome_snapshot = db.Column(db.String(100), nullable=True) # Nome histórico (seja cor ou produto)
     preco_unitario_snapshot = db.Column(db.Numeric(10, 2), nullable=True)
     
-    # 3. Financeiro
-    valor_base = db.Column(db.Numeric(10, 2), nullable=False) # Soma dos itens
+    # Financeiro
+    valor_base = db.Column(db.Numeric(10, 2), nullable=False)
     valor_acrescimo = db.Column(db.Numeric(10, 2), default=0.00)
     tipo_desconto = db.Column(db.String(10), nullable=True)
     valor_desconto_aplicado = db.Column(db.Numeric(10, 2), default=0.00)
     valor_final = db.Column(db.Numeric(10, 2), nullable=False)
     
-    # 4. Status e Controle
     status = db.Column(db.String(20), default='orcamento')
     status_pagamento = db.Column(db.String(20), default='pendente')
     vendedor_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
@@ -117,7 +125,9 @@ class Venda(db.Model):
 
     # Relacionamentos
     vendedor = db.relationship('Usuario', foreign_keys=[vendedor_id])
-    cor = db.relationship('CorServico') # Apenas para venda simples
+    cor = db.relationship('CorServico') 
+    produto = db.relationship('ProdutoEstoque') # Novo relacionamento
+    
     pagamentos = db.relationship('Pagamento', backref='venda', lazy=True)
     usuario_cancelamento = db.relationship('Usuario', foreign_keys=[usuario_cancelamento_id])
     
@@ -134,7 +144,6 @@ class Venda(db.Model):
     usuario_entrega_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     usuario_entrega = db.relationship('Usuario', foreign_keys=[usuario_entrega_id])
 
-    # NOVO RELACIONAMENTO DE ITENS
     itens = db.relationship('ItemVenda', backref='venda', lazy=True, cascade="all, delete-orphan")
 
     @property

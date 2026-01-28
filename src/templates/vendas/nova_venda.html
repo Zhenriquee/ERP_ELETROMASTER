@@ -109,13 +109,13 @@
                         
                         <div>
                             <label class="label-padrao">Acabamento / Cor *</label>
-                            <select name="cor_id" id="select-cor" class="input-navy bg-white cursor-pointer">
+                            <select name="produto_id" id="select-produto" class="input-navy bg-white cursor-pointer">
                                 <option value="" data-m2="0" data-m3="0">Selecione...</option>
-                                {% for id, label in form.cor_id.choices %}
-                                    {% set dados_cor = cores_json | selectattr("id", "equalto", id) | first %}
+                                {% for id, label in form.produto_id.choices %}
+                                    {% set dados_prod = produtos_json | selectattr("id", "equalto", id) | first %}
                                     <option value="{{ id }}" 
-                                            data-m2="{{ dados_cor.preco_m2 }}"
-                                            data-m3="{{ dados_cor.preco_m3 }}">
+                                            data-m2="{{ dados_prod.preco_m2 }}"
+                                            data-m3="{{ dados_prod.preco_m3 }}">
                                         {{ label }}
                                     </option>
                                 {% endfor %}

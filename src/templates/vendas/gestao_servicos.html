@@ -102,7 +102,7 @@
                 <tbody class="divide-y divide-gray-100">
                     {% for s in servicos %}
                     <tr class="hover:bg-gray-50 transition-colors linha-tabela"
-                        data-texto="{{ s.id }} {{ s.cliente_nome }} {{ s.descricao_servico }} {{ s.cor.nome }}"
+                        data-texto="{{ s.id }} {{ s.cliente_nome }} {{ s.descricao_servico }} {{ s.produto.nome if s.produto else (s.cor.nome if s.cor else '') }}"
                         data-status="{{ s.status }}"
                         data-vendedor="{{ s.vendedor.nome }}"
                         data-data="{{ s.criado_em.strftime('%Y-%m-%d') }}">
@@ -119,7 +119,7 @@
                             {% if s.modo == 'multipla' %}
                                 <span class="text-xs font-bold text-blue-600">Venda Múltipla ({{ s.itens|length }} itens)</span>
                             {% else %}
-                                {{ s.cor.nome }} ({{ s.quantidade_pecas }}x)
+                                {{ s.produto.nome if s.produto else (s.cor.nome if s.cor else '-') }} ({{ s.quantidade_pecas }}x)
                             {% endif %}
                         </td>
                         <td class="px-6 py-4">
@@ -169,7 +169,7 @@
                                     'id': item.id,
                                     'qtd': item.quantidade,
                                     'descricao': item.descricao,
-                                    'cor': item.cor.nome,
+                                    'cor': item.produto.nome if item.produto else (item.cor.nome if item.cor else '-'),
                                     'status': item.status,
                                     'log_completo': log_acoes,  
                                     'hist_producao': item.data_inicio_producao.strftime('%d/%m/%Y %H:%M') if item.data_inicio_producao else None,
@@ -182,7 +182,8 @@
                                     'user_entregue': item.usuario_entrega.nome if item.usuario_entrega else None
                                 }) %}
                                 
-                                {% set _ = lista_descricoes.append(item.quantidade ~ 'x ' ~ item.descricao ~ ' (' ~ item.cor.nome ~ ')') %}
+                                {% set item_nome_visual = item.produto.nome if item.produto else (item.cor.nome if item.cor else '-') %}
+                                {% set _ = lista_descricoes.append(item.quantidade ~ 'x ' ~ item.descricao ~ ' (' ~ item_nome_visual ~ ')') %}
                             {% endfor %}
 
                             {% if s.modo == 'simples' %}
