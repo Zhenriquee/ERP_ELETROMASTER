@@ -32,3 +32,9 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('autenticacao.login'))
+
+# --- ADICIONE ESTA NOVA ROTA NO FINAL ---
+@bp_autenticacao.route('/suspenso')
+def sistema_suspenso():
+    """Rota para exibir a tela de bloqueio por falta de pagamento/licença"""
+    return render_template('erros/pagamento.html')

@@ -1,54 +1,141 @@
 /* src/static/css/metas.css */
 
-.input-meta {
-    text-align: right;
-    font-weight: bold;
-    transition: all 0.2s;
+/* --- Animações --- */
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.input-meta:focus {
-    border-color: #1e3a8a; /* navy-900 */
-    box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.2);
+.animate-slide-up {
+    animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Barra de Progresso do Ranking */
-.progress-track {
-    width: 6rem; /* w-24 */
-    background-color: #e5e7eb; /* gray-200 */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+
+/* --- Barra de Progresso Principal --- */
+.progress-container {
+    background-color: #f1f5f9; /* slate-100 */
     border-radius: 9999px;
-    height: 0.5rem; /* h-2 */
+    height: 1.5rem;
     overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.progress-fill {
+.progress-bar-fill {
     height: 100%;
     border-radius: 9999px;
-    transition: width 1s ease-in-out;
+    background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+    transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
 }
 
-.progress-success {
-    background-color: #22c55e; /* green-500 */
+.progress-bar-fill.success {
+    background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
 }
 
-.progress-normal {
-    background-color: #3b82f6; /* blue-500 */
+/* --- Ranking & Medalhas --- */
+.medal-icon {
+    filter: drop-shadow(0 4px 3px rgba(0,0,0,0.1));
 }
 
-/* Status da Distribuição */
-.status-ok {
+.rank-card {
+    transition: all 0.2s;
+}
+.rank-card:hover {
+    transform: translateX(4px);
+    border-color: #cbd5e1;
+}
+
+/* Ranking Top 3 - Destaques */
+tr:nth-child(1) .rank-pos { color: #eab308; font-size: 1.2rem; } /* Ouro */
+tr:nth-child(2) .rank-pos { color: #94a3b8; font-size: 1.1rem; } /* Prata */
+tr:nth-child(3) .rank-pos { color: #b45309; font-size: 1.1rem; } /* Bronze */
+
+/* --- Calendário Visual --- */
+.calendar-day {
+    transition: all 0.2s;
+}
+.calendar-day:hover {
+    transform: scale(1.05);
+    z-index: 10;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Inputs de Distribuição --- */
+.input-meta {
+    text-align: right;
+    font-family: monospace;
+    font-weight: 700;
+    color: #0f172a;
+    transition: all 0.2s;
+}
+.input-meta:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* src/static/css/metas.css */
+
+/* ... (Mantenha o CSS anterior) ... */
+
+/* --- Modal de Detalhes (Novo Design) --- */
+.sale-card {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background-color: #fff;
+    border: 1px solid #f1f5f9;
+    border-radius: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.sale-card:hover {
+    transform: translateX(4px);
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.date-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    background-color: #f8fafc;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.date-day {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1;
+}
+
+.date-month {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.sale-info {
+    flex: 1;
+    min-width: 0; /* Para o truncate funcionar */
+}
+
+.sale-value {
+    font-size: 1rem;
+    font-weight: 800;
     color: #16a34a; /* green-600 */
-    font-weight: 700;
-    font-size: 0.75rem;
-}
-
-.status-warning {
-    color: #ca8a04; /* yellow-600 */
-    font-weight: 700;
-    font-size: 0.75rem;
-}
-
-.status-error {
-    color: #ef4444; /* red-500 */
-    font-weight: 700;
-    font-size: 0.75rem;
+    margin-left: 1rem;
 }
