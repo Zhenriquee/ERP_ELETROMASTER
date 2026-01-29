@@ -42,52 +42,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // ============================================================
-    // 2. FILTROS AVANÇADOS
-    // ============================================================
-    /*function filtrarTabelaCompleta() {
-        if(!tabela) return; // Segurança
-
-        const texto = filtroTexto.value.toLowerCase();
-        const status = filtroStatus.value.toLowerCase();
-        const vendedor = filtroVendedor.value;
-        const data = filtroData.value;
-
-        const linhas = tabela.querySelectorAll('.linha-tabela');
-        let visiveis = 0;
-
-        linhas.forEach(linha => {
-            const lTexto = linha.dataset.texto.toLowerCase();
-            const lStatus = linha.dataset.status.toLowerCase();
-            const lVendedor = linha.dataset.vendedor;
-            const lData = linha.dataset.data;
-
-            const matchTexto = texto === '' || lTexto.includes(texto);
-            const matchStatus = status === '' || lStatus === status;
-            const matchVendedor = vendedor === '' || lVendedor === vendedor;
-            const matchData = data === '' || lData === data;
-
-            if (matchTexto && matchStatus && matchVendedor && matchData) {
-                linha.style.display = '';
-                visiveis++;
-            } else {
-                linha.style.display = 'none';
-            }
-        });
-
-        const semResultados = document.getElementById('semResultados');
-        if (visiveis === 0) semResultados.classList.remove('hidden');
-        else semResultados.classList.add('hidden');
-    }
-
-    if(filtroTexto) [filtroTexto, filtroStatus, filtroVendedor, filtroData].forEach(el => {
-        el.addEventListener('input', filtrarTabelaCompleta);
-    });*/
-
-    // ============================================================
     // 2. FILTROS VIA SERVIDOR (Backend)
     // ============================================================
     
-    // Função debounce para não recarregar a cada letra digitada, espera o usuário parar de digitar
+    // Função debounce para não recarregar a cada letra digitada
     function debounce(func, timeout = 800){
         let timer;
         return (...args) => {
@@ -112,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reseta para página 1 ao filtrar
         params.append('page', 1);
 
-        window.location.href = `/vendas/servicos?${params.toString()}`;
+        window.location.href = `/vendas/lista?${params.toString()}`;
     }
 
     // Event Listeners
@@ -122,15 +80,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const inpData = document.getElementById('filtroData');
 
     if(inpTexto) {
-        // Para texto, usa debounce (espera parar de digitar)
         inpTexto.addEventListener('input', debounce(() => aplicarFiltros()));
-        // Se der Enter, vai na hora
         inpTexto.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') aplicarFiltros();
         });
     }
 
-    // Para selects e data, aplica na hora que mudar
     if(inpStatus) inpStatus.addEventListener('change', aplicarFiltros);
     if(inpVendedor) inpVendedor.addEventListener('change', aplicarFiltros);
     if(inpData) inpData.addEventListener('change', aplicarFiltros);
@@ -163,7 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // 1. Preenche dados gerais
             preencherModal(id, cliente, contato, descricao, restante, status, historico);
             
-            // 2. Renderiza a tabela de itens individuais (NOVO)
+            // 2. Renderiza a tabela de itens individuais
             renderizarItens(modo, itens);
 
             // 3. Exibe o modal
@@ -172,18 +127,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function preencherModal(id, cliente, contato, descricao, restante, status, historico) {
-        // ... (Mesmo código anterior para preencher textos e actions) ...
         document.getElementById('modalTitulo').innerText = `Serviço #${id} - ${cliente}`;
         document.getElementById('modalDescricao').innerText = descricao;
         document.getElementById('modalRestanteDisplay').innerText = restante.toFixed(2);
-         // --- ATUALIZAÇÃO AQUI: PREENCHER DATA E VENDEDOR ---
-        // Usa a função formatData para garantir que fique dd/mm/aaaa hh:mm
+        
         document.getElementById('modalDataVenda').innerText = formatData(historico.criado_em) || '--';
         document.getElementById('modalVendedor').innerText = historico.vendedor || '--';
         document.getElementById('modalContato').innerText = contato || '--';
        
-        // ---------------------------------------------------
-        
         if(contato) {
             const zapNumero = contato.replace(/\D/g, '');
             if (zapNumero.length >= 10) {
@@ -197,8 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
         areaCancelamento.classList.add('hidden');
         divStatusActions.classList.remove('hidden');
 
-        // LÓGICA NOVA: Ocultar Timeline Geral se for Múltipla
-        // A Timeline geral mostra "Iniciou Produção (Geral)". Se temos itens detalhados, isso é redundante.
+        // Ocultar Timeline Geral se for Múltipla
         const modoVenda = document.querySelector(`button[data-id="${id}"]`).dataset.modo;
         if (modoVenda === 'multipla') {
             document.getElementById('timelineContainer').parentElement.classList.add('hidden');
@@ -207,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
             montarTimeline(historico);
         }
 
-        // ... (Resto da função de pagamento e botões status mantém igual) ...
+        // Lógica de Pagamento
         if (restante <= 0.01) {
             areaPagamento.classList.add('hidden');
             msgPago.classList.remove('hidden');
@@ -225,7 +175,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 msgPago.classList.add('hidden');
             }
         }
+        
         gerarBotoesStatus(id, status);
+        
         const isTotalmentePago = (restante <= 0.01);
         if (status === 'cancelado' || (status === 'entregue' && isTotalmentePago)) {
             btnShowCancelar.classList.add('hidden');
@@ -234,98 +186,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+
+    // ============================================================
+    // 4. RENDERIZAÇÃO DE ITENS INDIVIDUAIS (RESTRITO)
+    // ============================================================
+    
     function renderizarItens(modo, itens) {
         tabelaItensModal.innerHTML = ''; 
-        
-        if (modo === 'multipla' && itens.length > 0) {
-            containerItens.classList.remove('hidden');
-            
-            itens.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.className = "border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors";
-
-                // ... (Lógica de status/badges mantém igual) ...
-                let badgeClass = 'bg-gray-100 text-gray-600';
-                let labelStatus = 'Pendente';
-                let htmlAcoes = '';
-                
-                // Define botões e status (CÓDIGO ANTERIOR MANTIDO)
-                if (item.status === 'pendente') {
-                    badgeClass = 'bg-gray-200 text-gray-700'; labelStatus = 'Pendente';
-                    htmlAcoes = `<a href="/vendas/itens/${item.id}/status/producao" class="inline-flex items-center px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded">Produzir</a>`;
-                } else if (item.status === 'producao') {
-                    badgeClass = 'bg-blue-100 text-blue-700 animate-pulse'; labelStatus = 'Produzindo';
-                    htmlAcoes = `<a href="/vendas/itens/${item.id}/status/pronto" class="inline-flex items-center px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold rounded">Pronto</a>`;
-                } else if (item.status === 'pronto') {
-                    badgeClass = 'bg-yellow-100 text-yellow-700'; labelStatus = 'Pronto';
-                    htmlAcoes = `<a href="/vendas/itens/${item.id}/status/entregue" class="inline-flex items-center px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded">Entregar</a>`;
-                } else if (item.status === 'entregue') {
-                    badgeClass = 'bg-green-100 text-green-700'; labelStatus = 'Entregue';
-                    htmlAcoes = `<span class="text-green-600"><i data-lucide="check-circle-2" class="w-5 h-5"></i></span>`;
-                }
-
-                // --- NOVO: Monta HTML do Log de Auditoria ---
-                let htmlLog = '';
-                if (item.log_completo && item.log_completo.length > 0) {
-                    htmlLog = `<div class="mt-2 pt-2 border-t border-gray-100 hidden" id="log-${item.id}">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Auditoria de Movimentações:</p>
-                        <ul class="space-y-1">`;
-                    
-                    item.log_completo.forEach(log => {
-                        htmlLog += `
-                            <li class="text-[10px] text-gray-500 flex justify-between">
-                                <span><span class="font-bold text-navy-900">${log.usuario}</span>: ${log.acao}</span>
-                                <span class="text-gray-400">${log.data}</span>
-                            </li>`;
-                    });
-                    htmlLog += `</ul></div>`;
-                }
-
-                // Botão para mostrar o log
-                const btnLog = (item.log_completo && item.log_completo.length > 0) 
-                    ? `<button onclick="document.getElementById('log-${item.id}').classList.toggle('hidden')" class="text-[10px] text-blue-400 hover:text-blue-600 underline ml-2 cursor-pointer">Ver Histórico</button>` 
-                    : '';
-
-                // Monta a Linha
-                tr.innerHTML = `
-                    <td class="p-3 align-top">
-                        <div class="flex justify-between">
-                            <div class="font-bold text-navy-900 text-sm">${item.qtd}x ${item.descricao}</div>
-                            ${btnLog}
-                        </div>
-                        <div class="text-xs text-gray-500">${item.cor}</div>
-                        
-                        <div class="mt-1 flex gap-2">
-                             ${item.hist_producao ? `<span class="text-[10px] text-blue-600" title="Início Produção"><i data-lucide="hammer" class="w-3 h-3 inline"></i> ${item.hist_producao}</span>` : ''}
-                             ${item.hist_pronto ? `<span class="text-[10px] text-yellow-600" title="Pronto"><i data-lucide="package" class="w-3 h-3 inline"></i> ${item.hist_pronto}</span>` : ''}
-                        </div>
-
-                        ${htmlLog}
-                    </td>
-                    <td class="p-3 text-center align-top">
-                        <span class="px-2 py-1 rounded-full text-[10px] uppercase font-bold tracking-wide ${badgeClass}">${labelStatus}</span>
-                    </td>
-                    <td class="p-3 text-right align-top">${htmlAcoes}</td>
-                `;
-                tabelaItensModal.appendChild(tr);
-            });
-            if(typeof lucide !== 'undefined') lucide.createIcons();
-        } else {
-            containerItens.classList.add('hidden');
-        }
-    }
-
-
-    // ============================================================
-    // 4. RENDERIZAÇÃO DE ITENS INDIVIDUAIS (NOVO)
-    // ============================================================
-    
-    // ============================================================
-    // 4. RENDERIZAÇÃO DE ITENS INDIVIDUAIS COM HISTÓRICO
-    // ============================================================
-    
-    function renderizarItens(modo, itens) {
-        tabelaItensModal.innerHTML = ''; // Limpa tabela
         
         // Só mostra se for modo múltiplo e tiver itens
         if (modo === 'multipla' && itens.length > 0) {
@@ -335,15 +202,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const tr = document.createElement('tr');
                 tr.className = "border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors";
 
-                // Lógica de Status e Botões
+                // Lógica de Status
                 let badgeClass = 'bg-gray-100 text-gray-600';
                 let labelStatus = 'Pendente';
                 let htmlAcoes = '';
                 
-                // Variável para montar o mini-histórico visual
+                // Mini-histórico
                 let htmlHistorico = '';
-
-                // Monta o mini-histórico (badges de data)
                 if (item.hist_producao) {
                     htmlHistorico += `<div class="flex items-center text-[10px] text-blue-600 mt-1">
                         <i data-lucide="hammer" class="w-3 h-3 mr-1"></i> ${item.hist_producao} 
@@ -364,32 +229,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
 
-                // Define botões de ação
+                // --- DEFINIÇÃO DE AÇÕES RESTRITAS PARA GESTÃO DE SERVIÇOS ---
+                
                 if (item.status === 'pendente') {
                     badgeClass = 'bg-gray-200 text-gray-700';
                     labelStatus = 'Pendente';
-                    htmlAcoes = `<a href="/vendas/itens/${item.id}/status/producao" class="inline-flex items-center px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded transition-colors shadow-sm">
-                                    <i data-lucide="play" class="w-3 h-3 mr-1"></i> Iniciar
-                                 </a>`;
+                    // RESTRIÇÃO: Não pode iniciar produção aqui. Apenas visual.
+                    htmlAcoes = `<span class="text-xs text-gray-400 font-medium flex items-center justify-end" title="Aguardando Produção">
+                                    <i data-lucide="clock" class="w-3 h-3 mr-1"></i> Aguardando
+                                 </span>`;
                 
                 } else if (item.status === 'producao') {
                     badgeClass = 'bg-blue-100 text-blue-700 animate-pulse';
                     labelStatus = 'Produzindo';
-                    htmlAcoes = `<a href="/vendas/itens/${item.id}/status/pronto" class="inline-flex items-center px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold rounded transition-colors shadow-sm">
-                                    <i data-lucide="check" class="w-3 h-3 mr-1"></i> Finalizar
-                                 </a>`;
+                    // RESTRIÇÃO: Não pode finalizar aqui. Apenas visual.
+                    htmlAcoes = `<span class="text-xs text-blue-500 font-medium flex items-center justify-end" title="Em produção na linha">
+                                    <i data-lucide="hammer" class="w-3 h-3 mr-1"></i> Na Linha
+                                 </span>`;
                 
                 } else if (item.status === 'pronto') {
                     badgeClass = 'bg-yellow-100 text-yellow-700';
                     labelStatus = 'Pronto';
-                    htmlAcoes = `<a href="/vendas/itens/${item.id}/status/entregue" class="inline-flex items-center px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded transition-colors shadow-sm">
+                    // PERMITIDO: Entregar item individual
+                    htmlAcoes = `<a href="/vendas/itens/${item.id}/status/entregue" class="inline-flex items-center px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded transition-colors shadow-sm">
                                     <i data-lucide="truck" class="w-3 h-3 mr-1"></i> Entregar
                                  </a>`;
                 
                 } else if (item.status === 'entregue') {
                     badgeClass = 'bg-green-100 text-green-700';
                     labelStatus = 'Entregue';
-                    htmlAcoes = `<span class="text-green-600"><i data-lucide="check-circle-2" class="w-5 h-5"></i></span>`;
+                    htmlAcoes = `<span class="text-green-600 flex items-center justify-end"><i data-lucide="check-circle-2" class="w-5 h-5"></i></span>`;
                 }
 
                 // Monta o HTML da linha
@@ -412,38 +281,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 tabelaItensModal.appendChild(tr);
             });
             
-            // Importante: Recarrega ícones Lucide dentro da tabela dinâmica
             if(typeof lucide !== 'undefined') lucide.createIcons();
             
         } else {
-            // Venda Simples: Esconde a tabela de itens
             containerItens.classList.add('hidden');
         }
     }
 
 
     // ============================================================
-    // 5. TIMELINE E STATUS GERAL
+    // 5. TIMELINE E STATUS GERAL (RESTRITO)
     // ============================================================
 
     function montarTimeline(historico) {
         let html = '';
-        
-        // Sempre mostra a criação
         html += criarItemTimeline('Solicitação Criada', historico.criado_em, historico.vendedor, true);
-        
-        // Verifica cada etapa independentemente. 
-        // Antes estava com "if/else if", o que escondia etapas anteriores se a última existisse.
-        // Agora usamos ifs sequenciais para mostrar todo o rastro.
         
         if (historico.data_producao) {
             html += criarItemTimeline('Iniciou Produção', historico.data_producao, historico.user_producao, true);
         }
-        
         if (historico.data_pronto) {
             html += criarItemTimeline('Pronto p/ Retirada', historico.data_pronto, historico.user_pronto, true);
         }
-        
         if (historico.data_entrega) {
             html += criarItemTimeline('Entregue ao Cliente', historico.data_entrega, historico.user_entrega, true);
         }
@@ -480,15 +339,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function formatData(dataStr) {
         if(!dataStr) return '';
-        // Se vier no formato ISO (2024-01-01T12:00:00), converte.
-        // Se vier formatado do Python (2024-01-01 12:00), retorna direto.
         if (dataStr.includes('T')) {
             const d = new Date(dataStr);
             return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
         }
-        // Se já vier formatado, inverte para dia/mes/ano se necessário ou retorna
-        // No caso do strftime '%Y-%m-%d %H:%M', vamos deixar o navegador ou o python cuidarem
-        // Para garantir PT-BR:
         try {
              let parts = dataStr.split(' ');
              let dateParts = parts[0].split('-');
@@ -503,13 +357,28 @@ document.addEventListener('DOMContentLoaded', function() {
         const btnClass = "px-4 py-2 text-white rounded shadow transition-colors text-sm font-bold flex-1 text-center block";
 
         if (status === 'pendente') {
-            html = `<a href="/vendas/servicos/${id}/status/producao" class="${btnClass} bg-blue-600 hover:bg-blue-700">Iniciar Produção (Tudo)</a>`;
+            // RESTRIÇÃO: Apenas informativo
+            html = `<div class="p-3 bg-gray-50 rounded border border-gray-100 text-center text-sm text-gray-500 font-medium">
+                        <i data-lucide="clock" class="w-4 h-4 inline mr-1"></i> Aguardando Produção
+                    </div>`;
+        
         } else if (status === 'producao') {
-            html = `<a href="/vendas/servicos/${id}/status/pronto" class="${btnClass} bg-yellow-500 hover:bg-yellow-600">Marcar Pronto (Tudo)</a>`;
+            // RESTRIÇÃO: Apenas informativo
+            html = `<div class="p-3 bg-blue-50 rounded border border-blue-100 text-center text-sm text-blue-600 font-medium">
+                        <i data-lucide="hammer" class="w-4 h-4 inline mr-1 animate-pulse"></i> Em Produção (Linha)
+                    </div>`;
+        
         } else if (status === 'pronto') {
-            html = `<a href="/vendas/servicos/${id}/status/entregue" class="${btnClass} bg-green-600 hover:bg-green-700">Entregar (Tudo)</a>`;
+            // PERMITIDO: Entregar
+            html = `<a href="/vendas/servicos/${id}/status/entregue" class="${btnClass} bg-green-600 hover:bg-green-700">
+                        <i data-lucide="truck" class="w-4 h-4 inline mr-2"></i> Entregar (Tudo)
+                    </a>`;
+        
         } else if (status === 'entregue') {
-            html = `<span class="text-gray-400 text-sm italic w-full text-center flex items-center justify-center"><i data-lucide="check-circle" class="w-4 h-4 mr-1"></i> Finalizado</span>`;
+            html = `<span class="text-gray-400 text-sm italic w-full text-center flex items-center justify-center">
+                        <i data-lucide="check-circle" class="w-4 h-4 mr-1"></i> Finalizado
+                    </span>`;
+        
         } else if (status === 'cancelado') {
             html = `<span class="text-red-500 text-sm font-bold w-full text-center uppercase border border-red-200 bg-red-50 py-2 rounded">Cancelado</span>`;
         }
