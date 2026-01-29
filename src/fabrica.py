@@ -19,8 +19,8 @@ def criar_app(nome_configuracao='desenvolvimento'):
     from src.modulos.vendas.rotas import bp_vendas
     app.register_blueprint(bp_vendas)
 
-    from src.modulos.produtos.rotas import bp_produtos
-    app.register_blueprint(bp_produtos)
+    # REMOVIDO: from src.modulos.produtos.rotas import bp_produtos
+    # REMOVIDO: app.register_blueprint(bp_produtos)
 
     from src.modulos.operacional.rotas import bp_operacional
     app.register_blueprint(bp_operacional)
@@ -40,10 +40,10 @@ def criar_app(nome_configuracao='desenvolvimento'):
     # --- AUTOMATIZAÇÃO: Atualiza Permissões ao Iniciar ---
     with app.app_context():
         try:
-            # Tenta criar tabelas se não existirem (segurança para dev)
+            # Tenta criar tabelas se não existirem
             banco_de_dados.create_all()
             
-            # Sincroniza os módulos novos automaticamente
+            # Sincroniza e LIMPA permissões antigas
             sincronizar_modulos_oficiais()
         except Exception as e:
             print(f"Nota: Banco de dados ainda não pronto ou erro de conexão. ({e})")
@@ -60,45 +60,44 @@ def criar_app(nome_configuracao='desenvolvimento'):
 
 def sincronizar_modulos_oficiais():
     """
-    Função que garante que todos os módulos definidos no código 
-    existam no banco de dados.
+    Função que garante que os módulos no banco sejam EXATAMENTE
+    os definidos aqui. Remove os obsoletos.
     """
     from src.modulos.autenticacao.modelos import Modulo
     
-    # LISTA OFICIAL DE PERMISSÕES
+    # LISTA OFICIAL DE PERMISSÕES (A ÚNICA VERDADE)
     modulos_oficiais = [
-        # 1. Dashboard (Novos que estavam faltando)
-        {'codigo': 'dash_financeiro',   'nome': 'Dashboard - Ver Financeiro'},
-        {'codigo': 'dash_despesas',     'nome': 'Dashboard - Ver Contas/Alertas'},
-        {'codigo': 'dash_performance',  'nome': 'Dashboard - Ver Performance'},
-        {'codigo': 'dash_operacional',  'nome': 'Dashboard - Ver Operacional'},
+        # 1. Dashboard
+        {'codigo': 'dash_financeiro',   'nome': 'Dashboard - Ver Financeiro (Caixa/Recebimentos)'},
+        {'codigo': 'dash_despesas',     'nome': 'Dashboard - Ver Contas a Pagar/Alertas'},
+        {'codigo': 'dash_performance',  'nome': 'Dashboard - Ver Performance (Metas/Ticket Médio)'},
+        {'codigo': 'dash_operacional',  'nome': 'Dashboard - Ver Operacional (Produção/Fila)'},
 
         # 2. Vendas & Serviços
-        {'codigo': 'vendas_operar',       'nome': 'Vendas - Criar/Editar'},
-        {'codigo': 'vendas_ver_lista',    'nome': 'Vendas - Ver Lista Serviços'},
-        {'codigo': 'vendas_ver_valores',  'nome': 'Vendas - Ver Valores ($)'},
-        {'codigo': 'vendas_ver_metricas', 'nome': 'Vendas - Ver Métricas'},
+        {'codigo': 'vendas_operar',       'nome': 'Vendas - Criar/Editar Vendas'},
+        {'codigo': 'vendas_ver_lista',    'nome': 'Vendas - Ver Lista de Serviços'},
+        {'codigo': 'vendas_ver_valores',  'nome': 'Vendas - Ver Valores Financeiros'},
+        {'codigo': 'vendas_ver_metricas', 'nome': 'Vendas - Ver Métricas de Produção'},
 
         # 3. Módulos de Gestão
         {'codigo': 'financeiro_acesso', 'nome': 'Financeiro - Acesso Completo'},
         {'codigo': 'producao_operar',   'nome': 'Produção - Painel Operacional'},
         {'codigo': 'estoque_gerir',     'nome': 'Estoque - Gestão de Produtos'},
-        {'codigo': 'estoque_gerir',     'nome': 'Estoque - Gestão de Produtos'},
         {'codigo': 'metas_equipe',      'nome': 'Metas - Acesso ao Painel'},
         
         # 4. RH
-        {'codigo': 'rh_equipe',         'nome': 'RH - Gestão de Equipe'},
+        {'codigo': 'rh_equipe',         'nome': 'RH - Gestão de Usuários'},
         {'codigo': 'rh_salarios',       'nome': 'RH - Ver Salários'}
     ]
     
-    codigos_no_codigo = [m['codigo'] for m in modulos_oficiais]
+    codigos_oficiais = [m['codigo'] for m in modulos_oficiais]
     alteracoes = False
 
-    # 1. Cria ou Atualiza
+    # 1. Cria ou Atualiza Novos
     for m_data in modulos_oficiais:
         mod_db = Modulo.query.filter_by(codigo=m_data['codigo']).first()
         if not mod_db:
-            print(f"[Sistema] Criando novo módulo de permissão: {m_data['nome']}")
+            print(f"[Sistema] Criando novo módulo: {m_data['nome']}")
             novo = Modulo(nome=m_data['nome'], codigo=m_data['codigo'])
             banco_de_dados.session.add(novo)
             alteracoes = True
@@ -106,15 +105,17 @@ def sincronizar_modulos_oficiais():
             mod_db.nome = m_data['nome']
             alteracoes = True
     
-    # 2. (Opcional) Limpa antigos
-    # Comentado para evitar apagar coisas por engano em produção, 
-    # mas descomente se quiser limpar permissões velhas.
-    # todos_db = Modulo.query.all()
-    # for m in todos_db:
-    #     if m.codigo not in codigos_no_codigo:
-    #         banco_de_dados.session.delete(m)
-    #         alteracoes = True
+    # 2. LIMPEZA: Remove permissões que não estão na lista oficial
+    # Isso vai apagar "Catálogo", "Vendas - Gestão/Preços" e qualquer outra coisa antiga.
+    todos_db = Modulo.query.all()
+    for m in todos_db:
+        if m.codigo not in codigos_oficiais:
+            print(f"[Sistema] Removendo módulo obsoleto: {m.nome} ({m.codigo})")
+            # Remove associações com usuários primeiro (se o banco não tiver cascade)
+            m.usuarios = [] 
+            banco_de_dados.session.delete(m)
+            alteracoes = True
 
     if alteracoes:
         banco_de_dados.session.commit()
-        print("[Sistema] Permissões sincronizadas com sucesso.")
+        print("[Sistema] Permissões sincronizadas e limpas com sucesso.")
