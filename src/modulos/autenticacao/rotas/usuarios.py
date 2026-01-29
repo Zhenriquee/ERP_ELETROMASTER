@@ -1,9 +1,10 @@
 import os
-from flask import render_template, redirect, url_for, flash, request, send_from_directory, current_app
+from flask import render_template, redirect, url_for, flash, request, send_from_directory, send_file
 from flask_login import login_required, current_user
 from wtforms.validators import Optional
 from werkzeug.utils import secure_filename
 from src.extensoes import banco_de_dados as db
+from io import BytesIO # <--- Necessário importar
 from src.modulos.autenticacao import bp_autenticacao
 from src.modulos.autenticacao.modelos import Usuario, Modulo, DocumentoUsuario
 from src.modulos.autenticacao.formularios import FormularioCadastroUsuario, FormularioDocumento
@@ -157,51 +158,67 @@ def gerenciar_documentos(id):
     usuario_alvo = Usuario.query.get_or_404(id)
     form = FormularioDocumento()
     
-    upload_path = current_app.config['UPLOAD_FOLDER']
-    if not os.path.exists(upload_path):
-        os.makedirs(upload_path)
+    # Não precisamos mais criar pasta física (os.makedirs...)
 
     if form.validate_on_submit():
         arquivo = form.arquivo.data
         filename_original = secure_filename(arquivo.filename)
         extensao = filename_original.rsplit('.', 1)[1].lower() if '.' in filename_original else ''
-        novo_nome = f"{usuario_alvo.id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{extensao}"
-        caminho_completo = os.path.join(upload_path, novo_nome)
-        arquivo.save(caminho_completo)
-        tamanho = os.path.getsize(caminho_completo) / 1024
+        
+        # Lê o arquivo para memória
+        dados = arquivo.read()
+        tamanho = len(dados) / 1024 # Tamanho em KB
 
         doc = DocumentoUsuario(
             usuario_id=usuario_alvo.id,
-            nome_arquivo=novo_nome,
+            nome_arquivo=filename_original, # Guardamos apenas o nome para referência
             nome_original=form.descricao.data,
             tipo_arquivo=extensao,
             tamanho_kb=tamanho,
+            dados_binarios=dados, # <--- Salvando no Banco
             enviado_por_id=current_user.id
         )
         db.session.add(doc)
         db.session.commit()
-        flash('Documento anexado com sucesso!', 'success')
+        flash('Documento anexado e salvo no banco com sucesso!', 'success')
         return redirect(url_for('autenticacao.gerenciar_documentos', id=usuario_alvo.id))
 
     documentos = DocumentoUsuario.query.filter_by(usuario_id=usuario_alvo.id).order_by(DocumentoUsuario.criado_em.desc()).all()
     return render_template('autenticacao/documentos.html', usuario=usuario_alvo, form=form, documentos=documentos)
 
+# Rota de Baixar
 @bp_autenticacao.route('/documentos/baixar/<int:doc_id>')
 @login_required
 @cargo_exigido('rh_equipe')
 def baixar_documento(doc_id):
     doc = DocumentoUsuario.query.get_or_404(doc_id)
-    path = current_app.config['UPLOAD_FOLDER']
-    return send_from_directory(path, doc.nome_arquivo, as_attachment=True, download_name=f"{doc.nome_original}.{doc.tipo_arquivo}")
+    
+    # Converte os bytes do banco para um arquivo em memória
+    return send_file(
+        BytesIO(doc.dados_binarios),
+        as_attachment=True,
+        download_name=f"{doc.nome_original}.{doc.tipo_arquivo}",
+        mimetype=f"application/{'pdf' if doc.tipo_arquivo == 'pdf' else 'image/' + doc.tipo_arquivo}"
+    )
 
+# Rota de Visualizar
 @bp_autenticacao.route('/documentos/visualizar/<int:doc_id>')
 @login_required
 @cargo_exigido('rh_equipe')
 def visualizar_documento(doc_id):
     doc = DocumentoUsuario.query.get_or_404(doc_id)
-    path = current_app.config['UPLOAD_FOLDER']
-    return send_from_directory(path, doc.nome_arquivo, as_attachment=False)
+    
+    # Visualização no navegador (as_attachment=False)
+    tipo_mime = 'application/pdf' if doc.tipo_arquivo == 'pdf' else f'image/{doc.tipo_arquivo}'
+    if doc.tipo_arquivo == 'jpg': tipo_mime = 'image/jpeg'
 
+    return send_file(
+        BytesIO(doc.dados_binarios),
+        as_attachment=False,
+        mimetype=tipo_mime
+    )
+
+# Rota de Deletar
 @bp_autenticacao.route('/documentos/deletar/<int:doc_id>')
 @login_required
 @cargo_exigido('rh_equipe')
@@ -209,9 +226,7 @@ def deletar_documento(doc_id):
     doc = DocumentoUsuario.query.get_or_404(doc_id)
     usuario_id = doc.usuario_id
     try:
-        path = os.path.join(current_app.config['UPLOAD_FOLDER'], doc.nome_arquivo)
-        if os.path.exists(path):
-            os.remove(path)
+        # Apenas remove do banco, não precisa mexer em arquivos
         db.session.delete(doc)
         db.session.commit()
         flash('Documento removido.', 'success')
@@ -224,12 +239,18 @@ def deletar_documento(doc_id):
 @cargo_exigido('rh_equipe') 
 def alternar_status_usuario(id):
     usuario = Usuario.query.get_or_404(id)
+    
+    # Proteção para não inativar a si mesmo
     if usuario.id == current_user.id:
         flash('Você não pode inativar seu próprio usuário.', 'error')
         return redirect(url_for('autenticacao.listar_usuarios'))
+    
+    # Alterna o status
     usuario.ativo = not usuario.ativo
     db.session.commit()
+    
     estado = "ativado" if usuario.ativo else "inativado"
     tipo_msg = "success" if usuario.ativo else "warning"
+    
     flash(f'O usuário {usuario.nome} foi {estado} com sucesso.', tipo_msg)
     return redirect(url_for('autenticacao.listar_usuarios'))

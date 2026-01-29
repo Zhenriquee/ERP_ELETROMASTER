@@ -2,6 +2,11 @@ from src.extensoes import banco_de_dados as db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+import pytz # <--- NECESSÁRIO
+
+def hora_brasilia():
+    tz = pytz.timezone('America/Sao_Paulo')
+    return datetime.now(tz)
 
 # Tabela de Associação (Qual Usuário acessa Qual Módulo)
 usuario_modulos = db.Table('usuario_modulos',
@@ -89,13 +94,19 @@ class DocumentoUsuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     
-    nome_arquivo = db.Column(db.String(255), nullable=False) # Nome salvo no disco
-    nome_original = db.Column(db.String(255), nullable=False) # Nome que o usuário enviou
-    tipo_arquivo = db.Column(db.String(10), nullable=True) # pdf, png, etc
-    tamanho_kb = db.Column(db.Numeric(10, 2), nullable=True)
+    nome_original = db.Column(db.String(255), nullable=False)
+    tipo_arquivo = db.Column(db.String(10), nullable=False)   # ex: 'pdf', 'png'
+    tamanho_kb = db.Column(db.Float, nullable=False)
     
-    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
-    enviado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    # --- ALTERAÇÃO AQUI ---
+    # Substituímos (ou mantemos apenas para referência) o 'nome_arquivo' 
+    # por um campo que guarda os bytes reais
+    nome_arquivo = db.Column(db.String(255)) # Mantemos para salvar o nome técnico se quiser
+    dados_binarios = db.Column(db.LargeBinary) # <--- O ARQUIVO ENTRA AQUI
+    # ----------------------
+
+    criado_em = db.Column(db.DateTime, default=hora_brasilia)
+    enviado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
 
     # Relacionamentos
     usuario = db.relationship('Usuario', foreign_keys=[usuario_id], backref='documentos')

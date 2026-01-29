@@ -1,438 +1,252 @@
 document.addEventListener('DOMContentLoaded', function() {
     
-    // ==========================================
-    // 1. SELEÇÃO DE ELEMENTOS DO DOM
-    // ==========================================
-    
-    // Modal e Overlay
-    const modal = document.getElementById('modalServico');
-    const overlay = document.getElementById('modalOverlay');
-    const btnFechar = document.getElementById('btnFecharModal');
-    
-    // Seções internas do Modal
-    const divStatusActions = document.getElementById('divStatusActions');
-    const areaPagamento = document.getElementById('areaPagamento');
-    const areaCancelamento = document.getElementById('areaCancelamento');
-    const msgPago = document.getElementById('msgPago');
-    const botoesStatus = document.getElementById('botoesStatus');
-    const timelineContainer = document.getElementById('timelineContainer');
-    
-    // --- NOVO: Seção de Itens Individuais ---
-    const containerItens = document.getElementById('containerItens');
-    const tabelaItensModal = document.getElementById('tabelaItensModal');
-    
-    // Formulários
-    const formPagamento = document.getElementById('formPagamento');
-    const formCancelar = document.getElementById('formCancelar');
+    if(typeof lucide !== 'undefined') lucide.createIcons();
 
-    // Botões Especiais
-    const btnShowCancelar = document.getElementById('btnShowCancelar');
-    const btnAbortarCancelamento = document.getElementById('btnAbortarCancelamento');
-    const btnWhatsapp = document.getElementById('btnWhatsapp');
+    // 1. FORMATAÇÃO MONETÁRIA BRASILEIRA
+    const formatarDinheiro = () => {
+        document.querySelectorAll('.format-money').forEach(el => {
+            const valorOriginal = parseFloat(el.dataset.value);
+            if (!isNaN(valorOriginal)) {
+                el.innerText = valorOriginal.toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                });
+            }
+        });
+    };
+    formatarDinheiro();
 
-    // Filtros
-    const filtroTexto = document.getElementById('filtroTexto');
-    const filtroStatus = document.getElementById('filtroStatus');
-    const filtroVendedor = document.getElementById('filtroVendedor');
-    const filtroData = document.getElementById('filtroData');
-    const tabela = document.getElementById('tabelaServicos');
-
-    // Radios de Pagamento
-    const radiosTipo = document.querySelectorAll('input[name="tipo_recebimento"]');
-
-
-    // ============================================================
-    // 2. FILTROS VIA SERVIDOR (Backend)
-    // ============================================================
-    
-    // Função debounce para não recarregar a cada letra digitada
-    function debounce(func, timeout = 800){
-        let timer;
-        return (...args) => {
-            clearTimeout(timer);
-            timer = setTimeout(() => { func.apply(this, args); }, timeout);
-        };
-    }
+    // 2. Filtros e Busca
+    const inpTexto = document.getElementById('filtroTexto');
+    const selStatus = document.getElementById('filtroStatus');
+    const selVendedor = document.getElementById('filtroVendedor');
+    const inpData = document.getElementById('filtroData');
 
     function aplicarFiltros() {
-        const q = document.getElementById('filtroTexto').value;
-        const status = document.getElementById('filtroStatus').value;
-        const vendedor = document.getElementById('filtroVendedor').value;
-        const data = document.getElementById('filtroData').value;
+        const q = inpTexto ? inpTexto.value : '';
+        const status = selStatus ? selStatus.value : '';
+        const vendedor = selVendedor ? selVendedor.value : '';
+        const data = inpData ? inpData.value : '';
 
-        // Monta a URL com Query Strings
         const params = new URLSearchParams();
         if(q) params.append('q', q);
         if(status) params.append('status', status);
         if(vendedor) params.append('vendedor', vendedor);
         if(data) params.append('data', data);
-        
-        // Reseta para página 1 ao filtrar
         params.append('page', 1);
 
-        window.location.href = `/vendas/lista?${params.toString()}`;
+        window.location.href = `${window.location.pathname}?${params.toString()}`;
     }
 
-    // Event Listeners
-    const inpTexto = document.getElementById('filtroTexto');
-    const inpStatus = document.getElementById('filtroStatus');
-    const inpVendedor = document.getElementById('filtroVendedor');
-    const inpData = document.getElementById('filtroData');
-
-    if(inpTexto) {
-        inpTexto.addEventListener('input', debounce(() => aplicarFiltros()));
-        inpTexto.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') aplicarFiltros();
-        });
-    }
-
-    if(inpStatus) inpStatus.addEventListener('change', aplicarFiltros);
-    if(inpVendedor) inpVendedor.addEventListener('change', aplicarFiltros);
+    if(selStatus) selStatus.addEventListener('change', aplicarFiltros);
+    if(selVendedor) selVendedor.addEventListener('change', aplicarFiltros);
     if(inpData) inpData.addEventListener('change', aplicarFiltros);
-
-
-    // ============================================================
-    // 3. ABERTURA E PREENCHIMENTO DO MODAL
-    // ============================================================
     
-    const btnsGerenciar = document.querySelectorAll('.btn-abrir-modal');
+    if(inpTexto) {
+        let timeout;
+        inpTexto.addEventListener('input', () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(aplicarFiltros, 800);
+        });
+        inpTexto.addEventListener('keypress', (e) => { if (e.key === 'Enter') aplicarFiltros(); });
+    }
+
+    // 3. LÓGICA DO MODAL
+    const modal = document.getElementById('modalServico');
+    const btnFechar = document.getElementById('btnFecharModal');
+    const overlay = document.getElementById('modalOverlay');
+    const tabs = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
     
-    btnsGerenciar.forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Dados básicos
-            const id = this.dataset.id;
-            const cliente = this.dataset.cliente;
-            const contato = this.dataset.contato;
-            const descricao = this.dataset.descricao;
-            const restante = parseFloat(this.dataset.restante);
-            const status = this.dataset.status;
-            const modo = this.dataset.modo; // 'simples' ou 'multipla'
-            
-            // Parse de JSONs
-            let historico = {};
-            let itens = [];
-            
-            try { historico = JSON.parse(this.dataset.historico); } catch (e) {}
-            try { itens = JSON.parse(this.dataset.itens || '[]'); } catch (e) {}
+    const btnWhatsapp = document.getElementById('btnWhatsapp');
+    const formPagamento = document.getElementById('formPagamento');
+    const formCancelar = document.getElementById('formCancelar');
+    const timelineContainer = document.getElementById('timelineContainer');
+    const botoesStatus = document.getElementById('botoesStatus');
+    const areaPagamento = document.getElementById('areaPagamento');
+    const msgPago = document.getElementById('msgPago');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => {
+                t.classList.remove('active', 'text-navy-900', 'border-navy-900');
+                t.classList.add('text-gray-500', 'border-transparent');
+                const i = t.querySelector('i');
+                if(i) i.classList.remove('text-electric-500');
+            });
+            tabContents.forEach(c => {
+                c.classList.remove('active');
+                c.classList.add('hidden');
+            });
 
-            // 1. Preenche dados gerais
-            preencherModal(id, cliente, contato, descricao, restante, status, historico);
-            
-            // 2. Renderiza a tabela de itens individuais
-            renderizarItens(modo, itens);
+            tab.classList.add('active', 'text-navy-900', 'border-navy-900');
+            tab.classList.remove('text-gray-500', 'border-transparent');
+            const i = tab.querySelector('i');
+            if(i) i.classList.add('text-electric-500');
 
-            // 3. Exibe o modal
+            const target = document.getElementById(tab.dataset.target);
+            if(target) {
+                target.classList.remove('hidden');
+                target.classList.add('active');
+            }
+        });
+    });
+
+    const btnsAbrir = document.querySelectorAll('.btn-abrir-modal');
+    btnsAbrir.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const d = this.dataset;
+            
+            document.getElementById('modalTitulo').innerText = `Serviço #${d.id} - ${d.cliente}`;
+            document.getElementById('modalDescricao').innerText = d.descricao;
+            document.getElementById('modalContato').innerText = d.contato || '--';
+            
+            if(d.contato) {
+                const num = d.contato.replace(/\D/g, '');
+                if(num.length >= 10) {
+                    btnWhatsapp.href = `https://wa.me/55${num}`;
+                    btnWhatsapp.classList.remove('hidden');
+                } else { btnWhatsapp.classList.add('hidden'); }
+            } else { btnWhatsapp.classList.add('hidden'); }
+
+            try {
+                const hist = JSON.parse(d.historico);
+                document.getElementById('modalVendedor').innerText = hist.vendedor || '--';
+                document.getElementById('modalDataVenda').innerText = formatarData(hist.criado_em);
+                montarTimeline(hist);
+            } catch(e) { console.error('Erro historico', e); }
+
+            gerarBotoesStatus(d.id, d.status);
+
+            if(document.getElementById('modalRestanteDisplay')) {
+                const restante = parseFloat(d.restante);
+                
+                // Formatação manual para o modal, já que é dinâmico
+                document.getElementById('modalRestanteDisplay').innerText = restante.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                
+                if(formPagamento) formPagamento.action = `/vendas/servicos/${d.id}/pagamento`;
+                
+                if(restante <= 0.01) {
+                    if(areaPagamento) areaPagamento.classList.add('hidden');
+                    if(msgPago) msgPago.classList.remove('hidden');
+                } else {
+                    if(areaPagamento) areaPagamento.classList.remove('hidden');
+                    if(msgPago) msgPago.classList.add('hidden');
+                    
+                    const radioParcial = document.querySelector('input[name="tipo_recebimento"][value="parcial"]');
+                    if(radioParcial) radioParcial.click();
+                    
+                    const dtHoje = new Date().toISOString().split('T')[0];
+                    const inpDt = document.querySelector('input[name="data_pagamento"]');
+                    if(inpDt) inpDt.value = dtHoje;
+                }
+            }
+
+            if(formCancelar) formCancelar.action = `/vendas/servicos/${d.id}/cancelar`;
+            
+            if(tabs.length > 0) tabs[0].click();
             modal.classList.remove('hidden');
         });
     });
 
-    function preencherModal(id, cliente, contato, descricao, restante, status, historico) {
-        document.getElementById('modalTitulo').innerText = `Serviço #${id} - ${cliente}`;
-        document.getElementById('modalDescricao').innerText = descricao;
-        document.getElementById('modalRestanteDisplay').innerText = restante.toFixed(2);
-        
-        document.getElementById('modalDataVenda').innerText = formatData(historico.criado_em) || '--';
-        document.getElementById('modalVendedor').innerText = historico.vendedor || '--';
-        document.getElementById('modalContato').innerText = contato || '--';
-       
-        if(contato) {
-            const zapNumero = contato.replace(/\D/g, '');
-            if (zapNumero.length >= 10) {
-                btnWhatsapp.href = `https://wa.me/55${zapNumero}`;
-                btnWhatsapp.classList.remove('hidden');
-            } else { btnWhatsapp.classList.add('hidden'); }
-        } else { btnWhatsapp.classList.add('hidden'); }
-
-        formPagamento.action = `/vendas/servicos/${id}/pagamento`;
-        formCancelar.action = `/vendas/servicos/${id}/cancelar`;
-        areaCancelamento.classList.add('hidden');
-        divStatusActions.classList.remove('hidden');
-
-        // Ocultar Timeline Geral se for Múltipla
-        const modoVenda = document.querySelector(`button[data-id="${id}"]`).dataset.modo;
-        if (modoVenda === 'multipla') {
-            document.getElementById('timelineContainer').parentElement.classList.add('hidden');
-        } else {
-            document.getElementById('timelineContainer').parentElement.classList.remove('hidden');
-            montarTimeline(historico);
+    function formatarData(dataStr) {
+        if(!dataStr) return '--';
+        if(dataStr.includes('T') || dataStr.includes(' ')) {
+            const date = new Date(dataStr);
+            return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
         }
-
-        // Lógica de Pagamento
-        if (restante <= 0.01) {
-            areaPagamento.classList.add('hidden');
-            msgPago.classList.remove('hidden');
-        } else {
-            if (status !== 'cancelado') {
-                areaPagamento.classList.remove('hidden');
-                msgPago.classList.add('hidden');
-                document.querySelector("input[name='tipo_recebimento'][value='parcial']").checked = true;
-                toggleValorInput();
-                const hojeLocal = new Date();
-                hojeLocal.setMinutes(hojeLocal.getMinutes() - hojeLocal.getTimezoneOffset());
-                document.querySelector("input[name='data_pagamento']").value = hojeLocal.toISOString().split('T')[0];
-            } else {
-                areaPagamento.classList.add('hidden');
-                msgPago.classList.add('hidden');
-            }
-        }
-        
-        gerarBotoesStatus(id, status);
-        
-        const isTotalmentePago = (restante <= 0.01);
-        if (status === 'cancelado' || (status === 'entregue' && isTotalmentePago)) {
-            btnShowCancelar.classList.add('hidden');
-        } else {
-            btnShowCancelar.classList.remove('hidden');
-        }
+        return dataStr;
     }
 
-
-    // ============================================================
-    // 4. RENDERIZAÇÃO DE ITENS INDIVIDUAIS (RESTRITO)
-    // ============================================================
-    
-    function renderizarItens(modo, itens) {
-        tabelaItensModal.innerHTML = ''; 
-        
-        // Só mostra se for modo múltiplo e tiver itens
-        if (modo === 'multipla' && itens.length > 0) {
-            containerItens.classList.remove('hidden');
-            
-            itens.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.className = "border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors";
-
-                // Lógica de Status
-                let badgeClass = 'bg-gray-100 text-gray-600';
-                let labelStatus = 'Pendente';
-                let htmlAcoes = '';
-                
-                // Mini-histórico
-                let htmlHistorico = '';
-                if (item.hist_producao) {
-                    htmlHistorico += `<div class="flex items-center text-[10px] text-blue-600 mt-1">
-                        <i data-lucide="hammer" class="w-3 h-3 mr-1"></i> ${item.hist_producao} 
-                        <span class="ml-1 text-gray-400 font-bold">(${item.user_producao || '?'})</span>
-                    </div>`;
-                }
-                if (item.hist_pronto) {
-                    htmlHistorico += `<div class="flex items-center text-[10px] text-yellow-600 mt-0.5">
-                        <i data-lucide="package-check" class="w-3 h-3 mr-1"></i> ${item.hist_pronto}
-                        <span class="ml-1 text-gray-400 font-bold">(${item.user_pronto || '?'})</span>
-                    </div>`;
-                }
-                if (item.hist_entregue) {
-                    htmlHistorico += `<div class="flex items-center text-[10px] text-green-600 mt-0.5">
-                        <i data-lucide="truck" class="w-3 h-3 mr-1"></i> ${item.hist_entregue}
-                        <span class="ml-1 text-gray-400 font-bold">(${item.user_entregue || '?'})</span>
-                    </div>`;
-                }
-
-
-                // --- DEFINIÇÃO DE AÇÕES RESTRITAS PARA GESTÃO DE SERVIÇOS ---
-                
-                if (item.status === 'pendente') {
-                    badgeClass = 'bg-gray-200 text-gray-700';
-                    labelStatus = 'Pendente';
-                    // RESTRIÇÃO: Não pode iniciar produção aqui. Apenas visual.
-                    htmlAcoes = `<span class="text-xs text-gray-400 font-medium flex items-center justify-end" title="Aguardando Produção">
-                                    <i data-lucide="clock" class="w-3 h-3 mr-1"></i> Aguardando
-                                 </span>`;
-                
-                } else if (item.status === 'producao') {
-                    badgeClass = 'bg-blue-100 text-blue-700 animate-pulse';
-                    labelStatus = 'Produzindo';
-                    // RESTRIÇÃO: Não pode finalizar aqui. Apenas visual.
-                    htmlAcoes = `<span class="text-xs text-blue-500 font-medium flex items-center justify-end" title="Em produção na linha">
-                                    <i data-lucide="hammer" class="w-3 h-3 mr-1"></i> Na Linha
-                                 </span>`;
-                
-                } else if (item.status === 'pronto') {
-                    badgeClass = 'bg-yellow-100 text-yellow-700';
-                    labelStatus = 'Pronto';
-                    // PERMITIDO: Entregar item individual
-                    htmlAcoes = `<a href="/vendas/itens/${item.id}/status/entregue" class="inline-flex items-center px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded transition-colors shadow-sm">
-                                    <i data-lucide="truck" class="w-3 h-3 mr-1"></i> Entregar
-                                 </a>`;
-                
-                } else if (item.status === 'entregue') {
-                    badgeClass = 'bg-green-100 text-green-700';
-                    labelStatus = 'Entregue';
-                    htmlAcoes = `<span class="text-green-600 flex items-center justify-end"><i data-lucide="check-circle-2" class="w-5 h-5"></i></span>`;
-                }
-
-                // Monta o HTML da linha
-                tr.innerHTML = `
-                    <td class="p-3 align-top">
-                        <div class="font-bold text-navy-900 text-sm">${item.qtd}x ${item.descricao}</div>
-                        <div class="text-xs text-gray-500">${item.cor}</div>
-                        
-                        <div class="mt-2 border-l-2 border-gray-100 pl-2">
-                            ${htmlHistorico || '<span class="text-[10px] text-gray-400 italic">Aguardando início...</span>'}
-                        </div>
-                    </td>
-                    <td class="p-3 text-center align-top">
-                        <span class="px-2 py-1 rounded-full text-[10px] uppercase font-bold tracking-wide ${badgeClass}">${labelStatus}</span>
-                    </td>
-                    <td class="p-3 text-right align-top">
-                        ${htmlAcoes}
-                    </td>
-                `;
-                tabelaItensModal.appendChild(tr);
-            });
-            
-            if(typeof lucide !== 'undefined') lucide.createIcons();
-            
-        } else {
-            containerItens.classList.add('hidden');
-        }
-    }
-
-
-    // ============================================================
-    // 5. TIMELINE E STATUS GERAL (RESTRITO)
-    // ============================================================
-
-    function montarTimeline(historico) {
+    function montarTimeline(hist) {
         let html = '';
-        html += criarItemTimeline('Solicitação Criada', historico.criado_em, historico.vendedor, true);
-        
-        if (historico.data_producao) {
-            html += criarItemTimeline('Iniciou Produção', historico.data_producao, historico.user_producao, true);
-        }
-        if (historico.data_pronto) {
-            html += criarItemTimeline('Pronto p/ Retirada', historico.data_pronto, historico.user_pronto, true);
-        }
-        if (historico.data_entrega) {
-            html += criarItemTimeline('Entregue ao Cliente', historico.data_entrega, historico.user_entrega, true);
-        }
-        
-        if (historico.data_cancelamento) {
-            html += `
-            <div class="timeline-item">
-                <div class="timeline-dot" style="background-color: #ef4444; border-color: #ef4444;"></div>
-                <p class="text-sm font-bold text-red-600">Serviço Cancelado</p>
-                <div class="flex justify-between items-center text-xs text-gray-500 mt-0.5">
-                    <span>${formatData(historico.data_cancelamento)}</span>
-                    <span class="bg-red-50 px-1.5 py-0.5 rounded text-red-600 border border-red-100">${historico.user_cancelamento || 'Admin'}</span>
-                </div>
-                <p class="text-xs text-gray-500 mt-1 italic border-l-2 border-red-200 pl-2">Motivo: "${historico.motivo_cancelamento}"</p>
+        html += itemTimeline('Solicitação Criada', hist.criado_em, true);
+        const temProducao = !!hist.data_producao;
+        html += itemTimeline('Início Produção', hist.data_producao, temProducao);
+        const temPronto = !!hist.data_pronto;
+        html += itemTimeline('Pronto p/ Retirada', hist.data_pronto, temPronto);
+        const temEntrega = !!hist.data_entrega;
+        html += itemTimeline('Entregue ao Cliente', hist.data_entrega, temEntrega);
+
+        if(hist.data_cancelamento) {
+            html += `<div class="timeline-item">
+                <div class="timeline-dot danger"></div>
+                <p class="text-sm font-bold text-red-600">Cancelado</p>
+                <div class="text-xs text-gray-500">${formatarData(hist.data_cancelamento)}</div>
+                <p class="text-xs text-red-500 mt-1 italic">"${hist.motivo_cancelamento}"</p>
             </div>`;
         }
         timelineContainer.innerHTML = html;
     }
 
-    function criarItemTimeline(titulo, dataStr, usuario, ativo) {
-        if (!dataStr) return '';
-        const classeDot = ativo ? 'active' : 'inactive';
+    function itemTimeline(titulo, data, ativo) {
         return `
-            <div class="timeline-item">
-                <div class="timeline-dot ${classeDot}"></div>
-                <p class="text-sm font-bold text-navy-900">${titulo}</p>
-                <div class="flex justify-between items-center text-xs text-gray-500 mt-0.5">
-                    <span>${formatData(dataStr)}</span>
-                    <span class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 border border-gray-200">${usuario || 'Sistema'}</span>
-                </div>
-            </div>
-        `;
-    }
-
-    function formatData(dataStr) {
-        if(!dataStr) return '';
-        if (dataStr.includes('T')) {
-            const d = new Date(dataStr);
-            return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-        }
-        try {
-             let parts = dataStr.split(' ');
-             let dateParts = parts[0].split('-');
-             return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]} ${parts[1]}`;
-        } catch (e) {
-            return dataStr;
-        }
+        <div class="timeline-item">
+            <div class="timeline-dot ${ativo ? 'active' : ''}"></div>
+            <p class="text-sm font-bold ${ativo ? 'text-navy-900' : 'text-gray-400'}">${titulo}</p>
+            <div class="text-xs text-gray-500">${formatarData(data)}</div>
+        </div>`;
     }
 
     function gerarBotoesStatus(id, status) {
         let html = '';
-        const btnClass = "px-4 py-2 text-white rounded shadow transition-colors text-sm font-bold flex-1 text-center block";
-
-        if (status === 'pendente') {
-            // RESTRIÇÃO: Apenas informativo
-            html = `<div class="p-3 bg-gray-50 rounded border border-gray-100 text-center text-sm text-gray-500 font-medium">
-                        <i data-lucide="clock" class="w-4 h-4 inline mr-1"></i> Aguardando Produção
-                    </div>`;
+        const btnBase = "w-full py-3 rounded-lg font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center";
         
+        if(status === 'pendente') {
+            html = `<div class="p-3 bg-gray-100 text-gray-500 rounded text-center text-sm">Aguardando início na Produção</div>`;
         } else if (status === 'producao') {
-            // RESTRIÇÃO: Apenas informativo
-            html = `<div class="p-3 bg-blue-50 rounded border border-blue-100 text-center text-sm text-blue-600 font-medium">
-                        <i data-lucide="hammer" class="w-4 h-4 inline mr-1 animate-pulse"></i> Em Produção (Linha)
-                    </div>`;
-        
+            html = `<div class="p-3 bg-blue-50 text-blue-600 rounded text-center text-sm font-bold animate-pulse">Em Produção...</div>`;
         } else if (status === 'pronto') {
-            // PERMITIDO: Entregar
-            html = `<a href="/vendas/servicos/${id}/status/entregue" class="${btnClass} bg-green-600 hover:bg-green-700">
-                        <i data-lucide="truck" class="w-4 h-4 inline mr-2"></i> Entregar (Tudo)
-                    </a>`;
-        
+            html = `<a href="/vendas/servicos/${id}/status/entregue" class="${btnBase} bg-green-600 hover:bg-green-700">
+                <i data-lucide="truck" class="w-5 h-5 mr-2"></i> Confirmar Entrega
+            </a>`;
         } else if (status === 'entregue') {
-            html = `<span class="text-gray-400 text-sm italic w-full text-center flex items-center justify-center">
-                        <i data-lucide="check-circle" class="w-4 h-4 mr-1"></i> Finalizado
-                    </span>`;
-        
+            html = `<div class="p-3 bg-green-50 text-green-700 rounded text-center text-sm font-bold">Serviço Finalizado</div>`;
         } else if (status === 'cancelado') {
-            html = `<span class="text-red-500 text-sm font-bold w-full text-center uppercase border border-red-200 bg-red-50 py-2 rounded">Cancelado</span>`;
+            html = `<div class="p-3 bg-red-50 text-red-600 rounded text-center text-sm font-bold">Cancelado</div>`;
         }
         botoesStatus.innerHTML = html;
         if(typeof lucide !== 'undefined') lucide.createIcons();
     }
 
-
-    // ============================================================
-    // 6. UX (MOSTRAR/ESCONDER)
-    // ============================================================
+    const btnShowCancelar = document.getElementById('btnShowCancelar');
+    const areaCancelamento = document.getElementById('areaCancelamento');
+    const btnAbortarCancelamento = document.getElementById('btnAbortarCancelamento');
+    const divStatusActions = document.getElementById('divStatusActions');
 
     if(btnShowCancelar) {
-        btnShowCancelar.addEventListener('click', function() {
+        btnShowCancelar.addEventListener('click', () => {
             divStatusActions.classList.add('hidden');
-            areaPagamento.classList.add('hidden');
             areaCancelamento.classList.remove('hidden');
         });
     }
-
     if(btnAbortarCancelamento) {
-        btnAbortarCancelamento.addEventListener('click', function() {
+        btnAbortarCancelamento.addEventListener('click', () => {
             areaCancelamento.classList.add('hidden');
             divStatusActions.classList.remove('hidden');
-            const restante = parseFloat(document.getElementById('modalRestanteDisplay').innerText);
-            if(restante > 0.01) areaPagamento.classList.remove('hidden');
         });
     }
 
-    function toggleValorInput() {
-        const radioChecked = document.querySelector('input[name="tipo_recebimento"]:checked');
-        if(!radioChecked) return;
-        const tipo = radioChecked.value;
-        const divInput = document.getElementById('divValorInput');
-        const inputVal = document.querySelector('input[name="valor"]');
-        
-        if (tipo === 'total') {
-            divInput.classList.add('opacity-50', 'pointer-events-none');
-            inputVal.required = false;
-            inputVal.value = '';
+    const radiosPgto = document.querySelectorAll('input[name="tipo_recebimento"]');
+    const divValor = document.getElementById('divValorInput');
+    const inputValor = document.querySelector('input[name="valor"]');
+
+    function toggleInputValor() {
+        if(!divValor || !inputValor) return;
+        const tipo = document.querySelector('input[name="tipo_recebimento"]:checked').value;
+        if(tipo === 'total') {
+            divValor.classList.add('opacity-50', 'pointer-events-none');
+            inputValor.required = false;
+            inputValor.value = '';
         } else {
-            divInput.classList.remove('opacity-50', 'pointer-events-none');
-            inputVal.required = true;
+            divValor.classList.remove('opacity-50', 'pointer-events-none');
+            inputValor.required = true;
         }
     }
-    radiosTipo.forEach(radio => radio.addEventListener('change', toggleValorInput));
+    radiosPgto.forEach(r => r.addEventListener('change', toggleInputValor));
 
-
-    // ============================================================
-    // 7. FECHAR MODAL
-    // ============================================================
-    function fecharModalFunc() {
-        modal.classList.add('hidden');
-    }
-    if(btnFechar) btnFechar.addEventListener('click', fecharModalFunc);
-    if(overlay) overlay.addEventListener('click', fecharModalFunc);
+    function fechar() { modal.classList.add('hidden'); }
+    if(btnFechar) btnFechar.addEventListener('click', fechar);
+    if(overlay) overlay.addEventListener('click', fechar);
 });
