@@ -8,7 +8,7 @@ from src.modulos.autenticacao.permissoes import cargo_exigido
 
 @bp_estoque.route('/', methods=['GET', 'POST'])
 @login_required
-@cargo_exigido('producao_operar') # Ou criar permissão 'estoque_gerir'
+@cargo_exigido('estoque_gerir') # Ou criar permissão 'estoque_gerir'
 def painel():
     form_prod = FormularioProdutoEstoque()
     form_mov = FormularioMovimentacaoManual()
@@ -35,7 +35,7 @@ def painel():
 # --- NOVA ROTA DE EDIÇÃO ---
 @bp_estoque.route('/produto/editar/<int:id>', methods=['POST'])
 @login_required
-@cargo_exigido('producao_operar')
+@cargo_exigido('estoque_gerir')
 def editar_produto(id):
     produto = ProdutoEstoque.query.get_or_404(id)
     form = FormularioProdutoEstoque()
@@ -57,6 +57,7 @@ def editar_produto(id):
 
 @bp_estoque.route('/movimentar/<int:id>', methods=['POST'])
 @login_required
+@cargo_exigido('estoque_gerir')
 def movimentar_manual(id):
     produto = ProdutoEstoque.query.get_or_404(id)
     form = FormularioMovimentacaoManual()
@@ -90,10 +91,10 @@ def movimentar_manual(id):
 
 @bp_estoque.route('/api/historico/<int:id>', methods=['GET'])
 @login_required
+@cargo_exigido('estoque_gerir')
 def api_historico_produto(id):
     """Retorna o histórico de movimentações de um produto específico em JSON"""
     movimentacoes = MovimentacaoEstoque.query.filter_by(produto_id=id).order_by(MovimentacaoEstoque.data.desc()).all()
-    
     dados = []
     for mov in movimentacoes:
         dados.append({

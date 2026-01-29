@@ -107,93 +107,90 @@ def novo_usuario():
 
 @bp_autenticacao.route('/usuarios/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
-# Removemos a exigência estrita de 'rh_equipe' aqui para permitir que o usuário edite o PRÓPRIO perfil
-# A verificação de segurança será feita manualmente dentro da função
 def editar_usuario(id):
     usuario_edit = Usuario.query.get_or_404(id)
     
-    # === REGRA 1: USUÁRIO SÓ EDITA A SI MESMO (EXCETO DONO) ===
-    if current_user.cargo != 'dono':
-        if current_user.id != usuario_edit.id:
-            flash('Você não tem permissão para editar outros usuários.', 'error')
-            return redirect(url_for('autenticacao.listar_usuarios'))
+    # 1. CONTROLE DE ACESSO
+    # Se não for dono E não estiver editando a si mesmo -> BLOQUEIA
+    if current_user.cargo != 'dono' and current_user.id != usuario_edit.id:
+        flash('Você não tem permissão para editar outros usuários.', 'error')
+        return redirect(url_for('autenticacao.listar_usuarios'))
 
     form = FormularioCadastroUsuario(obj=usuario_edit)
     form.senha.validators = [Optional()]
 
-    # Opções de Cargo
-    opcoes_cargos = [('dono', 'Dono', 1), ('gerente', 'Gerente', 2), ('coordenador', 'Coordenador', 3), ('tecnico', 'Técnico', 4)]
+    # Configuração de opções de Cargo (Visual)
+    opcoes_cargos = [('dono', 'Dono'), ('gerente', 'Gerente'), ('coordenador', 'Coordenador'), ('tecnico', 'Técnico')]
     
-    # === REGRA 2: APENAS DONO PODE MUDAR CARGO ===
     if current_user.cargo == 'dono':
-        # Dono vê todas as opções permitidas pela hierarquia
-        form.cargo.choices = [(v, n) for v, n, l in opcoes_cargos]
+        form.cargo.choices = opcoes_cargos
     else:
-        # Usuário comum: A lista de opções contém APENAS o cargo atual dele
-        # Isso garante que a validação do formulário passe, mas ele não tem opção de troca
+        # Se não for dono, restringe a lista ao próprio cargo para validar o form
         form.cargo.choices = [(usuario_edit.cargo, usuario_edit.cargo.title())]
 
-    # Carrega Módulos
+    # Carregamento de Módulos (Permissões)
     todos_modulos = Modulo.query.order_by(Modulo.nome).all()
-    if current_user.cargo != 'dono':
-        ids_meus = [m.id for m in current_user.permissoes]
-        todos_modulos = [m for m in todos_modulos if m.id in ids_meus]
-
     form.modulos_acesso.choices = [(m.id, m.nome) for m in todos_modulos]
 
-    # Agrupamento para o Template
-    modulos_grupos = {
-        'Dashboard': [m for m in todos_modulos if m.codigo.startswith('dash_')],
-        'Vendas': [m for m in todos_modulos if m.codigo.startswith('vendas_')],
-        'Gestão': [m for m in todos_modulos if m.codigo in ['producao_operar', 'estoque_gerir', 'produtos_gerir', 'metas_equipe']],
-        'Admin': [m for m in todos_modulos if m.codigo in ['financeiro_acesso', 'rh_equipe', 'rh_salarios']]
-    }
+    # Agrupamento para Template
+    modulos_grupos = agrupar_modulos(todos_modulos)
 
-    # Salário só Dono ou RH vê
+    # Remove salário do form se não for autorizado
     if current_user.cargo != 'dono' and not current_user.tem_permissao('rh_salarios'):
         del form.salario
 
+    # GET: Preenche o formulário
     if request.method == 'GET':
         form.modulos_acesso.data = [m.id for m in usuario_edit.permissoes]
         form.ativo.data = usuario_edit.ativo
+        form.equipe.data = usuario_edit.equipe
 
     if form.validate_on_submit():
-        # Validações de duplicidade (Login/CPF/Email)
+        # Verificações de duplicidade (Login, Email, CPF)
         check_user = Usuario.query.filter(Usuario.usuario == form.usuario.data, Usuario.id != id).first()
         if check_user:
-            flash(f'O usuário "{form.usuario.data}" já está em uso.', 'error')
+            flash(f'O login "{form.usuario.data}" já está em uso.', 'error')
             return render_template('autenticacao/cadastro_usuario.html', form=form, editando=True, modulos_grupos=modulos_grupos)
-
-        # Atualiza dados básicos
-        usuario_edit.nome = form.nome.data
+        
+        # === APLICAÇÃO DAS REGRAS DE EDIÇÃO ===
+        
+        # 1. CAMPOS LIVRES (Todos podem editar)
         usuario_edit.usuario = form.usuario.data
-        usuario_edit.cpf = form.cpf.data if form.cpf.data else None
-        usuario_edit.email = form.email.data if form.email.data else None
+        usuario_edit.email = form.email.data
         usuario_edit.telefone = form.telefone.data
-        usuario_edit.equipe = form.equipe.data
         
-        # === APLICAÇÃO DA REGRA 2 NO BANCO ===
-        # Só atualiza o cargo se quem está editando for o DONO
-        if current_user.cargo == 'dono':
-            usuario_edit.cargo = form.cargo.data
-            usuario_edit.ativo = form.ativo.data # Só dono (ou RH autorizado) pode inativar, aqui deixamos aberto ao dono
-        # Se não for dono, mantemos o cargo e status que já estava no objeto usuario_edit
-        
-        if hasattr(form, 'salario'): usuario_edit.salario = form.salario.data
-        if form.senha.data: usuario_edit.definir_senha(form.senha.data)
+        if form.senha.data:
+            usuario_edit.definir_senha(form.senha.data)
 
-        # Atualiza Permissões
-        # Se o usuário não for dono, ele só pode atribuir permissões que ele mesmo tem (filtrado no GET acima)
-        usuario_edit.permissoes = Modulo.query.filter(Modulo.id.in_(form.modulos_acesso.data)).all()
+        # 2. CAMPOS RESTRITOS (Apenas Dono pode alterar)
+        if current_user.cargo == 'dono':
+            usuario_edit.nome = form.nome.data
+            usuario_edit.cpf = form.cpf.data
+            usuario_edit.cargo = form.cargo.data
+            usuario_edit.equipe = form.equipe.data
+            usuario_edit.ativo = form.ativo.data
+            
+            if hasattr(form, 'salario'): 
+                usuario_edit.salario = form.salario.data
+            
+            # Permissões
+            usuario_edit.permissoes = Modulo.query.filter(Modulo.id.in_(form.modulos_acesso.data)).all()
         
-        db.session.commit()
-        flash('Perfil atualizado com sucesso!', 'success')
+        # Se não for dono, os campos acima são IGNORADOS e mantêm o valor original do banco
         
-        # Se editou o próprio perfil, volta para o dashboard
-        if current_user.id == usuario_edit.id:
-             return redirect(url_for('dashboard.painel'))
-             
-        return redirect(url_for('autenticacao.listar_usuarios'))
+        try:
+            db.session.commit()
+            flash('Perfil atualizado com sucesso!', 'success')
+            
+            # Se editou o próprio perfil, volta para o dashboard
+            if current_user.id == usuario_edit.id:
+                 return redirect(url_for('dashboard.painel'))
+                 
+            return redirect(url_for('autenticacao.listar_usuarios'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash('Erro ao salvar dados.', 'error')
 
     return render_template('autenticacao/cadastro_usuario.html', form=form, editando=True, modulos_grupos=modulos_grupos)
 

@@ -79,18 +79,31 @@
             </nav>
 
             <div class="sidebar-footer">
-                <div class="flex items-center gap-3">
-                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-electric-500 to-navy-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-navy-800">
+                <a href="{{ url_for('autenticacao.editar_usuario', id=current_user.id) }}" 
+                   class="flex items-center gap-3 hover:bg-white/5 p-2 rounded-lg transition-colors group"
+                   title="Meu Perfil">
+                    
+                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-electric-500 to-navy-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-navy-800 group-hover:ring-electric-500 transition-all">
                         {{ current_user.nome[0] }}
                     </div>
+                    
                     <div class="flex-1 overflow-hidden">
-                        <p class="text-sm font-semibold text-white truncate">{{ current_user.nome }}</p>
-                        <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider truncate">{{ current_user.cargo }}</p>
+                        <p class="text-sm font-semibold text-white truncate group-hover:text-electric-500 transition-colors">
+                            {{ current_user.nome }}
+                        </p>
+                        <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider truncate">
+                            {{ current_user.cargo }}
+                        </p>
                     </div>
-                    <a href="{{ url_for('autenticacao.logout') }}" class="p-2 text-gray-400 hover:text-red-400 transition-colors" title="Sair do Sistema">
-                        <i data-lucide="log-out" class="w-5 h-5"></i>
-                    </a>
-                </div>
+                    
+                    <div class="p-2 text-gray-400 group-hover:text-white transition-colors">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                    </div>
+                </a>
+                
+                <a href="{{ url_for('autenticacao.logout') }}" class="mt-2 flex items-center justify-center gap-2 w-full p-2 text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors uppercase tracking-wide">
+                    <i data-lucide="log-out" class="w-3 h-3"></i> Sair
+                </a>
             </div>
 
         </aside>
