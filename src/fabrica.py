@@ -6,7 +6,7 @@ import json
 import time
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
-from flask import Flask, redirect, url_for, request, render_template
+from flask import Flask, redirect, url_for, request, render_template, session # <--- ADICIONE session AQUI
 from flask_login import current_user
 from src.configuracao import configuracoes
 from src.extensoes import banco_de_dados, migracao, login_manager
@@ -141,6 +141,15 @@ def criar_app(nome_configuracao='desenvolvimento'):
         except Exception as e:
             print(f"Erro na renovação online: {e}")
             return False # Sem internet ou erro
+        
+    # 1. TIMEOUT DE SESSÃO (NOVO)
+    @app.before_request
+    def gerenciar_timeout():
+        # Torna a sessão permanente para que o PERMANENT_SESSION_LIFETIME funcione
+        session.permanent = True
+        # O Flask atualiza o tempo de expiração automaticamente a cada requisição
+        # se session.permanent for True.
+        #     
 
     # --- MIDDLEWARE: EXECUTA A CADA REQUISIÇÃO ---
     @app.before_request

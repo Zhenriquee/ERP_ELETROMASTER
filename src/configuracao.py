@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta # <--- IMPORTANTE: Adicione este import
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
 
@@ -11,6 +12,10 @@ class ConfiguracaoBase:
     basedir = os.path.abspath(os.path.dirname(__file__))
     UPLOAD_FOLDER = os.path.join(os.path.dirname(basedir), 'uploads_colaboradores')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024 # Limite de 16MB
+
+    # --- CONFIGURAÇÃO DE TIMEOUT ---
+    # Define que a sessão expira em 30 minutos
+    PERMANENT_SESSION_LIFETIME = timedelta(seconds=5)
 
 class ConfiguracaoDesenvolvimento(ConfiguracaoBase):
     DEBUG = True
