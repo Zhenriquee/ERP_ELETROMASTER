@@ -15,7 +15,7 @@ class ConfiguracaoBase:
 
     # --- CONFIGURAÇÃO DE TIMEOUT ---
     # Define que a sessão expira em 30 minutos
-    PERMANENT_SESSION_LIFETIME = timedelta(seconds=5)
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=30)
 
 class ConfiguracaoDesenvolvimento(ConfiguracaoBase):
     DEBUG = True

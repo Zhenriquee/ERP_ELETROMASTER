@@ -135,7 +135,7 @@
                                 <label class="flex items-center p-2 rounded hover:bg-white transition-colors cursor-pointer">
                                     <input type="checkbox" name="modulos_acesso" value="{{ m.id }}" 
                                            class="w-4 h-4 text-navy-900 border-gray-300 rounded focus:ring-navy-900"
-                                           {% if m.id in form.modulos_acesso.data %}checked{% endif %}
+                                           {% if form.modulos_acesso.data and m.id in form.modulos_acesso.data %}checked{% endif %}
                                            {% if current_user.cargo != 'dono' %}disabled{% endif %}>
                                     <span class="ml-3 text-sm text-gray-700">{{ m.nome }}</span>
                                 </label>

@@ -154,6 +154,11 @@
             <a href="{{ url_for('vendas.listar_vendas') }}" class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">
                 Cancelar
             </a>
+            
+            <button type="button" onclick="gerarOrcamentoMultiplo()" class="px-6 py-3 bg-white border-2 border-navy-900 text-navy-900 font-bold rounded-lg hover:bg-navy-50 transition-colors flex items-center shadow-sm">
+                <i data-lucide="printer" class="w-5 h-5 mr-2"></i> Imprimir Orçamento
+            </button>
+
             <button type="submit" class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 flex items-center">
                 <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Finalizar Venda
             </button>
@@ -164,6 +169,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/orcamento.js') }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         

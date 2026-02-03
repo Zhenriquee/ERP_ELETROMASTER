@@ -2,7 +2,7 @@
 title Servidor ERP Eletromaster
 
 :: 1. Entra na pasta exata do projeto
-cd /d "C:\Users\henri\OneDrive\Documentos\GitHub\ERP_ELETROMASTER"
+cd /d "C:\Users\W11\Documents\GitHub\ERP_ELETROMASTER"
 
 :: 2. Confirma se o arquivo app.py existe (Diagnóstico)
 if not exist "src\app.py" (

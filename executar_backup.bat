@@ -2,7 +2,7 @@
 echo --- INICIANDO BACKUP MANUAL ---
 
 :: 1. Entra na pasta do projeto (AJUSTE ESTE CAMINHO)
-cd /d "C:\Users\henri\OneDrive\Documentos\GitHub\ERP_ELETROMASTER"
+cd /d "C:\Users\W11\Documents\GitHub\ERP_ELETROMASTER"
 
 :: 2. Executa o backup usando o Python do ambiente virtual
 :: (AJUSTE O CAMINHO DO PYTHON SE NECESSARIO)
