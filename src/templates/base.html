@@ -28,8 +28,9 @@
             
             <div class="sidebar-logo-area justify-between">
                 <a href="{{ url_for('dashboard.painel') }}" class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-electric-500 flex items-center justify-center shadow-lg shadow-electric-500/30">
-                        <i data-lucide="zap" class="text-white w-6 h-6 fill-current"></i>
+                    <div class="flex items-center justify-center">
+                        <img src="{{ url_for('static', filename='img/login_bg_1.png') }}" 
+                            alt="Logo Eletromaster" >
                     </div>
                     <div>
                         <h1 class="font-bold text-lg tracking-wide text-white leading-none">ELETROMASTER</h1>
