@@ -1,10 +1,11 @@
-// src/static/js/orcamento.js
-
-function gerarOrcamentoMultiplo() {
+// Adicione o parâmetro logoUrl aqui vvv
+function gerarOrcamentoMultiplo(logoUrl) {
     // 1. Coleta os Dados do Cliente
     const tipo = document.getElementById('tipo_cliente').value;
-    let nome = "", doc = "", contato = "", email = "";
     
+    // ... (Mantenha todo o código de coleta de dados igual até a parte do 'conteudo') ...
+    
+    let nome = "", doc = "", contato = "", email = "";
     if (tipo === 'PF') {
         nome = document.querySelector('input[name="pf_nome"]').value || "Consumidor Final";
         doc = document.querySelector('input[name="pf_cpf"]').value || "";
@@ -15,7 +16,6 @@ function gerarOrcamentoMultiplo() {
     contato = document.querySelector('input[name="telefone"]').value || "";
     email = document.querySelector('input[name="email"]').value || "";
 
-    // 2. Coleta os Itens da Tabela
     let linhasHTML = '';
     const linhas = document.querySelectorAll('#listaItens tr');
     
@@ -25,18 +25,13 @@ function gerarOrcamentoMultiplo() {
     }
 
     linhas.forEach(tr => {
-        // Pega valores dos inputs dentro da linha
         const desc = tr.querySelector('input[name*="[descricao]"]').value;
         const selProd = tr.querySelector('select[name*="[produto_id]"]');
-        
-        // Texto do produto (trata caso não tenha seleção)
         const prodNome = selProd.selectedIndex >= 0 ? selProd.options[selProd.selectedIndex].text : '-';
-        
         const qtd = tr.querySelector('input[name*="[qtd]"]').value;
         const unit = tr.querySelector('input[name*="[unit]"]').value;
         const total = tr.querySelector('input[name*="[total]"]').value;
 
-        // Monta a linha da tabela para impressão
         linhasHTML += `
             <tr class="border-b border-gray-200">
                 <td class="p-3">
@@ -50,11 +45,10 @@ function gerarOrcamentoMultiplo() {
         `;
     });
 
-    // 3. Totais e Observações
     const totalFinal = document.getElementById('displayTotalFinal').innerText;
     const obs = document.querySelector('textarea[name="obs_internas"]').value;
 
-    // 4. Monta o HTML da Janela
+    // --- AQUI ESTÁ A MUDANÇA NO HTML GERADO ---
     const conteudo = `
         <html>
         <head>
@@ -69,9 +63,13 @@ function gerarOrcamentoMultiplo() {
         </head>
         <body class="bg-white text-gray-800 font-sans p-8">
             <div class="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-6">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900 uppercase tracking-wide">Eletromaster</h1>
-                    <p class="text-gray-500 text-xs uppercase tracking-widest font-bold mt-1">Pintura Eletrostatica</p>
+                <div class="flex items-center gap-4">
+                    ${logoUrl ? `<img src="${logoUrl}" class="h-32 w-auto object-contain">` : ''}
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900 uppercase tracking-wide">Eletromaster</h1>
+                        <p class="text-sm font-bold text-gray-600">CNPJ: 63.172.616/0001-60</p>
+                        <p class="text-gray-500 text-xs uppercase tracking-widest font-bold mt-1">Serviços & Pintura</p>
+                    </div>
                 </div>
                 <div class="text-right">
                     <h2 class="text-xl font-bold text-gray-600">ORÇAMENTO</h2>
