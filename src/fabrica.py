@@ -53,6 +53,13 @@ def criar_app(nome_configuracao='desenvolvimento'):
     from src.modulos.estoque import bp_estoque
     app.register_blueprint(bp_estoque)
 
+    # --- NOVOS MÓDULOS REGISTRADOS ---
+    from src.modulos.corporativo import bp_corporativo
+    app.register_blueprint(bp_corporativo)
+
+    from src.modulos.rh import bp_rh
+    app.register_blueprint(bp_rh)
+
     @app.cli.command("backup")
     def comando_backup():
         """Executa backup rotativo (dias 1, 10, 20) para nuvem."""

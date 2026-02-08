@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% from "macros/forms.html" import render_field_icon %}
+
+{% block conteudo %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-navy-900">{{ titulo }}</h2>
+        <a href="{{ url_for('rh.listar_colaboradores') }}" class="text-gray-500 hover:text-gray-700 text-sm flex items-center">
+            <i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> Voltar
+        </a>
+    </div>
+
+    <form method="POST" class="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+        {{ form.hidden_tag() }}
+
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2 flex items-center">
+            <i data-lucide="user" class="w-4 h-4 mr-2"></i> Dados Pessoais
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="md:col-span-2">
+                <label class="block text-sm font-bold text-navy-900 mb-1">Nome Completo</label>
+                {{ form.nome_completo(class="input-navy", placeholder="Nome civil completo") }}
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-navy-900 mb-1">CPF</label>
+                {{ form.cpf(class="input-navy", placeholder="000.000.000-00") }}
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-navy-900 mb-1">RG</label>
+                {{ form.rg(class="input-navy") }}
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-navy-900 mb-1">Data de Nascimento</label>
+                {{ form.data_nascimento(class="input-navy", type="date") }}
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-navy-900 mb-1">Telefone / WhatsApp</label>
+                {{ form.telefone(class="input-navy", placeholder="(00) 00000-0000") }}
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-bold text-navy-900 mb-1">E-mail Pessoal</label>
+                {{ form.email_pessoal(class="input-navy", placeholder="exemplo@email.com") }}
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-bold text-navy-900 mb-1">Endereço Completo</label>
+                {{ form.endereco(class="input-navy", placeholder="Rua, Número, Bairro, Cidade") }}
+            </div>
+        </div>
+
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2 flex items-center">
+            <i data-lucide="briefcase" class="w-4 h-4 mr-2"></i> Dados Contratuais
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div>
+                <label class="block text-sm font-bold text-navy-900 mb-1">Cargo / Função</label>
+                {{ form.cargo_id(class="input-navy bg-white cursor-pointer") }}
+                <p class="text-[10px] text-gray-400 mt-1">Definido no módulo Corporativo.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-navy-900 mb-1">Data de Admissão</label>
+                {{ form.data_admissao(class="input-navy", type="date") }}
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-navy-900 mb-1">Tipo de Contrato</label>
+                {{ form.tipo_contrato(class="input-navy bg-white cursor-pointer") }}
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-navy-900 mb-1">Salário Base (R$)</label>
+                {{ form.salario_base(class="input-navy", placeholder="0.00") }}
+            </div>
+            
+            <div class="md:col-span-3 mt-2">
+                <label class="flex items-center gap-3 cursor-pointer p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    {{ form.ativo(class="w-5 h-5 text-navy-900 rounded border-gray-300 focus:ring-navy-900") }}
+                    <div>
+                        <span class="block text-sm font-bold text-navy-900">Colaborador Ativo</span>
+                        <span class="block text-xs text-gray-500">Desmarque se o funcionário foi desligado.</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-4 pt-6 border-t border-gray-100">
+            <a href="{{ url_for('rh.listar_colaboradores') }}" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 transition-colors">Cancelar</a>
+            {{ form.submit(class="px-8 py-3 bg-navy-900 text-white rounded-lg font-bold hover:bg-navy-800 shadow-lg cursor-pointer transition-transform active:scale-95") }}
+        </div>
+    </form>
+</div>
+
+<style>
+    .input-navy {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-navy:focus {
+        border-color: #0f172a;
+        box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1);
+    }
+</style>
+{% endblock %}

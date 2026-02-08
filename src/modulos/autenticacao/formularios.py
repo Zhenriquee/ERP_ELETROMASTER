@@ -68,3 +68,13 @@ class FormularioDocumento(FlaskForm):
     ])
     descricao = StringField('Descrição / Nome do Documento', validators=[DataRequired()])
     submit = SubmitField('Enviar Documento')
+
+class FormularioCriarAcesso(FlaskForm):
+    # Dropdown que lista apenas colaboradores SEM usuário
+    colaborador_id = SelectField('Selecione o Colaborador', coerce=int, validators=[DataRequired()])
+    
+    usuario = StringField('Login de Acesso', validators=[DataRequired()])
+    senha = PasswordField('Senha Provisória', validators=[DataRequired()])
+    
+    # Checkboxes de permissão (Módulos) mantidos...
+    submit = SubmitField('Criar Acesso')    

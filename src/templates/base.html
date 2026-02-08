@@ -74,7 +74,15 @@
                 
                 {% if current_user.tem_permissao('rh_equipe') %}
                     {{ nav_header('Administrativo') }}
-                    {{ nav_link('autenticacao.listar_usuarios', 'users', 'Equipe & Acessos', ['autenticacao.novo_usuario', 'autenticacao.editar_usuario']) }}
+                    
+                    {# Módulo de RH: Gestão de Pessoas #}
+                    {{ nav_link('rh.listar_colaboradores', 'users', 'Colaboradores (RH)', ['rh.novo_colaborador', 'rh.editar_colaborador', 'rh.perfil_colaborador']) }}
+                    
+                    {# Módulo de Acesso: Logins e Senhas #}
+                    {{ nav_link('autenticacao.listar_usuarios', 'key', 'Usuários de Acesso', ['autenticacao.novo_usuario', 'autenticacao.editar_usuario']) }}
+                    
+                    {# Módulo Corporativo: Cargos e Setores (Vamos criar no próximo passo) #}
+                    {# {{ nav_link('corporativo.painel', 'building', 'Cargos & Setores') }} #}
                 {% endif %}
 
             </nav>

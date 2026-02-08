@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+<div class="container mx-auto max-w-6xl px-4">
+    
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h2 class="text-2xl font-bold text-navy-900">Estrutura Corporativa</h2>
+            <p class="text-sm text-gray-500">Gerencie os setores e cargos da empresa.</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <div class="space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-navy-900 mb-4 flex items-center">
+                    <i data-lucide="map" class="w-5 h-5 mr-2 text-blue-500"></i> Novo Setor
+                </h3>
+                <form method="POST">
+                    {{ form_setor.hidden_tag() }}
+                    <input type="hidden" name="submit_setor" value="1">
+                    
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Setor</label>
+                        {{ form_setor.nome(class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-navy-900") }}
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição</label>
+                        {{ form_setor.descricao(class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-navy-900", rows="2") }}
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-md">
+                        Adicionar Setor
+                    </button>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="bg-gray-50 px-4 py-3 border-b border-gray-100 font-bold text-gray-600 text-sm">
+                    Setores Cadastrados
+                </div>
+                <div class="divide-y divide-gray-100 max-h-[300px] overflow-y-auto">
+                    {% for s in setores %}
+                    <div class="p-4 flex justify-between items-center hover:bg-gray-50">
+                        <div>
+                            <p class="font-bold text-navy-900">{{ s.nome }}</p>
+                            <p class="text-xs text-gray-400">{{ s.descricao or 'Sem descrição' }}</p>
+                        </div>
+                        <span class="text-xs bg-gray-100 px-2 py-1 rounded text-gray-500 font-bold border border-gray-200">
+                            {{ s.cargos|length }} cargos
+                        </span>
+                    </div>
+                    {% else %}
+                    <p class="p-4 text-center text-gray-400 text-sm">Nenhum setor cadastrado.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-navy-900 mb-4 flex items-center">
+                    <i data-lucide="briefcase" class="w-5 h-5 mr-2 text-yellow-500"></i> Novo Cargo
+                </h3>
+                <form method="POST">
+                    {{ form_cargo.hidden_tag() }}
+                    <input type="hidden" name="submit_cargo" value="1">
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Cargo</label>
+                            {{ form_cargo.nome(class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-navy-900") }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Setor</label>
+                            {{ form_cargo.setor_id(class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none bg-white cursor-pointer") }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nível Hierárquico</label>
+                            {{ form_cargo.nivel_hierarquico(class="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none bg-white cursor-pointer") }}
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-navy-900 text-white font-bold py-2 rounded-lg hover:bg-navy-800 transition-colors shadow-md">
+                        Cadastrar Cargo
+                    </button>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="bg-gray-50 px-4 py-3 border-b border-gray-100 font-bold text-gray-600 text-sm">
+                    Cargos Cadastrados
+                </div>
+                <div class="divide-y divide-gray-100 max-h-[400px] overflow-y-auto custom-scrollbar">
+                    {% for c in cargos %}
+                    <div class="p-4 flex justify-between items-center hover:bg-gray-50">
+                        <div>
+                            <p class="font-bold text-navy-900">{{ c.nome }}</p>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-xs text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded">
+                                    {{ c.setor.nome }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] uppercase font-bold text-gray-400 block">Nível {{ c.nivel_hierarquico }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="p-4 text-center text-gray-400 text-sm">Nenhum cargo cadastrado.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

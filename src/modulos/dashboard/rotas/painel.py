@@ -23,7 +23,9 @@ def painel():
     ano_atual = hoje.year
 
     # --- VERIFICAÇÃO DE PERMISSÃO ---
-    exibir_financeiro = current_user.cargo == 'dono' or current_user.tem_permissao('financeiro_acesso')
+    # DICA: Adicione .lower() para evitar erros de maiúscula/minúscula
+    cargo_atual = current_user.cargo.lower() if current_user.cargo else ''
+    exibir_financeiro = cargo_atual == 'dono' or current_user.tem_permissao('financeiro_acesso')
 
     # Inicializa variáveis
     recebido_mes = 0

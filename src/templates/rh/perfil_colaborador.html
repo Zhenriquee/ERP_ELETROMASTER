@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+<div class="max-w-5xl mx-auto">
+    <div class="mb-6">
+        <a href="{{ url_for('rh.listar_colaboradores') }}" class="text-gray-500 hover:text-navy-900 text-sm flex items-center mb-4">
+            <i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> Voltar para Lista
+        </a>
+        
+        <div class="flex justify-between items-start">
+            <div class="flex gap-4">
+                <div class="w-16 h-16 rounded-full bg-navy-900 text-white flex items-center justify-center text-2xl font-bold shadow-lg">
+                    {{ colab.nome_completo[0] }}
+                </div>
+                <div>
+                    <h2 class="text-3xl font-black text-navy-900">{{ colab.nome_completo }}</h2>
+                    <p class="text-gray-500 font-medium">{{ colab.cargo_ref.nome }} • {{ colab.cargo_ref.setor.nome }}</p>
+                    <div class="mt-2">
+                        {% if colab.ativo %}
+                            <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold uppercase">Ativo</span>
+                        {% else %}
+                            <span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold uppercase">Desligado</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex gap-2">
+                <a href="{{ url_for('rh.editar_colaborador', id=colab.id) }}" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-bold hover:bg-gray-50 flex items-center">
+                    <i data-lucide="edit-3" class="w-4 h-4 mr-2"></i> Editar Dados
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
+            <h3 class="text-sm font-bold text-gray-400 uppercase mb-4 border-b pb-2">Detalhes Contratuais</h3>
+            <ul class="space-y-4 text-sm">
+                <li class="flex justify-between">
+                    <span class="text-gray-500">Admissão:</span>
+                    <span class="font-bold text-navy-900">{{ colab.data_admissao.strftime('%d/%m/%Y') }}</span>
+                </li>
+                <li class="flex justify-between">
+                    <span class="text-gray-500">Contrato:</span>
+                    <span class="font-bold text-navy-900">{{ colab.tipo_contrato }}</span>
+                </li>
+                <li class="flex justify-between">
+                    <span class="text-gray-500">Salário Base:</span>
+                    <span class="font-bold text-green-600">R$ {{ "%.2f"|format(colab.salario_base or 0)|replace('.', ',') }}</span>
+                </li>
+                
+                <li class="pt-4 mt-2 border-t border-gray-100">
+                    <span class="text-gray-500 block mb-1">Usuário de Acesso:</span>
+                    {% if colab.usuario_acesso %}
+                        <span class="flex items-center gap-2 font-bold text-navy-900 bg-gray-50 p-2 rounded">
+                            <i data-lucide="user-check" class="w-4 h-4 text-green-500"></i>
+                            @{{ colab.usuario_acesso.usuario }}
+                        </span>
+                    {% else %}
+                        <span class="flex items-center gap-2 text-gray-400 italic bg-gray-50 p-2 rounded">
+                            <i data-lucide="user-x" class="w-4 h-4"></i> Sem acesso ao sistema
+                        </span>
+                    {% endif %}
+                </li>
+            </ul>
+        </div>
+
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h3 class="text-sm font-bold text-gray-400 uppercase mb-4 border-b pb-2">Informações Pessoais</h3>
+                <div class="grid grid-cols-2 gap-6 text-sm">
+                    <div>
+                        <p class="text-gray-500 mb-1">CPF</p>
+                        <p class="font-bold text-navy-900">{{ colab.cpf }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 mb-1">RG</p>
+                        <p class="font-bold text-navy-900">{{ colab.rg or '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 mb-1">Nascimento</p>
+                        <p class="font-bold text-navy-900">{{ colab.data_nascimento.strftime('%d/%m/%Y') if colab.data_nascimento else '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 mb-1">Contato</p>
+                        <p class="font-bold text-navy-900">{{ colab.telefone or '-' }}</p>
+                        <p class="text-xs text-blue-600">{{ colab.email_pessoal or '' }}</p>
+                    </div>
+                    <div class="col-span-2">
+                        <p class="text-gray-500 mb-1">Endereço</p>
+                        <p class="font-bold text-navy-900">{{ colab.endereco or '-' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 p-8 rounded-xl border border-dashed border-gray-300 text-center">
+                <i data-lucide="folder-open" class="w-10 h-10 mx-auto text-gray-400 mb-2 opacity-50"></i>
+                <p class="text-gray-500 text-sm">Módulo de Documentos e Histórico em desenvolvimento.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
