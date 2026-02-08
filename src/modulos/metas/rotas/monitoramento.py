@@ -3,12 +3,12 @@
 from flask import render_template, request, jsonify
 from flask_login import login_required
 from datetime import date
-from sqlalchemy import func
+from sqlalchemy import func, extract
 import calendar
 
 from src.extensoes import banco_de_dados as db
 from src.modulos.metas.modelos import MetaMensal, MetaVendedor
-from src.modulos.vendas.modelos import Venda
+from src.modulos.vendas.modelos import Venda, Pagamento
 from . import bp_metas
 
 def fmt_moeda(valor):
@@ -34,15 +34,15 @@ def painel():
         return render_template('metas/sem_meta.html', mes_filtro=mes_atual, ano_filtro=ano_atual)
 
     # 1. DADOS GERAIS
-    total_vendido_loja = db.session.query(func.sum(Venda.valor_final))\
+    # Antes: Filtrava Venda.criado_em
+    # Novo:
+    total_recebido_loja = db.session.query(func.sum(Pagamento.valor))\
         .filter(
-            func.extract('month', Venda.criado_em) == mes_atual,
-            func.extract('year', Venda.criado_em) == ano_atual,
-            Venda.status != 'cancelada', 
-            Venda.status != 'orcamento'
+            extract('month', Pagamento.data_pagamento) == mes_atual,
+            extract('year', Pagamento.data_pagamento) == ano_atual
         ).scalar() or 0
         
-    perc_loja = (float(total_vendido_loja) / float(meta_config.valor_loja)) * 100
+    perc_loja = (float(total_recebido_loja) / float(meta_config.valor_loja)) * 100
     
     # 2. CALENDÁRIO
     dias_trabalho = [int(d) for d in meta_config.config_semana.split(',')]
@@ -53,17 +53,16 @@ def painel():
         except:
             pass
 
-    vendas_diarias = db.session.query(
-            func.extract('day', Venda.criado_em).label('dia'),
-            func.sum(Venda.valor_final).label('total')
-        ).filter(
-            func.extract('month', Venda.criado_em) == mes_atual,
-            func.extract('year', Venda.criado_em) == ano_atual,
-            Venda.status != 'cancelada',
-            Venda.status != 'orcamento'
-        ).group_by('dia').all()
-    
-    mapa_vendas = {int(v.dia): float(v.total) for v in vendas_diarias}
+    recebimentos_diarios = db.session.query(
+        func.extract('day', Pagamento.data_pagamento).label('dia'),
+        func.sum(Pagamento.valor).label('total')
+    ).filter(
+        func.extract('month', Pagamento.data_pagamento) == mes_atual,
+        func.extract('year', Pagamento.data_pagamento) == ano_atual
+    ).group_by('dia').all()
+
+# Criamos o mapa de valores usando a data do pagamento
+    mapa_vendas = {int(p.dia): float(p.total) for p in recebimentos_diarios}
     
     meta_diaria = float(meta_config.valor_loja) / meta_config.dias_uteis if meta_config.dias_uteis > 0 else 0
     
@@ -123,23 +122,22 @@ def painel():
     ranking = []
     
     for mv in metas_vendedores:
-        vendido = db.session.query(func.sum(Venda.valor_final))\
-            .filter(
-                Venda.vendedor_id == mv.usuario_id,
-                func.extract('month', Venda.criado_em) == mes_atual,
-                func.extract('year', Venda.criado_em) == ano_atual,
-                Venda.status != 'cancelada',
-                Venda.status != 'orcamento'
-            ).scalar() or 0
+        recebido = db.session.query(func.sum(Pagamento.valor))\
+        .join(Venda, Pagamento.venda_id == Venda.id)\
+        .filter(
+            Venda.vendedor_id == mv.usuario_id,
+            extract('month', Pagamento.data_pagamento) == mes_atual,
+            extract('year', Pagamento.data_pagamento) == ano_atual
+        ).scalar() or 0
             
-        perc = (float(vendido) / float(mv.valor_meta)) * 100 if mv.valor_meta > 0 else 0
+        perc = (float(recebido) / float(mv.valor_meta)) * 100 if mv.valor_meta > 0 else 0
         m_diaria = float(mv.valor_meta) / meta_config.dias_uteis if meta_config.dias_uteis > 0 else 0
         
         ranking.append({
             'id': mv.usuario_id,
             'nome': mv.usuario.nome,
             'meta': float(mv.valor_meta),
-            'vendido': float(vendido),
+            'vendido': float(recebido),
             'perc': perc,
             'meta_diaria': m_diaria
         })
@@ -147,7 +145,7 @@ def painel():
 
     return render_template('metas/painel.html', 
                            meta_loja=meta_config,
-                           vendido_loja=total_vendido_loja,
+                           vendido_loja=total_recebido_loja,
                            perc_loja=perc_loja,
                            ranking=ranking,
                            calendario=calendario_dados,
@@ -164,21 +162,22 @@ def api_vendas_usuario(usuario_id):
         mes = int(request.args.get('mes'))
         ano = int(request.args.get('ano'))
         
-        vendas = Venda.query.filter(
+        # BUSCA NOS PAGAMENTOS: 
+        # Filtramos pela data_pagamento e não mais pela data da venda
+        pagamentos = Pagamento.query.join(Venda).filter(
             Venda.vendedor_id == usuario_id,
-            func.extract('month', Venda.criado_em) == mes,
-            func.extract('year', Venda.criado_em) == ano,
-            Venda.status != 'cancelada',
-            Venda.status != 'orcamento'
-        ).order_by(Venda.criado_em.desc()).all()
+            extract('month', Pagamento.data_pagamento) == mes,
+            extract('year', Pagamento.data_pagamento) == ano
+        ).order_by(Pagamento.data_pagamento.desc()).all()
         
         dados = []
-        for v in vendas:
+        for p in pagamentos:
             dados.append({
-                'id': v.id,
-                'data': v.criado_em.strftime('%d/%m/%Y %H:%M'),
-                'cliente': v.cliente_nome,
-                'valor': fmt_moeda(v.valor_final)
+                'id': p.venda_id,
+                # ALTERAÇÃO AQUI: data do pagamento formatada
+                'data': p.data_pagamento.strftime('%d/%m/%Y %H:%M'), 
+                'cliente': p.venda.cliente_nome,
+                'valor': fmt_moeda(p.valor) # Valor da parcela/pagamento recebido
             })
             
         return jsonify({'vendas': dados})

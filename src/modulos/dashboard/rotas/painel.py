@@ -64,11 +64,17 @@ def painel():
         dias_uteis = meta_config.dias_uteis if meta_config and meta_config.dias_uteis > 0 else 1
         meta_diaria_alvo = meta_valor_mes / dias_uteis
 
-        vendas_hoje = db.session.query(func.sum(Venda.valor_final))\
+        recebido_hoje = db.session.query(func.sum(Pagamento.valor))\
+            .filter(func.date(Pagamento.data_pagamento) == hoje).scalar() or 0
+
+        # 2. Vendido Hoje (Soma da tabela Venda - Orçamentos confirmados hoje)
+        vendido_hoje = db.session.query(func.sum(Venda.valor_final))\
             .filter(func.date(Venda.criado_em) == hoje,
-                    Venda.status != 'cancelado', Venda.status != 'orcamento').scalar() or 0
-        
-        atingimento_dia_perc = (float(vendas_hoje) / meta_diaria_alvo) * 100 if meta_diaria_alvo > 0 else 0
+                    Venda.status != 'cancelado', 
+                    Venda.status != 'orcamento').scalar() or 0
+
+        # O atingimento da meta continua sendo baseado no Recebido, conforme sua regra anterior
+        atingimento_dia_perc = (float(recebido_hoje) / meta_diaria_alvo) * 100 if meta_diaria_alvo > 0 else 0
 
         # 3. A PAGAR
         a_pagar_mes = db.session.query(func.sum(Despesa.valor))\
@@ -105,10 +111,11 @@ def painel():
             nome_mes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][mes_iter-1]
             chart_labels.append(nome_mes)
 
-            soma_v = db.session.query(func.sum(Venda.valor_final))\
-                .filter(extract('month', Venda.criado_em) == mes_iter, 
-                        extract('year', Venda.criado_em) == ano_iter,
-                        Venda.status != 'cancelado', Venda.status != 'orcamento').scalar() or 0
+            soma_v = db.session.query(func.sum(Pagamento.valor))\
+                .filter(
+                    extract('month', Pagamento.data_pagamento) == mes_iter, 
+                    extract('year', Pagamento.data_pagamento) == ano_iter
+                ).scalar() or 0
             chart_data_vendas.append(float(soma_v))
 
             soma_d = db.session.query(func.sum(Despesa.valor))\
@@ -214,7 +221,8 @@ def painel():
                            
                            kpi_recebido=fmt_moeda(recebido_mes),
                            kpi_receber=fmt_moeda(a_receber),
-                           vendas_hoje=fmt_moeda(vendas_hoje),
+                           vendas_hoje=fmt_moeda(recebido_hoje), # Mudamos o nome para refletir o Recebido
+                           valor_vendido_hoje=fmt_moeda(vendido_hoje), # Nova variável
                            meta_diaria_alvo=fmt_moeda(meta_diaria_alvo),
                            atingimento_dia_perc=round(atingimento_dia_perc, 2),
                            kpi_pagar=fmt_moeda(a_pagar_mes),

@@ -232,11 +232,28 @@
                 <button onclick="fecharModal('modalPerformance')" class="text-gray-400 hover:text-red-500"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
             <ul class="space-y-3">
-                <li class="flex justify-between p-3 bg-gray-50 rounded"><span class="text-gray-600">Vendido Hoje</span><span class="font-bold text-navy-900">R$ {{ vendas_hoje }}</span></li>
-                <li class="flex justify-between p-3 bg-gray-50 rounded"><span class="text-gray-600">Meta Diária</span><span class="font-bold text-navy-900">R$ {{ meta_diaria_alvo }}</span></li>
-                <li class="flex justify-between p-3 bg-gray-50 rounded"><span class="text-gray-600">Meta Mensal Total</span><span class="font-bold text-navy-900">R$ {{ meta_valor }}</span></li>
+                <li class="flex justify-between p-3 bg-green-50 rounded border border-green-100">
+                    <span class="text-green-700 font-bold">Recebido Hoje</span>
+                    <span class="font-black text-green-700">R$ {{ vendas_hoje }}</span>
+                </li>
+                
+                <li class="flex justify-between p-3 bg-gray-50 rounded">
+                    <span class="text-gray-600">Vendido Hoje (Novos Pedidos)</span>
+                    <span class="font-bold text-navy-900">R$ {{ valor_vendido_hoje }}</span>
+                </li>
+
+                <li class="flex justify-between p-3 bg-gray-50 rounded">
+                    <span class="text-gray-600">Meta Diária</span>
+                    <span class="font-bold text-navy-900">R$ {{ meta_diaria_alvo }}</span>
+                </li>
+                
+                <li class="flex justify-between p-3 bg-gray-50 rounded">
+                    <span class="text-gray-600">Meta Mensal Total</span>
+                    <span class="font-bold text-navy-900">R$ {{ meta_valor }}</span>
+                </li>
+                
                 <li class="flex justify-between p-3 {{ 'bg-green-100' if atingimento_dia_perc >= 100 else 'bg-orange-100' }} rounded">
-                    <span class="text-gray-700 font-bold">Atingimento Dia</span>
+                    <span class="text-gray-700 font-bold">Atingimento da Meta</span>
                     <span class="font-bold {{ 'text-green-700' if atingimento_dia_perc >= 100 else 'text-orange-700' }}">{{ atingimento_dia_perc }}%</span>
                 </li>
             </ul>
