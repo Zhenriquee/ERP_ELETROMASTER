@@ -1,43 +1,50 @@
-from flask import render_template, redirect, url_for, flash, request
-from flask_login import login_required
+from flask import render_template, redirect, url_for, flash, request, send_file
+from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
+from io import BytesIO
+
 from src.extensoes import banco_de_dados as db
 from src.modulos.autenticacao.permissoes import cargo_exigido
 
-# Imports dos Modelos
-from src.modulos.rh.modelos import Colaborador
-# Importamos Cargo para preencher o Select (Assumindo que o arquivo já existe ou será criado)
-from src.modulos.corporativo.modelos import Cargo 
+# Importação dos Modelos
+from src.modulos.rh.modelos import Colaborador, DocumentoColaborador
+from src.modulos.corporativo.modelos import Cargo
 
-from src.modulos.rh.formularios import FormularioColaborador
+# Importação dos Formulários
+from src.modulos.rh.formularios import FormularioColaborador, FormularioDocumentoRH
+
 from . import bp_rh
 
-# --- LISTAGEM DE COLABORADORES ---
+# =================================================================
+# --- GESTÃO DE COLABORADORES ---
+# =================================================================
+
 @bp_rh.route('/', methods=['GET'])
 @login_required
 @cargo_exigido('rh_equipe')
 def listar_colaboradores():
+    # Lista ordenando por status (ativos primeiro) e depois nome
     colaboradores = Colaborador.query.order_by(Colaborador.ativo.desc(), Colaborador.nome_completo).all()
     return render_template('rh/lista_colaboradores.html', colaboradores=colaboradores)
 
-# --- NOVO COLABORADOR ---
 @bp_rh.route('/novo', methods=['GET', 'POST'])
 @login_required
 @cargo_exigido('rh_equipe')
 def novo_colaborador():
     form = FormularioColaborador()
     
-    # Popula o Select de Cargos
+    # Popula o Select de Cargos com dados do módulo Corporativo
     cargos_db = Cargo.query.filter_by(ativo=True).order_by(Cargo.nome).all()
     form.cargo_id.choices = [(c.id, f"{c.nome} - {c.setor.nome}") for c in cargos_db]
     
-    # Se não houver cargos, adiciona opção vazia para não quebrar
+    # Tratamento para caso não existam cargos ainda
     if not form.cargo_id.choices:
-        form.cargo_id.choices = [(0, 'Nenhum cargo cadastrado')]
+        form.cargo_id.choices = [(0, 'Cadastre cargos no módulo Corporativo')]
 
     if form.validate_on_submit():
-        # Verifica CPF duplicado
+        # Verifica duplicidade de CPF
         if Colaborador.query.filter_by(cpf=form.cpf.data).first():
-            flash('Este CPF já está cadastrado.', 'error')
+            flash('Este CPF já está cadastrado no sistema.', 'error')
         else:
             novo = Colaborador(
                 nome_completo=form.nome_completo.data,
@@ -55,12 +62,12 @@ def novo_colaborador():
             )
             db.session.add(novo)
             db.session.commit()
-            flash('Colaborador cadastrado com sucesso!', 'success')
+            
+            flash(f'Colaborador {novo.nome_completo} cadastrado com sucesso!', 'success')
             return redirect(url_for('rh.listar_colaboradores'))
 
     return render_template('rh/cadastro_colaborador.html', form=form, titulo="Novo Colaborador")
 
-# --- EDITAR COLABORADOR ---
 @bp_rh.route('/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 @cargo_exigido('rh_equipe')
@@ -68,27 +75,100 @@ def editar_colaborador(id):
     colab = Colaborador.query.get_or_404(id)
     form = FormularioColaborador(obj=colab)
     
-    # Popula Cargos
+    # Popula o Select de Cargos (inclui inativos caso o colab tenha um cargo antigo)
     cargos_db = Cargo.query.order_by(Cargo.nome).all()
     form.cargo_id.choices = [(c.id, f"{c.nome} - {c.setor.nome}") for c in cargos_db]
 
     if form.validate_on_submit():
-        # Verifica CPF duplicado (excluindo o próprio)
+        # Verifica duplicidade de CPF (ignorando o próprio ID)
         existente = Colaborador.query.filter(Colaborador.cpf == form.cpf.data, Colaborador.id != id).first()
+        
         if existente:
             flash('Este CPF já pertence a outro colaborador.', 'error')
         else:
-            form.populate_obj(colab) # Atualiza o objeto com os dados do form
+            # Atualiza os dados do objeto com o form
+            form.populate_obj(colab)
             db.session.commit()
-            flash('Dados atualizados com sucesso.', 'success')
+            
+            flash('Dados do colaborador atualizados.', 'success')
             return redirect(url_for('rh.listar_colaboradores'))
 
     return render_template('rh/cadastro_colaborador.html', form=form, titulo="Editar Colaborador", editando=True)
 
-# --- DETALHES / PERFIL ---
 @bp_rh.route('/perfil/<int:id>')
 @login_required
 @cargo_exigido('rh_equipe')
 def perfil_colaborador(id):
     colab = Colaborador.query.get_or_404(id)
     return render_template('rh/perfil_colaborador.html', colab=colab)
+
+# =================================================================
+# --- GESTÃO DE DOCUMENTOS ---
+# =================================================================
+
+@bp_rh.route('/documentos/<int:colaborador_id>', methods=['GET', 'POST'])
+@login_required
+@cargo_exigido('rh_equipe')
+def documentos_colaborador(colaborador_id):
+    colab = Colaborador.query.get_or_404(colaborador_id)
+    form = FormularioDocumentoRH()
+    
+    if form.validate_on_submit():
+        arquivo = form.arquivo.data
+        filename = secure_filename(arquivo.filename)
+        
+        # Lê o arquivo para memória (BLOB)
+        dados = arquivo.read()
+        
+        # Cria registro do documento
+        novo_doc = DocumentoColaborador(
+            colaborador_id=colab.id,
+            nome_original=filename,
+            tipo_arquivo=filename.rsplit('.', 1)[1].lower() if '.' in filename else 'bin',
+            tamanho_kb=len(dados)/1024,
+            dados_binarios=dados,
+            descricao=form.descricao.data,
+            enviado_por_id=current_user.id
+        )
+        
+        db.session.add(novo_doc)
+        db.session.commit()
+        
+        flash('Documento anexado com sucesso.', 'success')
+        return redirect(url_for('rh.documentos_colaborador', colaborador_id=colab.id))
+    
+    # Se for GET, lista os documentos existentes
+    # A lista pode ser renderizada no template acessando colab.documentos (pelo relacionamento)
+    return render_template('rh/documentos.html', colab=colab, form=form)
+
+@bp_rh.route('/documentos/baixar/<int:doc_id>')
+@login_required
+def baixar_documento_rh(doc_id):
+    doc = DocumentoColaborador.query.get_or_404(doc_id)
+    
+    # Verificação de segurança adicional
+    if not current_user.tem_permissao('rh_equipe'):
+        return "Acesso Negado", 403
+        
+    return send_file(
+        BytesIO(doc.dados_binarios),
+        download_name=doc.nome_original,
+        as_attachment=True
+    )
+
+@bp_rh.route('/documentos/deletar/<int:doc_id>')
+@login_required
+@cargo_exigido('rh_equipe')
+def deletar_documento_rh(doc_id):
+    doc = DocumentoColaborador.query.get_or_404(doc_id)
+    colab_id = doc.colaborador_id # Guarda ID para redirecionar
+    
+    try:
+        db.session.delete(doc)
+        db.session.commit()
+        flash('Documento removido.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Erro ao remover documento.', 'error')
+        
+    return redirect(url_for('rh.documentos_colaborador', colaborador_id=colab_id))

@@ -1,12 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, BooleanField, SelectField, DecimalField, SelectMultipleField, widgets
-from wtforms.validators import DataRequired, Optional, Email, Length, EqualTo
-from flask_wtf.file import FileField, FileAllowed, FileRequired
-
-# Widget personalizado para transformar SelectMultiple em Checkboxes
-class MultiCheckboxField(SelectMultipleField):
-    widget = widgets.ListWidget(prefix_label=False)
-    option_widget = widgets.CheckboxInput()
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, SelectField
+from wtforms.validators import DataRequired, Optional, Length, Email
 
 class FormularioLogin(FlaskForm):
     usuario = StringField('Usuário', validators=[DataRequired()])
@@ -14,67 +8,20 @@ class FormularioLogin(FlaskForm):
     lembrar_de_mim = BooleanField('Lembrar de mim')
     submit = SubmitField('Entrar')
 
-class FormularioCadastroUsuario(FlaskForm):
-    nome = StringField('Nome Completo', validators=[DataRequired()])
+class FormularioUsuario(FlaskForm):
+    # Usado na edição de usuários já existentes
+    usuario = StringField('Login de Acesso', validators=[DataRequired(), Length(min=3)])
+    email = StringField('E-mail de Recuperação', validators=[Optional(), Email()])
     
-    usuario = StringField('Login (Usuário)', validators=[DataRequired(), Length(min=3)])
+    senha = PasswordField('Senha', validators=[Optional(), Length(min=6)])
     
-    # Email Opcional, mas se preenchido, valida o formato
-    email = StringField('Email', validators=[Optional(), Email()])
+    ativo = BooleanField('Acesso Ativo no Sistema', default=True)
     
-    cpf = StringField('CPF', validators=[Optional()])
-    telefone = StringField('Telefone', validators=[Optional()])
-    
-    # Cargo como SelectField (As opções são ajustadas dinamicamente na rota)
-    cargo = SelectField('Cargo', choices=[
-        ('tecnico', 'Técnico'),
-        ('coordenador', 'Coordenador'),
-        ('gerente', 'Gerente'),
-        ('dono', 'Dono')
-    ], validators=[DataRequired()])
-
-    equipe = SelectField('Equipe / Departamento', choices=[
-        ('vendas', 'Vendas (Possui Meta)'),
-        ('estoque', 'Estoque / Logística'),
-        ('financeiro', 'Financeiro'),
-        ('rh', 'Recursos Humanos'),
-        ('admin', 'Administração / TI')
-    ], validators=[DataRequired()])
-    
-    # Checkboxes de Permissão (Módulos)
-    modulos_acesso = MultiCheckboxField(
-        'Permissões de Acesso', 
-        coerce=int,
-        validators=[Optional()]
-    )
-    
-    salario = DecimalField('Salário (R$)', places=2, validators=[Optional()])
-    
-    # Senha Opcional (A rota de cadastro obriga, a de edição permite vazio)
-    senha = PasswordField('Senha', validators=[
-        Optional(), 
-        Length(min=6, message="A senha deve ter pelo menos 6 caracteres")
-    ])
-    
-    # Novo campo para Ativar/Desativar usuário
-    ativo = BooleanField('Usuário Ativo?', default=True)
-    
-    botao_submit = SubmitField('Salvar Funcionário')
-
-class FormularioDocumento(FlaskForm):
-    arquivo = FileField('Selecione o Arquivo', validators=[
-        FileRequired(),
-        FileAllowed(['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'], 'Apenas imagens e documentos PDF/Word!')
-    ])
-    descricao = StringField('Descrição / Nome do Documento', validators=[DataRequired()])
-    submit = SubmitField('Enviar Documento')
+    submit = SubmitField('Salvar Acesso')
 
 class FormularioCriarAcesso(FlaskForm):
-    # Dropdown que lista apenas colaboradores SEM usuário
-    colaborador_id = SelectField('Selecione o Colaborador', coerce=int, validators=[DataRequired()])
-    
-    usuario = StringField('Login de Acesso', validators=[DataRequired()])
-    senha = PasswordField('Senha Provisória', validators=[DataRequired()])
-    
-    # Checkboxes de permissão (Módulos) mantidos...
-    submit = SubmitField('Criar Acesso')    
+    # Usado na criação de novos usuários vinculados a colaboradores
+    colaborador_id = SelectField('Colaborador', coerce=int, validators=[DataRequired()])
+    usuario = StringField('Login', validators=[DataRequired(), Length(min=3)])
+    senha = PasswordField('Senha Provisória', validators=[DataRequired(), Length(min=6)])
+    submit = SubmitField('Criar Conta')

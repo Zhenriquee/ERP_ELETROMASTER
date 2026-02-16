@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, DecimalField, DateField, SelectField, SubmitField, BooleanField
 from wtforms.validators import DataRequired, Optional, Length, Email
+from flask_wtf.file import FileField, FileAllowed, FileRequired
 
 class FormularioColaborador(FlaskForm):
     # --- DADOS PESSOAIS ---
@@ -33,3 +34,11 @@ class FormularioColaborador(FlaskForm):
     ativo = BooleanField('Colaborador Ativo na Empresa', default=True)
     
     submit = SubmitField('Salvar Colaborador')
+
+class FormularioDocumentoRH(FlaskForm):
+    arquivo = FileField('Arquivo', validators=[
+        FileRequired(),
+        FileAllowed(['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx'], 'Apenas PDF, Imagens ou Word.')
+    ])
+    descricao = StringField('Tipo do Documento', validators=[DataRequired()], render_kw={"placeholder": "Ex: RG, CNH, Contrato..."})
+    submit = SubmitField('Anexar Documento')    

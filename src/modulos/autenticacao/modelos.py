@@ -8,7 +8,8 @@ def hora_brasilia():
     tz = pytz.timezone('America/Sao_Paulo')
     return datetime.now(tz)
 
-# Tabela de Associação (Permissões Manuais/Extras)
+# Tabela de Associação (Permissões Manuais/Extras específicas de um usuário)
+# Útil se você quiser dar uma permissão a alguém sem dar ao cargo todo
 usuario_modulos = db.Table('usuario_modulos',
     db.Column('usuario_id', db.Integer, db.ForeignKey('usuarios.id'), primary_key=True),
     db.Column('modulo_id', db.Integer, db.ForeignKey('modulos.id'), primary_key=True)
@@ -28,52 +29,53 @@ class Usuario(UserMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     
-    # --- VÍNCULO COM O RH (A Mudança Principal) ---
+    # Vínculo Obrigatório com o Colaborador (RH)
     colaborador_id = db.Column(db.Integer, db.ForeignKey('colaboradores.id'), unique=True, nullable=False)
     
     # Dados de Acesso
     usuario = db.Column(db.String(50), unique=True, nullable=False)
     senha_hash = db.Column(db.String(256), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=True) # E-mail de recuperação
+    email = db.Column(db.String(120), unique=True, nullable=True)
     
     ativo = db.Column(db.Boolean, default=True)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relacionamento de permissões extras
+    # Relacionamento de permissões EXTRAS (além das do cargo)
     permissoes = db.relationship('Modulo', secondary=usuario_modulos, lazy='subquery',
         backref=db.backref('usuarios', lazy=True))
 
     # =================================================================
-    # --- PROPRIEDADES DINÂMICAS (Buscam dados do Colaborador) ---
+    # --- PROPRIEDADES DINÂMICAS (Buscam dados do RH / Corporativo) ---
     # =================================================================
     
     @property
     def nome(self):
-        """Retorna o nome completo do funcionário ou o login se der erro"""
+        """Retorna o nome completo do funcionário"""
         if self.colaborador:
             return self.colaborador.nome_completo
         return self.usuario
 
     @property
     def cargo(self):
-        """Retorna o nome do Cargo (Ex: Dono, Vendedor) vindo do RH"""
+        """Retorna o nome do Cargo vindo do RH"""
         if self.colaborador and self.colaborador.cargo_ref:
             return self.colaborador.cargo_ref.nome
         return 'Sem Cargo'
 
     @property
     def equipe(self):
-        """Retorna o Setor como 'equipe' para compatibilidade"""
+        """Retorna o Setor do colaborador como 'equipe'"""
         if self.colaborador and self.colaborador.cargo_ref:
             return self.colaborador.cargo_ref.setor.nome
         return 'Geral'
 
     @property
     def nivel_acesso(self):
-        """Retorna o nível numérico (1=Dono ... 4=Operacional)"""
+        """Retorna o nível hierárquico (1=Dono ... 4=Operacional)"""
         if self.colaborador and self.colaborador.cargo_ref:
             return self.colaborador.cargo_ref.nivel_hierarquico
-        # Fallback de segurança
+        
+        # Fallback de segurança caso algo falhe
         if self.cargo and self.cargo.lower() == 'dono':
             return 1
         return 99
@@ -91,44 +93,32 @@ class Usuario(UserMixin, db.Model):
     def tem_permissao(self, codigo_modulo):
         """
         Verifica se o usuário pode acessar um módulo.
-        1. Se for DONO (Nível 1), libera tudo.
-        2. Se não, verifica as permissões manuais.
+        Ordem de Checagem:
+        1. É Dono? (Acesso Total)
+        2. O Cargo dele tem a permissão? (Herdado do Corporativo)
+        3. Ele tem uma permissão manual extra?
         """
-        # Verifica Cargo (Case Insensitive)
-        cargo_atual = self.cargo.lower() if self.cargo else ''
-        
-        if cargo_atual == 'dono':
-            return True
-            
-        # Verifica Nível Hierárquico (1 = Dono/Diretor)
+        # 1. Acesso Total (Dono ou Nível 1)
         if self.nivel_acesso <= 1:
             return True
         
-        # Verifica Permissões Específicas
-        for modulo in self.permissoes:
-            if modulo.codigo == codigo_modulo:
+        cargo_nome = self.cargo.lower() if self.cargo else ''
+        if cargo_nome == 'dono':
+            return True
+            
+        # 2. Verifica Permissões do CARGO (Padrão)
+        if self.colaborador and self.colaborador.cargo_ref:
+            # Itera sobre os módulos vinculados ao Cargo
+            for mod in self.colaborador.cargo_ref.permissoes:
+                if mod.codigo == codigo_modulo:
+                    return True
+
+        # 3. Verifica Permissões MANUAIS (Exceções)
+        for mod in self.permissoes:
+            if mod.codigo == codigo_modulo:
                 return True
         
         return False
 
     def __repr__(self):
         return f'<Usuario {self.usuario}>'
-
-# Classe DocumentoUsuario (Mantida para uploads)
-class DocumentoUsuario(db.Model):
-    __tablename__ = 'documentos_usuarios'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
-    
-    nome_original = db.Column(db.String(255), nullable=False)
-    tipo_arquivo = db.Column(db.String(10), nullable=False)
-    tamanho_kb = db.Column(db.Float, nullable=False)
-    nome_arquivo = db.Column(db.String(255))
-    dados_binarios = db.Column(db.LargeBinary)
-
-    criado_em = db.Column(db.DateTime, default=hora_brasilia)
-    enviado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
-
-    usuario = db.relationship('Usuario', foreign_keys=[usuario_id], backref='documentos')
-    quem_enviou = db.relationship('Usuario', foreign_keys=[enviado_por_id])

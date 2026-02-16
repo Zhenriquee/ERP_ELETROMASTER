@@ -5,7 +5,7 @@
     <div class="flex justify-between items-center mb-6">
         <div>
             <h2 class="text-2xl font-bold text-navy-900">Quadro de Colaboradores</h2>
-            <p class="text-sm text-gray-500">Gestão de RH e contratos.</p>
+            <p class="text-sm text-gray-500">Gestão de RH, contratos e documentação.</p>
         </div>
         <a href="{{ url_for('rh.novo_colaborador') }}" class="bg-navy-900 hover:bg-navy-800 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold shadow-lg transition-colors">
             <i data-lucide="user-plus" class="w-4 h-4"></i> Novo Colaborador
@@ -56,9 +56,16 @@
                         {% endif %}
                     </td>
                     <td class="px-6 py-4 text-right flex justify-end gap-2">
+                        <a href="{{ url_for('rh.documentos_colaborador', colaborador_id=c.id) }}" 
+                           class="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors" 
+                           title="Gerenciar Documentos">
+                            <i data-lucide="folder" class="w-4 h-4"></i>
+                        </a>
+
                         <a href="{{ url_for('rh.perfil_colaborador', id=c.id) }}" class="p-2 text-gray-500 hover:text-navy-900 hover:bg-gray-100 rounded-lg transition-colors" title="Ver Perfil">
                             <i data-lucide="file-text" class="w-4 h-4"></i>
                         </a>
+                        
                         <a href="{{ url_for('rh.editar_colaborador', id=c.id) }}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
                             <i data-lucide="edit-2" class="w-4 h-4"></i>
                         </a>
