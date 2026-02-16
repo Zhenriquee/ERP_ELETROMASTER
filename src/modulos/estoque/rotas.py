@@ -8,7 +8,7 @@ from src.modulos.autenticacao.permissoes import cargo_exigido
 
 @bp_estoque.route('/', methods=['GET', 'POST'])
 @login_required
-@cargo_exigido('estoque_gerir') # Ou criar permissão 'estoque_gerir'
+@cargo_exigido('estoque_gerir')
 def painel():
     form_prod = FormularioProdutoEstoque()
     form_mov = FormularioMovimentacaoManual()
@@ -18,10 +18,16 @@ def painel():
         novo = ProdutoEstoque(
             nome=form_prod.nome.data,
             unidade=form_prod.unidade.data,
-            estoque_minimo=form_prod.estoque_minimo.data or 0,
-            # Salvando preços
+            quantidade_atual=form_prod.quantidade_atual.data or 0,
+            
+            # CAMPO ATUALIZADO AQUI:
+            quantidade_minima=form_prod.quantidade_minima.data or 0,
+            
+            valor_unitario=form_prod.valor_unitario.data or 0,
             preco_m2=form_prod.preco_m2.data or 0,
-            preco_m3=form_prod.preco_m3.data or 0
+            preco_m3=form_prod.preco_m3.data or 0,
+            consumo_por_m2=form_prod.consumo_m2.data or 0,
+            consumo_por_m3=form_prod.consumo_m3.data or 0
         )
         db.session.add(novo)
         db.session.commit()
@@ -32,7 +38,6 @@ def painel():
     
     return render_template('estoque/painel.html', produtos=produtos, form_prod=form_prod, form_mov=form_mov)
 
-# --- NOVA ROTA DE EDIÇÃO ---
 @bp_estoque.route('/produto/editar/<int:id>', methods=['POST'])
 @login_required
 @cargo_exigido('estoque_gerir')
@@ -40,14 +45,23 @@ def editar_produto(id):
     produto = ProdutoEstoque.query.get_or_404(id)
     form = FormularioProdutoEstoque()
     
-    # Validamos apenas se os campos obrigatórios vierem preenchidos
     if form.validate_on_submit():
         produto.nome = form.nome.data
         produto.unidade = form.unidade.data
-        produto.estoque_minimo = form.estoque_minimo.data
+        
+        # CAMPO ATUALIZADO AQUI:
+        produto.quantidade_minima = form.quantidade_minima.data
+        
+        produto.valor_unitario = form.valor_unitario.data
         produto.preco_m2 = form.preco_m2.data
         produto.preco_m3 = form.preco_m3.data
+        produto.consumo_por_m2 = form.consumo_m2.data
+        produto.consumo_por_m3 = form.consumo_m3.data
         
+        # Atualiza quantidade se foi informada (opcional na edição)
+        if form.quantidade_atual.data is not None:
+             produto.quantidade_atual = form.quantidade_atual.data
+
         db.session.commit()
         flash('Produto atualizado com sucesso!', 'success')
     else:
@@ -55,6 +69,7 @@ def editar_produto(id):
         
     return redirect(url_for('estoque.painel'))
 
+# ... (Manter rotas de movimentar e histórico iguais ao anterior) ...
 @bp_estoque.route('/movimentar/<int:id>', methods=['POST'])
 @login_required
 @cargo_exigido('estoque_gerir')
@@ -65,7 +80,6 @@ def movimentar_manual(id):
     if form.validate_on_submit():
         qtd = form.quantidade.data
         tipo = form.tipo.data
-        
         saldo_ant = produto.quantidade_atual
         
         if tipo == 'entrada':
@@ -93,20 +107,17 @@ def movimentar_manual(id):
 @login_required
 @cargo_exigido('estoque_gerir')
 def api_historico_produto(id):
-    """Retorna o histórico de movimentações de um produto específico em JSON"""
-    movimentacoes = MovimentacaoEstoque.query.filter_by(produto_id=id).order_by(MovimentacaoEstoque.data.desc()).all()
+    movimentacoes = MovimentacaoEstoque.query.filter_by(produto_id=id).order_by(MovimentacaoEstoque.data_movimentacao.desc()).all()
     dados = []
     for mov in movimentacoes:
         dados.append({
             'id': mov.id,
-            'data': mov.data.strftime('%d/%m/%Y %H:%M'),
-            'tipo': mov.tipo, # 'entrada' ou 'saida'
+            'data': mov.data_movimentacao.strftime('%d/%m/%Y %H:%M'),
+            'tipo': mov.tipo,
             'quantidade': float(mov.quantidade),
-            'saldo_anterior': float(mov.saldo_anterior) if mov.saldo_anterior is not None else 0.0,
-            'saldo_novo': float(mov.saldo_novo) if mov.saldo_novo is not None else 0.0,
-            'origem': mov.origem, # manual, compra, producao
+            'saldo_novo': float(mov.saldo_novo) if mov.saldo_novo else 0,
+            'origem': mov.origem,
             'observacao': mov.observacao or '-',
             'usuario': mov.usuario.nome if mov.usuario else 'Sistema'
         })
-        
     return jsonify(dados)

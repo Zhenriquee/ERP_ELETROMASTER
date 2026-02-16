@@ -1,12 +1,12 @@
 from src.extensoes import banco_de_dados as db
 from datetime import datetime
-from flask_login import current_user
 import pytz
 
 def hora_brasilia():
     tz = pytz.timezone('America/Sao_Paulo')
     return datetime.now(tz)
 
+# --- MODELOS AUXILIARES ---
 class CorServico(db.Model):
     __tablename__ = 'cores_servico'
     id = db.Column(db.Integer, primary_key=True)
@@ -20,10 +20,10 @@ class HistoricoPrecoCor(db.Model):
     __tablename__ = 'historico_precos_cor'
     id = db.Column(db.Integer, primary_key=True)
     cor_id = db.Column(db.Integer, db.ForeignKey('cores_servico.id'), nullable=False)
-    preco_m2_anterior = db.Column(db.Numeric(10, 2), nullable=True)
-    preco_m2_novo = db.Column(db.Numeric(10, 2), nullable=True)
-    preco_m3_anterior = db.Column(db.Numeric(10, 2), nullable=True)
-    preco_m3_novo = db.Column(db.Numeric(10, 2), nullable=True)
+    preco_m2_anterior = db.Column(db.Numeric(10, 2))
+    preco_m2_novo = db.Column(db.Numeric(10, 2))
+    preco_m3_anterior = db.Column(db.Numeric(10, 2))
+    preco_m3_novo = db.Column(db.Numeric(10, 2))
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     data_alteracao = db.Column(db.DateTime, default=datetime.utcnow)
     usuario = db.relationship('Usuario')
@@ -38,7 +38,24 @@ class Pagamento(db.Model):
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     usuario = db.relationship('Usuario')
 
+# --- TABELA DE FOTOS (NOVO) ---
+class FotoItemVenda(db.Model):
+    __tablename__ = 'fotos_itens_venda'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    item_venda_id = db.Column(db.Integer, db.ForeignKey('venda_itens.id'), nullable=False)
+    
+    caminho_arquivo = db.Column(db.String(255), nullable=False)
+    
+    # 'recebimento' (antes) ou 'entrega' (depois)
+    etapa = db.Column(db.String(20), nullable=False) 
+    
+    data_upload = db.Column(db.DateTime, default=hora_brasilia)
+    enviado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
+    
+    usuario = db.relationship('Usuario')
 
+# --- ITEM DA VENDA (ATUALIZADO) ---
 class ItemVenda(db.Model):
     __tablename__ = 'venda_itens'
     id = db.Column(db.Integer, primary_key=True)
@@ -46,17 +63,23 @@ class ItemVenda(db.Model):
     
     descricao = db.Column(db.String(200), nullable=False)
     
-    # --- ALTERADO: Suporte a ProdutoEstoque ---
+    # Vínculos de Produto
     cor_id = db.Column(db.Integer, db.ForeignKey('cores_servico.id'), nullable=True) # Legado
     produto_id = db.Column(db.Integer, db.ForeignKey('produtos_estoque.id'), nullable=True) # Novo
     
+    # Valores Financeiros
     quantidade = db.Column(db.Integer, nullable=False)
     valor_unitario = db.Column(db.Numeric(10, 2), nullable=False)
     valor_total = db.Column(db.Numeric(10, 2), nullable=False)
     
+    # --- NOVOS CAMPOS PARA CÁLCULO DE CONSUMO ---
+    # Armazena a área/volume total deste item para calcular a baixa de tinta depois
+    metragem_total = db.Column(db.Numeric(10, 3), default=0.0) 
+    tipo_medida = db.Column(db.String(5), default='m2') # m2 ou m3
+    
     status = db.Column(db.String(20), default='pendente')
     
-    # Datas e Usuários
+    # --- CAMPOS DE RASTREIO DE PRODUÇÃO (MANTIDOS) ---
     data_inicio_producao = db.Column(db.DateTime, nullable=True)
     usuario_producao_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     
@@ -68,12 +91,16 @@ class ItemVenda(db.Model):
     
     # Relacionamentos
     cor = db.relationship('CorServico')
-    produto = db.relationship('ProdutoEstoque') # Novo relacionamento
+    produto = db.relationship('ProdutoEstoque')
     
     usuario_producao = db.relationship('Usuario', foreign_keys=[usuario_producao_id])
     usuario_pronto = db.relationship('Usuario', foreign_keys=[usuario_pronto_id])
     usuario_entrega = db.relationship('Usuario', foreign_keys=[usuario_entrega_id])
+    
+    # Relacionamento com as Fotos
+    fotos = db.relationship('FotoItemVenda', backref='item', cascade='all, delete-orphan')
 
+# --- VENDA PAI (MANTIDO) ---
 class Venda(db.Model):
     __tablename__ = 'vendas'
     id = db.Column(db.Integer, primary_key=True)
@@ -89,7 +116,7 @@ class Venda(db.Model):
     cliente_email = db.Column(db.String(100), nullable=True)
     cliente_endereco = db.Column(db.String(255), nullable=True)
 
-    # Detalhes
+    # Detalhes (Venda Simples)
     descricao_servico = db.Column(db.Text, nullable=True) 
     observacoes_internas = db.Column(db.Text, nullable=True)
     tipo_medida = db.Column(db.String(5), nullable=True)
@@ -99,11 +126,10 @@ class Venda(db.Model):
     metragem_total = db.Column(db.Numeric(10, 2), nullable=True)
     quantidade_pecas = db.Column(db.Integer, default=1)
     
-    # --- ALTERADO: Suporte a ProdutoEstoque ---
-    cor_id = db.Column(db.Integer, db.ForeignKey('cores_servico.id'), nullable=True) # Legado
-    produto_id = db.Column(db.Integer, db.ForeignKey('produtos_estoque.id'), nullable=True) # Novo
+    cor_id = db.Column(db.Integer, db.ForeignKey('cores_servico.id'), nullable=True)
+    produto_id = db.Column(db.Integer, db.ForeignKey('produtos_estoque.id'), nullable=True)
     
-    cor_nome_snapshot = db.Column(db.String(100), nullable=True) # Nome histórico (seja cor ou produto)
+    cor_nome_snapshot = db.Column(db.String(100), nullable=True)
     preco_unitario_snapshot = db.Column(db.Numeric(10, 2), nullable=True)
     
     # Financeiro
@@ -116,7 +142,7 @@ class Venda(db.Model):
     status = db.Column(db.String(20), default='orcamento')
     status_pagamento = db.Column(db.String(20), default='pendente')
     vendedor_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
-    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+    criado_em = db.Column(db.DateTime, default=hora_brasilia)
     
     # Cancelamento
     motivo_cancelamento = db.Column(db.Text, nullable=True)
@@ -126,12 +152,12 @@ class Venda(db.Model):
     # Relacionamentos
     vendedor = db.relationship('Usuario', foreign_keys=[vendedor_id])
     cor = db.relationship('CorServico') 
-    produto = db.relationship('ProdutoEstoque') # Novo relacionamento
+    produto = db.relationship('ProdutoEstoque')
     
     pagamentos = db.relationship('Pagamento', backref='venda', lazy=True)
     usuario_cancelamento = db.relationship('Usuario', foreign_keys=[usuario_cancelamento_id])
     
-    # Auditoria
+    # Auditoria de Status da Venda (Quando avança em bloco)
     data_inicio_producao = db.Column(db.DateTime, nullable=True)
     usuario_producao_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     usuario_producao = db.relationship('Usuario', foreign_keys=[usuario_producao_id])
@@ -148,16 +174,12 @@ class Venda(db.Model):
 
     @property
     def valor_pago(self):
-        """Soma todos os pagamentos vinculados a esta venda"""
-        if not self.pagamentos:
-            return 0.0
+        if not self.pagamentos: return 0.0
         return sum(p.valor for p in self.pagamentos)
 
     @property
     def valor_restante(self):
-        """Calcula quanto falta pagar"""
         pago = self.valor_pago
-        # Garante que não fique negativo por erro de arredondamento pequeno
         restante = float(self.valor_final) - float(pago)
         return max(0.0, restante)
 
@@ -169,18 +191,9 @@ class ItemVendaHistorico(db.Model):
     
     status_anterior = db.Column(db.String(20), nullable=False)
     status_novo = db.Column(db.String(20), nullable=False)
-    acao = db.Column(db.String(50)) # Ex: "Iniciou", "Voltou para Fila", "Finalizou"
+    acao = db.Column(db.String(50))
     
     data_acao = db.Column(db.DateTime, default=hora_brasilia)
     
-    # Relacionamentos
     usuario = db.relationship('Usuario')
     item = db.relationship('ItemVenda', backref=db.backref('historico_acoes', lazy=True, cascade="all, delete-orphan"))
-
-    #@property
-    #def total_pago(self):
-    #    return sum(p.valor for p in self.pagamentos)
-
-    #@property
-    #def valor_restante(self):
-    #    return self.valor_final - self.total_pago
