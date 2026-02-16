@@ -3,29 +3,25 @@ from wtforms import StringField, DecimalField, SubmitField, SelectField, TextAre
 from wtforms.validators import DataRequired, Optional
 
 class FormularioProdutoEstoque(FlaskForm):
-    nome = StringField('Nome do Produto / Tinta', validators=[DataRequired()])
+    nome = StringField('Nome do Produto', validators=[DataRequired()])
     
-    # Unidades restritas
-    unidade = SelectField('Unidade de Medida', choices=[
+    unidade = SelectField('Unidade', choices=[
         ('KG', 'Quilograma (KG)'), 
-        ('G', 'Grama (G)')
+        ('G', 'Grama (G)'),
+        ('L', 'Litro (L)'),
+        ('UN', 'Unidade (UN)')
     ], default='KG', validators=[DataRequired()])
     
-    # --- CONTROLE DE ESTOQUE (Campo Renomeado) ---
     quantidade_atual = DecimalField('Quantidade Atual', places=3, validators=[Optional()])
     quantidade_minima = DecimalField('Estoque Mínimo (Alerta)', places=3, default=5.0)
     
-    # --- CUSTO ---
-    valor_unitario = DecimalField('Custo Unitário (R$)', places=2, validators=[Optional()], 
-                                description="Quanto custou para a empresa (por KG ou G)?")
-
-    # --- PRECIFICAÇÃO DE VENDA ---
+    # Preços continuam com 2 casas (financeiro)
     preco_m2 = DecimalField('Preço de Venda por m² (R$)', places=2, validators=[Optional()])
     preco_m3 = DecimalField('Preço de Venda por m³ (R$)', places=2, validators=[Optional()])
 
-    # --- FICHA TÉCNICA / CONSUMO ---
-    consumo_m2 = DecimalField('Consumo Médio por m²', places=4, default=0)
-    consumo_m3 = DecimalField('Consumo Médio por m³', places=4, default=0)
+    # Consumo agora com 3 casas (Físico)
+    consumo_m2 = DecimalField('Consumo Médio por m²', places=3, default=0)
+    consumo_m3 = DecimalField('Consumo Médio por m³', places=3, default=0)
     
     submit = SubmitField('Salvar Produto')
 

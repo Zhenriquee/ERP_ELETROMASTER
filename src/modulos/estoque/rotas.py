@@ -19,11 +19,8 @@ def painel():
             nome=form_prod.nome.data,
             unidade=form_prod.unidade.data,
             quantidade_atual=form_prod.quantidade_atual.data or 0,
-            
-            # CAMPO ATUALIZADO AQUI:
             quantidade_minima=form_prod.quantidade_minima.data or 0,
-            
-            valor_unitario=form_prod.valor_unitario.data or 0,
+            # REMOVIDO CUSTO
             preco_m2=form_prod.preco_m2.data or 0,
             preco_m3=form_prod.preco_m3.data or 0,
             consumo_por_m2=form_prod.consumo_m2.data or 0,
@@ -48,17 +45,14 @@ def editar_produto(id):
     if form.validate_on_submit():
         produto.nome = form.nome.data
         produto.unidade = form.unidade.data
-        
-        # CAMPO ATUALIZADO AQUI:
         produto.quantidade_minima = form.quantidade_minima.data
         
-        produto.valor_unitario = form.valor_unitario.data
+        # REMOVIDO CUSTO
         produto.preco_m2 = form.preco_m2.data
         produto.preco_m3 = form.preco_m3.data
         produto.consumo_por_m2 = form.consumo_m2.data
         produto.consumo_por_m3 = form.consumo_m3.data
         
-        # Atualiza quantidade se foi informada (opcional na edição)
         if form.quantidade_atual.data is not None:
              produto.quantidade_atual = form.quantidade_atual.data
 
@@ -69,7 +63,8 @@ def editar_produto(id):
         
     return redirect(url_for('estoque.painel'))
 
-# ... (Manter rotas de movimentar e histórico iguais ao anterior) ...
+# ... (Manter rotas de movimentar e histórico iguais) ...
+# Apenas certifique-se que o histórico usa 'data_movimentacao' se tiver alterado no modelo
 @bp_estoque.route('/movimentar/<int:id>', methods=['POST'])
 @login_required
 @cargo_exigido('estoque_gerir')
@@ -107,6 +102,8 @@ def movimentar_manual(id):
 @login_required
 @cargo_exigido('estoque_gerir')
 def api_historico_produto(id):
+    # ATENÇÃO: Verifique se o campo no banco é 'data' ou 'data_movimentacao'
+    # No modelo novo acima, usei 'data_movimentacao'
     movimentacoes = MovimentacaoEstoque.query.filter_by(produto_id=id).order_by(MovimentacaoEstoque.data_movimentacao.desc()).all()
     dados = []
     for mov in movimentacoes:

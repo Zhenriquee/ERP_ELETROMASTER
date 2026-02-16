@@ -142,24 +142,19 @@
                         <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
                     </a>
                 {% elif t.status == 'producao' %}
+                    
                     {% if t.tipo == 'item' %}
                         <button onclick="abrirModalBaixa('{{ t.id }}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl flex items-center justify-center transition-all transform hover:-translate-y-1 group">
-                            <span class="mr-2">FINALIZAR</span>
-                            <i data-lucide="check-circle" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                            <span class="mr-2">FINALIZAR & BAIXAR</span>
+                            <i data-lucide="edit-3" class="w-5 h-5"></i>
                         </button>
                     {% else %}
-                        {% if t.item_unico_id %}
-                            <button onclick="abrirModalBaixa('{{ t.item_unico_id }}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl flex items-center justify-center transition-all transform hover:-translate-y-1 group">
-                                <span class="mr-2">FINALIZAR</span>
-                                <i data-lucide="check-circle" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
-                            </button>
-                        {% else %}
-                            <a href="{{ rota_avancar }}" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl flex items-center justify-center transition-all transform hover:-translate-y-1 group">
-                                <span class="mr-2">FINALIZAR (Sem Baixa)</span>
-                                <i data-lucide="check-circle" class="w-5 h-5"></i>
-                            </a>
-                        {% endif %}
+                        <a href="{{ rota_avancar }}" onclick="return confirm('Confirmar finalização? O estoque será baixado automaticamente conforme a ficha técnica.')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl flex items-center justify-center transition-all transform hover:-translate-y-1 group">
+                            <span class="mr-2">FINALIZAR (Automático)</span>
+                            <i data-lucide="check-circle" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                        </a>
                     {% endif %}
+
                 {% elif t.status == 'pronto' %}
                     <div class="flex items-center justify-between bg-yellow-100 text-yellow-800 px-4 py-3 rounded-xl border border-yellow-200">
                         <span class="font-bold flex items-center text-sm">

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, request
+from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 from src.extensoes import banco_de_dados as db
 from src.modulos.vendas.modelos import ItemVenda, Venda, ItemVendaHistorico, hora_brasilia
@@ -223,7 +223,6 @@ def voltar_item(id):
     return redirect(url_for('operacional.painel'))
 
 
-# --- ROTAS PARA VENDA SIMPLES (AVANÇAR/VOLTAR O CARD INTEIRO) ---
 @bp_operacional.route('/venda/<int:id>/avancar')
 @login_required
 @cargo_exigido('producao_operar')
@@ -231,6 +230,7 @@ def avancar_venda(id):
     venda = Venda.query.get_or_404(id)
     agora = hora_brasilia()
     
+    # 1. PENDENTE -> PRODUÇÃO
     if venda.status == 'pendente':
         venda.status = 'producao'
         venda.data_inicio_producao = agora
@@ -242,7 +242,46 @@ def avancar_venda(id):
                 item.data_inicio_producao = agora
                 item.usuario_producao_id = current_user.id
 
+    # 2. PRODUÇÃO -> PRONTO (AQUI ACONTECE A MÁGICA DA BAIXA AUTOMÁTICA)
     elif venda.status == 'producao':
+        
+        # --- LÓGICA DE BAIXA AUTOMÁTICA PARA VENDA SIMPLES ---
+        if venda.modo == 'simples' and venda.produto_id:
+            produto = ProdutoEstoque.query.get(venda.produto_id)
+            if produto:
+                # 1. Descobre qual fator de consumo usar (m2 ou m3)
+                fator_consumo = Decimal(0)
+                if venda.tipo_medida == 'm3':
+                    fator_consumo = produto.consumo_por_m3 or Decimal(0)
+                else:
+                    fator_consumo = produto.consumo_por_m2 or Decimal(0)
+                
+                # 2. Calcula quanto deve gastar
+                # Fórmula: Metragem Total do Serviço * Consumo do Produto
+                metragem = venda.metragem_total or Decimal(0)
+                qtd_baixa = metragem * fator_consumo
+                
+                # 3. Se tiver consumo configurado, baixa do estoque
+                if qtd_baixa > 0:
+                    mov = MovimentacaoEstoque(
+                        produto_id=produto.id,
+                        tipo='saida',
+                        quantidade=qtd_baixa,
+                        saldo_anterior=produto.quantidade_atual,
+                        saldo_novo=produto.quantidade_atual - qtd_baixa,
+                        origem='producao',
+                        # Vincula ao primeiro item da venda para rastreio
+                        referencia_id=venda.itens[0].id if venda.itens else None, 
+                        usuario_id=current_user.id,
+                        observacao=f"Baixa Automática - Venda #{venda.id} ({metragem} {venda.tipo_medida})"
+                    )
+                    produto.quantidade_atual -= qtd_baixa
+                    db.session.add(mov)
+                    flash(f'Serviço finalizado! Baixa automática de {qtd_baixa:.3f} {produto.unidade} registrada.', 'success')
+                else:
+                    flash('Serviço finalizado. Nenhuma baixa de estoque necessária (Consumo não configurado).', 'info')
+
+        # Atualiza Status para Pronto
         venda.status = 'pronto'
         venda.data_pronto = agora
         venda.usuario_pronto_id = current_user.id
