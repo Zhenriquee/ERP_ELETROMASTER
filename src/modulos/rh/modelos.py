@@ -22,15 +22,27 @@ class Colaborador(db.Model):
     cargo_id = db.Column(db.Integer, db.ForeignKey('cargos.id'), nullable=False)
     data_admissao = db.Column(db.Date, nullable=False)
     tipo_contrato = db.Column(db.String(20))
+    
+    # --- DADOS FINANCEIROS ---
     salario_base = db.Column(db.Numeric(10, 2))
+    
+    # Estes campos estavam faltando:
+    chave_pix = db.Column(db.String(100))
+    banco = db.Column(db.String(50))
+    agencia = db.Column(db.String(20))
+    conta = db.Column(db.String(20))
+    
+    frequencia_pagamento = db.Column(db.String(20), default='mensal')
+    dia_pagamento = db.Column(db.String(20)) # Ex: "5" ou "15,30" ou "4" (Sexta)
+    
     percentual_adiantamento = db.Column(db.Integer, default=40)
+    # -------------------------
     
     ativo = db.Column(db.Boolean, default=True)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
 
     usuario_acesso = db.relationship('Usuario', backref='colaborador', uselist=False)
     
-    # Novo relacionamento com documentos
     documentos = db.relationship('DocumentoColaborador', backref='colaborador', lazy=True, cascade="all, delete-orphan")
 
     def __repr__(self):
@@ -47,7 +59,7 @@ class DocumentoColaborador(db.Model):
     tamanho_kb = db.Column(db.Float, nullable=False)
     nome_arquivo = db.Column(db.String(255))
     dados_binarios = db.Column(db.LargeBinary)
-    descricao = db.Column(db.String(100)) # Ex: "Contrato", "CNH"
+    descricao = db.Column(db.String(100))
 
     criado_em = db.Column(db.DateTime, default=hora_brasilia)
     enviado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))

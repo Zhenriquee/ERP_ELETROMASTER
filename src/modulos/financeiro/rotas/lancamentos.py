@@ -143,8 +143,9 @@ def nova_despesa():
     return render_template('financeiro/nova_despesa.html', form=form, titulo="Nova Despesa")
 
 
-@bp_financeiro.route('/editar/<int:id>', methods=['GET', 'POST'])
+@bp_financeiro.route('/editar/<int:id>', methods=['GET', 'POST'], endpoint='editar_despesa')
 @login_required
+@cargo_exigido('financeiro_acesso')
 def editar_despesa(id):
     despesa = Despesa.query.get_or_404(id)
     form = FormularioDespesa(obj=despesa)
@@ -153,12 +154,11 @@ def editar_despesa(id):
     movimentacao = MovimentacaoEstoque.query.filter_by(referencia_id=despesa.id, origem='compra').first()
     eh_compra_estoque = (movimentacao is not None)
 
-    # Verifica vínculo com Colaborador (Para o POPUP DE PIX)
+    # Verifica vínculo com Colaborador (Para o template)
     colaborador_dados = None
     if despesa.colaborador_id:
         colaborador_dados = despesa.colaborador
     elif despesa.usuario_id:
-        # Tenta pegar via usuário se não tiver id direto
         user = Usuario.query.get(despesa.usuario_id)
         if user and user.colaborador:
             colaborador_dados = user.colaborador
@@ -213,7 +213,7 @@ def editar_despesa(id):
         flash('Despesa atualizada com sucesso!', 'success')
         return redirect(url_for('financeiro.painel'))
 
-    # Passamos 'colaborador' para o template para exibir o card de detalhes
+    # Importante: Passar 'colaborador' (português) para o template
     return render_template('financeiro/nova_despesa.html', 
                            form=form, 
                            titulo="Editar Lançamento", 
