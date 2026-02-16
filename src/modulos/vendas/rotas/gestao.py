@@ -7,15 +7,16 @@ from src.extensoes import banco_de_dados as db
 from src.modulos.vendas.modelos import Venda, ItemVenda, Pagamento, hora_brasilia
 from src.modulos.vendas.formularios import FormularioPagamento
 from src.modulos.autenticacao.modelos import Usuario
+from src.modulos.rh.modelos import Colaborador  # <--- IMPORTANTE: Adicionado para corrigir o erro
 
-from src.modulos.autenticacao.permissoes import cargo_exigido  # <--- IMPORTAR
+from src.modulos.autenticacao.permissoes import cargo_exigido
 
 from . import bp_vendas
 
 # NOME PADRONIZADO: listar_vendas
 @bp_vendas.route('/lista', methods=['GET'])
 @login_required
-@cargo_exigido('vendas_ver_lista')  # <--- PROTEÇÃO APLICADA
+@cargo_exigido('vendas_ver_lista')
 def listar_vendas():
     # 1. Filtros
     page = request.args.get('page', 1, type=int)
@@ -45,7 +46,10 @@ def listar_vendas():
         query = query.filter(Venda.status == filtro_status)
 
     if filtro_vendedor:
-        query = query.join(Usuario, Venda.vendedor_id == Usuario.id).filter(Usuario.nome == filtro_vendedor)
+        # CORREÇÃO: Join com Colaborador para filtrar pelo nome real
+        query = query.join(Usuario, Venda.vendedor_id == Usuario.id)\
+                     .join(Colaborador, Usuario.colaborador_id == Colaborador.id)\
+                     .filter(Colaborador.nome_completo == filtro_vendedor)
 
     if filtro_data:
         query = query.filter(func.date(Venda.criado_em) == filtro_data)
@@ -55,7 +59,7 @@ def listar_vendas():
     servicos = paginacao.items 
     
     # ==========================================
-    # 3. KPIS (CORRIGIDO)
+    # 3. KPIS
     # ==========================================
     hoje = hora_brasilia().date()
     inicio_mes = hoje.replace(day=1)
@@ -69,19 +73,15 @@ def listar_vendas():
     
     recebido_mes = db.session.query(func.sum(Pagamento.valor)).filter(Pagamento.data_pagamento >= inicio_mes).scalar() or 0
     
-    # --- LÓGICA CORRIGIDA: Separação estrita entre Multipla (Itens) e Simples (Venda) ---
-    
-    # 1. Contagem de Itens (Apenas de Vendas Múltiplas)
+    # Contagens
     itens_pendente = ItemVenda.query.join(Venda).filter(ItemVenda.status=='pendente', Venda.status!='cancelado', Venda.modo=='multipla').count()
     itens_producao = ItemVenda.query.join(Venda).filter(ItemVenda.status=='producao', Venda.status!='cancelado', Venda.modo=='multipla').count()
     itens_pronto = ItemVenda.query.join(Venda).filter(ItemVenda.status=='pronto', Venda.status!='cancelado', Venda.modo=='multipla').count()
     
-    # 2. Contagem de Vendas Simples (Pelo status da Venda Pai)
     vendas_simples_pendente = Venda.query.filter(Venda.modo == 'simples', Venda.status == 'pendente').count()
     vendas_simples_producao = Venda.query.filter(Venda.modo == 'simples', Venda.status == 'producao').count()
     vendas_simples_pronto = Venda.query.filter(Venda.modo == 'simples', Venda.status == 'pronto').count()
     
-    # 3. Soma
     qtd_pendente = itens_pendente + vendas_simples_pendente
     qtd_producao = itens_producao + vendas_simples_producao
     qtd_pronto = itens_pronto + vendas_simples_pronto
@@ -90,7 +90,12 @@ def listar_vendas():
 
     form_pgto = FormularioPagamento()
     
-    vendedores_query = db.session.query(Usuario.nome).join(Venda, Venda.vendedor_id == Usuario.id).distinct().all()
+    # CORREÇÃO: Query para popular o Select de Vendedores (usando Colaborador)
+    vendedores_query = db.session.query(Colaborador.nome_completo)\
+        .join(Usuario, Usuario.colaborador_id == Colaborador.id)\
+        .join(Venda, Venda.vendedor_id == Usuario.id)\
+        .distinct().all()
+        
     vendedores = [v[0] for v in vendedores_query]
 
     return render_template('vendas/gestao_servicos.html', 

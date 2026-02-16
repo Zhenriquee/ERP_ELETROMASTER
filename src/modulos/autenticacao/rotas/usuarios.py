@@ -22,10 +22,14 @@ def novo_usuario():
     form = FormularioCriarAcesso()
     
     # Busca colaboradores que AINDA NÃO têm usuário
+    # Left Outer Join onde Usuario.id é Nulo
     colabs_sem_user = Colaborador.query.outerjoin(Usuario).filter(Usuario.id == None, Colaborador.ativo == True).all()
+    
+    # Preenche o Select
     form.colaborador_id.choices = [(c.id, f"{c.nome_completo} ({c.cargo_ref.nome})") for c in colabs_sem_user]
     
-    if not colabs_sem_user:
+    # Se a lista estiver vazia e não for um POST (tentativa de salvar), avisa e volta
+    if not colabs_sem_user and request.method == 'GET':
         flash('Todos os colaboradores ativos já possuem acesso.', 'info')
         return redirect(url_for('autenticacao.listar_usuarios'))
 
@@ -66,7 +70,7 @@ def editar_usuario(id):
         if form.senha.data:
             usuario.definir_senha(form.senha.data)
             
-        # Apenas admin/RH pode inativar
+        # Apenas admin/RH pode inativar (campo ativo)
         if current_user.tem_permissao('rh_equipe'):
             usuario.ativo = form.ativo.data
             
@@ -75,3 +79,24 @@ def editar_usuario(id):
         return redirect(url_for('autenticacao.listar_usuarios'))
 
     return render_template('autenticacao/cadastro_usuario.html', form=form, titulo="Editar Acesso", usuario_alvo=usuario)
+
+# --- ROTA QUE FALTAVA ---
+@bp_autenticacao.route('/usuarios/status/<int:id>')
+@login_required
+@cargo_exigido('rh_equipe')
+def alternar_status_usuario(id):
+    usuario = Usuario.query.get_or_404(id)
+    
+    # Proteção: Não deixar inativar a si mesmo
+    if usuario.id == current_user.id:
+        flash('Você não pode inativar seu próprio usuário.', 'error')
+        return redirect(url_for('autenticacao.listar_usuarios'))
+    
+    usuario.ativo = not usuario.ativo
+    db.session.commit()
+    
+    status = "ativado" if usuario.ativo else "bloqueado"
+    tipo = "success" if usuario.ativo else "warning"
+    
+    flash(f'O acesso de {usuario.nome} foi {status}.', tipo)
+    return redirect(url_for('autenticacao.listar_usuarios'))

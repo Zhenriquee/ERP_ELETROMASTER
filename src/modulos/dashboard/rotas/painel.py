@@ -23,14 +23,15 @@ def painel():
     ano_atual = hoje.year
 
     # --- VERIFICAÇÃO DE PERMISSÃO ---
-    # DICA: Adicione .lower() para evitar erros de maiúscula/minúscula
     cargo_atual = current_user.cargo.lower() if current_user.cargo else ''
     exibir_financeiro = cargo_atual == 'dono' or current_user.tem_permissao('financeiro_acesso')
 
-    # Inicializa variáveis
+    # Inicializa variáveis com 0 para evitar erros se o bloco financeiro não rodar
     recebido_mes = 0
     a_receber = 0
     vendas_hoje = 0
+    recebido_hoje = 0  # <--- INICIALIZAÇÃO IMPORTANTE
+    vendido_hoje = 0   # <--- INICIALIZAÇÃO IMPORTANTE
     meta_diaria_alvo = 0
     atingimento_dia_perc = 0
     a_pagar_mes = 0
@@ -75,7 +76,7 @@ def painel():
                     Venda.status != 'cancelado', 
                     Venda.status != 'orcamento').scalar() or 0
 
-        # O atingimento da meta continua sendo baseado no Recebido, conforme sua regra anterior
+        # O atingimento da meta continua sendo baseado no Recebido
         atingimento_dia_perc = (float(recebido_hoje) / meta_diaria_alvo) * 100 if meta_diaria_alvo > 0 else 0
 
         # 3. A PAGAR
@@ -137,7 +138,6 @@ def painel():
     # =================================================================
     
     def formatar_tarefa(obj, tipo):
-        # ATUALIZADO: Inclui data_criacao para cálculo de atraso
         if tipo == 'item': 
             return {
                 'id': obj.id,
@@ -194,10 +194,8 @@ def painel():
 
     # --- NOVO KPI: ATRASADOS (5 dias ou mais) ---
     op_atrasados = []
-    # Data limite: Agora - 5 dias
     limite_atraso = datetime.utcnow() - timedelta(days=5)
     
-    # Verifica apenas Fila e Execução
     for tarefa in op_fila + op_execucao:
         if tarefa['data_criacao'] and tarefa['data_criacao'] <= limite_atraso:
             op_atrasados.append(tarefa)
@@ -223,8 +221,8 @@ def painel():
                            
                            kpi_recebido=fmt_moeda(recebido_mes),
                            kpi_receber=fmt_moeda(a_receber),
-                           vendas_hoje=fmt_moeda(recebido_hoje), # Mudamos o nome para refletir o Recebido
-                           valor_vendido_hoje=fmt_moeda(vendido_hoje), # Nova variável
+                           vendas_hoje=fmt_moeda(recebido_hoje), # Corrigido: Agora existe mesmo se IF for falso
+                           valor_vendido_hoje=fmt_moeda(vendido_hoje), # Corrigido
                            meta_diaria_alvo=fmt_moeda(meta_diaria_alvo),
                            atingimento_dia_perc=round(atingimento_dia_perc, 2),
                            kpi_pagar=fmt_moeda(a_pagar_mes),
@@ -237,7 +235,6 @@ def painel():
                            op_execucao=op_execucao,
                            op_prontos=op_prontos,
                            op_finalizados=op_finalizados,
-                           # Passa dados do novo KPI
                            op_atrasados=op_atrasados, 
                            qtd_atrasados=qtd_atrasados,
                            
