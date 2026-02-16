@@ -172,3 +172,23 @@ def deletar_documento_rh(doc_id):
         flash('Erro ao remover documento.', 'error')
         
     return redirect(url_for('rh.documentos_colaborador', colaborador_id=colab_id))
+
+@bp_rh.route('/documentos/visualizar/<int:doc_id>')
+@login_required
+def visualizar_documento_rh(doc_id):
+    doc = DocumentoColaborador.query.get_or_404(doc_id)
+    
+    # Segurança
+    if not current_user.tem_permissao('rh_equipe'):
+        return "Acesso Negado", 403
+    
+    # Define o mimetype correto para o navegador abrir
+    tipo_mime = 'application/pdf' if doc.tipo_arquivo == 'pdf' else f'image/{doc.tipo_arquivo}'
+    if doc.tipo_arquivo == 'jpg': tipo_mime = 'image/jpeg'
+
+    return send_file(
+        BytesIO(doc.dados_binarios),
+        mimetype=tipo_mime,
+        as_attachment=False, # Importante: False para abrir no navegador/modal
+        download_name=doc.nome_original
+    )

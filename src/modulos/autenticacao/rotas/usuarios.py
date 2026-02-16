@@ -4,8 +4,10 @@ from src.extensoes import banco_de_dados as db
 from src.modulos.autenticacao import bp_autenticacao
 from src.modulos.autenticacao.modelos import Usuario
 from src.modulos.rh.modelos import Colaborador
-from src.modulos.autenticacao.formularios import FormularioUsuario, FormularioCriarAcesso
+from src.modulos.autenticacao.formularios import FormularioUsuario, FormularioCriarAcesso, FormularioDocumento
 from src.modulos.autenticacao.permissoes import cargo_exigido
+from werkzeug.utils import secure_filename
+from io import BytesIO
 
 @bp_autenticacao.route('/usuarios', methods=['GET'])
 @login_required
@@ -21,14 +23,10 @@ def listar_usuarios():
 def novo_usuario():
     form = FormularioCriarAcesso()
     
-    # Busca colaboradores que AINDA NÃO têm usuário
-    # Left Outer Join onde Usuario.id é Nulo
+    # Busca colaboradores ativos que ainda NÃO têm usuário
     colabs_sem_user = Colaborador.query.outerjoin(Usuario).filter(Usuario.id == None, Colaborador.ativo == True).all()
-    
-    # Preenche o Select
     form.colaborador_id.choices = [(c.id, f"{c.nome_completo} ({c.cargo_ref.nome})") for c in colabs_sem_user]
     
-    # Se a lista estiver vazia e não for um POST (tentativa de salvar), avisa e volta
     if not colabs_sem_user and request.method == 'GET':
         flash('Todos os colaboradores ativos já possuem acesso.', 'info')
         return redirect(url_for('autenticacao.listar_usuarios'))
@@ -55,48 +53,56 @@ def novo_usuario():
 def editar_usuario(id):
     usuario = Usuario.query.get_or_404(id)
     
-    # Regra: Admin edita todos. Usuário edita a si mesmo.
+    # Permite edição se for Dono OU se for o próprio usuário
     if current_user.cargo.lower() != 'dono' and current_user.id != usuario.id:
         flash('Acesso negado.', 'error')
         return redirect(url_for('dashboard.painel'))
 
+    # Usa o formulário simplificado (sem cargo/equipe)
     form = FormularioUsuario(obj=usuario)
     
     if form.validate_on_submit():
+        # Verifica se trocou login para um já existente
+        check_user = Usuario.query.filter(Usuario.usuario == form.usuario.data, Usuario.id != id).first()
+        if check_user:
+            flash(f'O login "{form.usuario.data}" já está em uso.', 'error')
+            return render_template('autenticacao/cadastro_usuario.html', form=form, titulo="Editar Acesso", usuario_alvo=usuario, editando=True)
+
         usuario.usuario = form.usuario.data
         usuario.email = form.email.data
         
         # Só altera senha se preenchida
         if form.senha.data:
             usuario.definir_senha(form.senha.data)
+            flash('Senha alterada com sucesso!', 'success')
             
-        # Apenas admin/RH pode inativar (campo ativo)
+        # Apenas admin/RH pode inativar
         if current_user.tem_permissao('rh_equipe'):
             usuario.ativo = form.ativo.data
             
         db.session.commit()
-        flash('Dados de acesso atualizados.', 'success')
-        return redirect(url_for('autenticacao.listar_usuarios'))
+        
+        # Redirecionamento inteligente
+        if current_user.id == usuario.id:
+            flash('Seus dados foram atualizados.', 'success')
+            return redirect(url_for('dashboard.painel')) # Volta pro painel se for o próprio usuário
+        else:
+            flash('Dados de acesso atualizados.', 'success')
+            return redirect(url_for('autenticacao.listar_usuarios'))
 
-    return render_template('autenticacao/cadastro_usuario.html', form=form, titulo="Editar Acesso", usuario_alvo=usuario)
+    return render_template('autenticacao/cadastro_usuario.html', form=form, titulo="Editar Acesso", usuario_alvo=usuario, editando=True)
 
-# --- ROTA QUE FALTAVA ---
 @bp_autenticacao.route('/usuarios/status/<int:id>')
 @login_required
 @cargo_exigido('rh_equipe')
 def alternar_status_usuario(id):
     usuario = Usuario.query.get_or_404(id)
-    
-    # Proteção: Não deixar inativar a si mesmo
     if usuario.id == current_user.id:
         flash('Você não pode inativar seu próprio usuário.', 'error')
         return redirect(url_for('autenticacao.listar_usuarios'))
     
     usuario.ativo = not usuario.ativo
     db.session.commit()
-    
     status = "ativado" if usuario.ativo else "bloqueado"
-    tipo = "success" if usuario.ativo else "warning"
-    
-    flash(f'O acesso de {usuario.nome} foi {status}.', tipo)
+    flash(f'O acesso de {usuario.nome} foi {status}.', 'success' if usuario.ativo else 'warning')
     return redirect(url_for('autenticacao.listar_usuarios'))

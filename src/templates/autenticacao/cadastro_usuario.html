@@ -1,16 +1,31 @@
 {% extends "base.html" %}
 
 {% block conteudo %}
-<div class="container mx-auto max-w-2xl">
-    
-    <div class="mb-6 flex items-center justify-between">
+<div class="container mx-auto max-w-4xl">
+
+    <div class="container mx-auto max-w-4xl px-0 sm:px-2 flex items-center gap-2 mb-6">
+        {% if current_user.tem_permissao('rh_equipe') %}
+            <a href="{{ url_for('autenticacao.listar_usuarios') }}" class="p-2 rounded-lg text-gray-400 hover:text-navy-900 hover:bg-white transition-colors" title="Voltar para Lista">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            </a>
+        {% else %}
+            <a href="{{ url_for('dashboard.painel') }}" class="p-2 rounded-lg text-gray-400 hover:text-navy-900 hover:bg-white transition-colors" title="Voltar ao Painel">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            </a>
+        {% endif %}
+        
         <div>
-            <h2 class="text-2xl font-bold text-navy-900">{{ titulo }}</h2>
-            <p class="text-sm text-gray-500">Gestão de credenciais de acesso.</p>
+            <h2 class="text-2xl font-bold text-navy-900">
+                {{ 'Editar Colaborador' if editando else 'Novo Colaborador' }}
+            </h2>
+            <p class="text-sm text-gray-500">
+                {% if current_user.cargo != 'dono' and editando %}
+                    Edição restrita do seu perfil. Para alterar Nome, Cargo ou Permissões, contate o administrador.
+                {% else %}
+                    Gestão de acesso e permissões.
+                {% endif %}
+            </p>
         </div>
-        <a href="{{ url_for('autenticacao.listar_usuarios') }}" class="text-gray-500 hover:text-navy-900 flex items-center text-sm font-medium transition-colors">
-            <i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> Voltar
-        </a>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

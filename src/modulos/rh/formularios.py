@@ -1,7 +1,8 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, DecimalField, DateField, SelectField, SubmitField, BooleanField
+from wtforms import StringField, DecimalField, DateField, SelectField, SubmitField, BooleanField, IntegerField
 from wtforms.validators import DataRequired, Optional, Length, Email
 from flask_wtf.file import FileField, FileAllowed, FileRequired
+from wtforms.validators import NumberRange # Importe NumberRange
 
 class FormularioColaborador(FlaskForm):
     # --- DADOS PESSOAIS ---
@@ -31,6 +32,30 @@ class FormularioColaborador(FlaskForm):
     
     salario_base = DecimalField('Salário Base (R$)', places=2, validators=[Optional()])
     
+    # --- DADOS BANCÁRIOS & PAGAMENTO (FALTAVA ISSO) ---
+    chave_pix = StringField('Chave Pix', validators=[Optional()])
+    banco = StringField('Banco', validators=[Optional()])
+    agencia = StringField('Agência', validators=[Optional()])
+    conta = StringField('Conta', validators=[Optional()])
+    
+    frequencia_pagamento = SelectField('Frequência de Pagamento', choices=[
+        ('mensal', 'Mensal (1x por mês)'),
+        ('quinzenal', 'Quinzenal (2x por mês)'),
+        ('semanal', 'Semanal (Toda semana)')
+    ], default='mensal')
+    
+    # Campo que armazena os dias (ex: "5" ou "5,20")
+    dia_pagamento = StringField('Dia(s) do Pagamento', validators=[Optional()])
+    # NOVO CAMPO: Porcentagem do Vale/Adiantamento
+    percentual_adiantamento = IntegerField(
+        '% do Adiantamento (1ª Parcela)', 
+        default=40,
+        validators=[Optional(), NumberRange(min=1, max=99)]
+    )
+    
+    # Checkbox de automação
+    gerar_financeiro = BooleanField('Gerar contas a pagar automaticamente', default=True)
+    
     ativo = BooleanField('Colaborador Ativo na Empresa', default=True)
     
     submit = SubmitField('Salvar Colaborador')
@@ -41,4 +66,4 @@ class FormularioDocumentoRH(FlaskForm):
         FileAllowed(['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx'], 'Apenas PDF, Imagens ou Word.')
     ])
     descricao = StringField('Tipo do Documento', validators=[DataRequired()], render_kw={"placeholder": "Ex: RG, CNH, Contrato..."})
-    submit = SubmitField('Anexar Documento')    
+    submit = SubmitField('Anexar Documento')

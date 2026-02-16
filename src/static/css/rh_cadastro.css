@@ -1,0 +1,15 @@
+/* src/static/css/rh_cadastro.css */
+
+.input-navy {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db; /* gray-300 */
+    border-radius: 0.5rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-navy:focus {
+    border-color: #0f172a; /* navy-900 */
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1);
+}

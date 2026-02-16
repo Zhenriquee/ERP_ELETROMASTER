@@ -23,6 +23,7 @@ class Colaborador(db.Model):
     data_admissao = db.Column(db.Date, nullable=False)
     tipo_contrato = db.Column(db.String(20))
     salario_base = db.Column(db.Numeric(10, 2))
+    percentual_adiantamento = db.Column(db.Integer, default=40)
     
     ativo = db.Column(db.Boolean, default=True)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
