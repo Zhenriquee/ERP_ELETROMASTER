@@ -7,6 +7,7 @@ from src.extensoes import banco_de_dados as db
 from src.modulos.financeiro.modelos import Despesa, Fornecedor
 from src.modulos.financeiro.formularios import FormularioDespesa
 from src.modulos.autenticacao.modelos import Usuario
+from src.modulos.rh.modelos import Colaborador # Import necessário para o Join
 from . import bp_financeiro
 from src.modulos.estoque.modelos import ProdutoEstoque, MovimentacaoEstoque
 
@@ -22,8 +23,9 @@ def nova_despesa():
     # 1. POPULA SELECTS (Mantido)
     form.fornecedor_id.choices = [(0, '--- Selecione (Opcional) ---')] + \
         [(f.id, f.nome_fantasia) for f in Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome_fantasia).all()]
-    form.usuario_id.choices = [(0, '--- Selecione (Opcional) ---')] + \
-        [(u.id, u.nome) for u in Usuario.query.order_by(Usuario.nome).all()]
+    # CORREÇÃO DA QUERY DE USUÁRIOS (Evita o erro de Property)
+    usuarios_db = Usuario.query.join(Colaborador).order_by(Colaborador.nome_completo).all()
+    form.usuario_id.choices = [(0, '--- Selecione (Opcional) ---')] + [(u.id, u.nome) for u in usuarios_db]
 
     try:
         produtos = ProdutoEstoque.query.filter_by(ativo=True).order_by(ProdutoEstoque.nome).all()
@@ -147,45 +149,46 @@ def editar_despesa(id):
     despesa = Despesa.query.get_or_404(id)
     form = FormularioDespesa(obj=despesa)
     
-    # Verifica se existe movimentação de estoque vinculada a esta despesa
+    # Verifica vínculo com estoque
     movimentacao = MovimentacaoEstoque.query.filter_by(referencia_id=despesa.id, origem='compra').first()
     eh_compra_estoque = (movimentacao is not None)
 
-    # POPULA SELECTS (Igual ao cadastro)
+    # Verifica vínculo com Colaborador (Para o POPUP DE PIX)
+    colaborador_dados = None
+    if despesa.colaborador_id:
+        colaborador_dados = despesa.colaborador
+    elif despesa.usuario_id:
+        # Tenta pegar via usuário se não tiver id direto
+        user = Usuario.query.get(despesa.usuario_id)
+        if user and user.colaborador:
+            colaborador_dados = user.colaborador
+
+    # POPULA SELECTS (CORRIGIDO AQUI TAMBÉM)
     form.fornecedor_id.choices = [(0, '--- Selecione (Opcional) ---')] + \
         [(f.id, f.nome_fantasia) for f in Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome_fantasia).all()]
-    form.usuario_id.choices = [(0, '--- Selecione (Opcional) ---')] + \
-        [(u.id, u.nome) for u in Usuario.query.order_by(Usuario.nome).all()]
     
-    # Popula produtos
+    # CORREÇÃO DO ERRO DE ORDENAÇÃO
+    usuarios_db = Usuario.query.join(Colaborador).order_by(Colaborador.nome_completo).all()
+    form.usuario_id.choices = [(0, '--- Selecione (Opcional) ---')] + [(u.id, u.nome) for u in usuarios_db]
+    
+    # Produtos
     try:
         produtos = ProdutoEstoque.query.filter_by(ativo=True).order_by(ProdutoEstoque.nome).all()
-        form.produto_estoque_id.choices = [(0, '--- Selecione o Produto ---')] + [(p.id, f"{p.nome} ({p.unidade})") for p in produtos]
-    except:
-        form.produto_estoque_id.choices = [(0, 'Erro')]
+        form.produto_estoque_id.choices = [(0, '--- Selecione ---')] + [(p.id, f"{p.nome}") for p in produtos]
+    except: form.produto_estoque_id.choices = [(0, 'Erro')]
 
     if request.method == 'GET':
-        # Se for compra de estoque, preenche o formulário e marca a flag
         if eh_compra_estoque:
             form.eh_compra_produto.data = True
             form.produto_estoque_id.data = movimentacao.produto_id
             form.qtd_estoque.data = movimentacao.quantidade
-            
-            # Ajuste visual: Se for produto, a descrição muitas vezes é automática, 
-            # mas mantemos o que está no banco.
 
     if form.validate_on_submit():
-        # Proteção: Se era compra de estoque, continua sendo.
-        # Ignoramos o que vier do checkbox 'eh_compra_produto' se ele estiver desabilitado no HTML,
-        # mas garantimos a lógica aqui.
-        
         despesa.descricao = form.descricao.data
         despesa.valor = form.valor.data
         despesa.data_vencimento = form.data_vencimento.data
         despesa.data_competencia = despesa.data_vencimento.replace(day=1)
         
-        # Se NÃO for compra de estoque, permite editar categoria/tipo.
-        # Se FOR, mantemos fixo para evitar inconsistência.
         if not eh_compra_estoque:
             despesa.categoria = form.categoria.data
             despesa.tipo_custo = form.tipo_custo.data
@@ -195,7 +198,6 @@ def editar_despesa(id):
         despesa.codigo_barras = form.codigo_barras.data
         despesa.observacao = form.observacao.data
         
-        # Lógica de pagamento (mantida)
         if form.status.data == 'pago':
             if form.data_pagamento.data:
                 despesa.data_pagamento = form.data_pagamento.data
@@ -207,15 +209,14 @@ def editar_despesa(id):
         despesa.fornecedor_id = form.fornecedor_id.data if form.fornecedor_id.data > 0 else None
         despesa.usuario_id = form.usuario_id.data if form.usuario_id.data > 0 else None
 
-        # NOTA: Não editamos a quantidade do estoque aqui para não gerar complexidade de recálculo de saldo.
-        # Se o usuário errou a quantidade, o ideal é excluir a despesa e lançar de novo, ou ajustar no estoque manual.
-
         db.session.commit()
         flash('Despesa atualizada com sucesso!', 'success')
         return redirect(url_for('financeiro.painel'))
 
+    # Passamos 'colaborador' para o template para exibir o card de detalhes
     return render_template('financeiro/nova_despesa.html', 
                            form=form, 
-                           titulo="Editar Despesa", 
+                           titulo="Editar Lançamento", 
                            editando=True, 
-                           eh_compra_estoque=eh_compra_estoque) # Passamos a flag para o template
+                           eh_compra_estoque=eh_compra_estoque,
+                           colaborador=colaborador_dados)

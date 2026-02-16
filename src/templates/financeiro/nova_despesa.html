@@ -13,6 +13,37 @@
         </a>
     </div>
 
+    {% if collaborator %}
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h3 class="text-blue-800 font-bold flex items-center">
+                <i data-lucide="user-check" class="w-5 h-5 mr-2"></i> Dados para Pagamento
+            </h3>
+            <p class="text-sm text-blue-900 font-medium mt-1">{{ colaborador.nome_completo }}</p>
+            <p class="text-xs text-blue-600">CPF: {{ colaborador.cpf }}</p>
+        </div>
+        
+        <div class="bg-white p-3 rounded-lg border border-blue-100 min-w-[250px]">
+            <p class="text-xs font-bold text-gray-400 uppercase mb-1">Chave Pix</p>
+            <div class="flex items-center gap-2">
+                <span class="font-mono text-sm text-navy-900 font-bold select-all">{{ colaborador.chave_pix or 'Não informada' }}</span>
+                {% if colaborador.chave_pix %}
+                <button onclick="copiarCodigo('{{ colaborador.chave_pix }}')" class="text-blue-500 hover:text-blue-700" title="Copiar">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                </button>
+                {% endif %}
+            </div>
+            
+            {% if colaborador.banco %}
+            <div class="mt-2 pt-2 border-t border-gray-100 grid grid-cols-2 gap-2 text-xs">
+                <div><span class="text-gray-400">Banco:</span> <span class="font-bold">{{ colaborador.banco }}</span></div>
+                <div><span class="text-gray-400">Ag/Conta:</span> <span class="font-bold">{{ colaborador.agencia }} / {{ colaborador.conta }}</span></div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <form method="POST" class="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
         {{ form.hidden_tag() }}
 

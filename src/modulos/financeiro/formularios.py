@@ -40,15 +40,17 @@ class FormularioDespesa(FlaskForm):
     # Data de Pagamento
     data_pagamento = DateField('Data do Pagamento', format='%Y-%m-%d', validators=[Optional()])
 
+    # --- ATUALIZAÇÃO DAS CATEGORIAS ---
     categoria = SelectField('Categoria', choices=[
-        ('infraestrutura', 'Infraestrutura (Aluguel, Energia, Água, Internet)'),
-        ('pessoal', 'Pessoal (Salários, Pró-labore, Vale, Benefícios)'),
-        ('material', 'Material / Insumos (Matéria-prima, Embalagens, Estoque)'),
-        ('impostos', 'Impostos / Taxas (DAS, ICMS, ISS, IPTU)'),
-        ('financeiro', 'Despesa Financeira (Tarifas Bancárias, Juros, Multas)'),
-        ('manutencao', 'Manutenção (Reparos, Limpeza, Pintura, TI)'),
-        ('marketing', 'Marketing (Anúncios, Redes Sociais, Brindes, Site)'),
-        ('outros', 'Outros (Despesas Diversas / Não Classificadas)')
+        ('salarios', 'Salários & Folha de Pagamento'), # NOVA
+        ('pessoal', 'Retiradas / Pessoal (Sócios)'),   # REBATIZADA
+        ('infraestrutura', 'Infraestrutura (Aluguel, Energia, Água)'),
+        ('material', 'Material / Insumos'),
+        ('impostos', 'Impostos / Taxas'),
+        ('financeiro', 'Despesa Financeira'),
+        ('manutencao', 'Manutenção'),
+        ('marketing', 'Marketing'),
+        ('outros', 'Outros')
     ], validators=[DataRequired()])
     
     # ALTERADO: Adicionada opção 'extra'
