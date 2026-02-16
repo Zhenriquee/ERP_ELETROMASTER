@@ -23,18 +23,45 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500 kpi-card relative overflow-hidden">
-            <div class="flex justify-between items-start z-10 relative">
-                <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Vencidas (Geral)</p>
-                    <h3 class="text-2xl font-bold text-red-600 mt-1">R$ {{ "%.2f"|format(total_vencido_geral)|replace('.', ',') }}</h3>
-                </div>
-                <div class="p-2 bg-red-50 rounded-lg text-red-600">
-                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
-                </div>
+    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500 kpi-card relative overflow-hidden">
+        <div class="flex justify-between items-start z-10 relative">
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Vencidas (Geral)</p>
+                <h3 class="text-2xl font-bold text-red-600 mt-1">R$ {{ "%.2f"|format(total_vencido_geral)|replace('.', ',') }}</h3>
+            </div>
+            <div class="p-2 bg-red-50 rounded-lg text-red-600">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
             </div>
         </div>
+        {% if total_vencido_geral > 0 %}
+            <div class="absolute bottom-0 left-0 w-full h-1 bg-red-200 animate-pulse"></div>
+        {% endif %}
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-yellow-400 kpi-card">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">A Pagar (Mês Selecionado)</p>
+                <h3 class="text-2xl font-bold text-gray-800 mt-1">R$ {{ "%.2f"|format(total_pendente)|replace('.', ',') }}</h3>
+            </div>
+            <div class="p-2 bg-yellow-50 rounded-lg text-yellow-600">
+                <i data-lucide="clock" class="w-6 h-6"></i>
+            </div>
         </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500 kpi-card">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Pago (Mês Selecionado)</p>
+                <h3 class="text-2xl font-bold text-gray-800 mt-1">R$ {{ "%.2f"|format(total_pago)|replace('.', ',') }}</h3>
+            </div>
+            <div class="p-2 bg-green-50 rounded-lg text-green-600">
+                <i data-lucide="check-circle" class="w-6 h-6"></i>
+            </div>
+        </div>
+    </div>
+</div>
 
     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
         <div class="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -131,7 +158,8 @@
                                     '{{ d.colaborador.banco or '' }}',
                                     '{{ d.colaborador.agencia or '' }}',
                                     '{{ d.colaborador.conta or '' }}',
-                                    '{{ "%.2f"|format(d.valor)|replace('.', ',') }}')" 
+                                    '{{ "%.2f"|format(d.valor)|replace('.', ',') }}'
+                                )" 
                                 class="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Ver Detalhes">
                                     <i data-lucide="user-check" class="w-4 h-4"></i>
                                 </button>
@@ -142,13 +170,21 @@
                                 </a>
                             {% endif %}
 
+                            {% if d.codigo_barras %}
+                                <button onclick="copiarCodigo('{{ d.codigo_barras }}')" 
+                                        class="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" 
+                                        title="Copiar Código / Pix">
+                                    <i data-lucide="copy" class="w-4 h-4"></i>
+                                </button>
+                            {% endif %}
+
                             {% if d.status != 'pago' %}
-                                <a href="{{ url_for('financeiro.marcar_pago', id=d.id) }}" class="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-200 font-bold text-xs" title="Pagar">
+                                <a href="{{ url_for('financeiro.marcar_pago', id=d.id) }}" class="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-200 font-bold text-xs">
                                     <i data-lucide="check" class="w-4 h-4"></i>
                                 </a>
                             {% endif %}
                             
-                            <a href="{{ url_for('financeiro.excluir_despesa', id=d.id) }}" onclick="return confirm('Tem certeza?')" class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Excluir">
+                            <a href="{{ url_for('financeiro.excluir_despesa', id=d.id) }}" onclick="return confirm('Tem certeza?')" class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </a>
                         </td>

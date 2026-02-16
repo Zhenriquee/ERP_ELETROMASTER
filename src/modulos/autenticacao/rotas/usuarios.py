@@ -69,7 +69,8 @@ def editar_usuario(id):
             return render_template('autenticacao/cadastro_usuario.html', form=form, titulo="Editar Acesso", usuario_alvo=usuario, editando=True)
 
         usuario.usuario = form.usuario.data
-        usuario.email = form.email.data
+        # Altere a linha abaixo:
+        usuario.email = form.email.data if form.email.data else None
         
         # Só altera senha se preenchida
         if form.senha.data:
