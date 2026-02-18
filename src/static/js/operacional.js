@@ -1,12 +1,11 @@
 // src/static/js/operacional.js
 
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Recupera filtro salvo ou usa 'todos' como padrão
-    // DICA: Para produção, o padrão ideal pode ser 'todos' ou 'producao'
+    // 1. Recupera filtro salvo
     const filtroSalvo = localStorage.getItem('filtroProducao') || 'todos';
     filtrarCards(filtroSalvo);
 
-    // 2. Timer de Auto-Refresh (Visual)
+    // 2. Timer de Auto-Refresh
     let segundos = 60;
     const timerDisplay = document.getElementById('timerRefresh');
     
@@ -20,24 +19,53 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
     }
     
-    // Inicializa ícones (caso use HTMX ou carregamento dinâmico no futuro)
+    // 3. Listener para Validação do Form de Baixa
+    const formBaixa = document.getElementById('formBaixa');
+    if (formBaixa) {
+        formBaixa.addEventListener('submit', function(e) {
+            let temErro = false;
+            const inputsQtd = document.querySelectorAll('.qtd-consumo');
+            const selectsProd = document.querySelectorAll('.produto-consumo');
+            
+            let algumPreenchido = false;
+
+            inputsQtd.forEach((inp, index) => {
+                const sel = selectsProd[index];
+                
+                if (sel.value) {
+                    algumPreenchido = true;
+                    const valor = parseFloat(inp.value);
+                    if (!valor || valor <= 0) {
+                        inp.classList.add('border-red-500');
+                        temErro = true;
+                    } else {
+                        inp.classList.remove('border-red-500');
+                    }
+                }
+            });
+
+            if (temErro) {
+                e.preventDefault();
+                alert('Atenção: A quantidade consumida deve ser maior que zero.');
+            }
+        });
+    }
+
     if(typeof lucide !== 'undefined') lucide.createIcons();
 });
 
+// --- FUNÇÕES DE FILTRO ---
 function filtrarCards(status) {
     const cards = document.querySelectorAll('.card-servico');
     const steps = document.querySelectorAll('.step-pipeline');
     const emptyState = document.getElementById('emptyState');
     
-    // Salva preferência
     localStorage.setItem('filtroProducao', status);
 
-    // 1. Atualiza Visual dos Botões de Topo (Steps)
     steps.forEach(step => {
         step.classList.remove('ativo', 'ring-2', 'ring-offset-2', 'ring-gray-300', 'ring-blue-500', 'ring-yellow-500');
     });
 
-    // Ativa o botão clicado
     const stepAtivo = document.getElementById(`step-${status}`);
     if(stepAtivo) {
         stepAtivo.classList.add('ativo', 'ring-2', 'ring-offset-2');
@@ -46,24 +74,18 @@ function filtrarCards(status) {
         if(status === 'pronto') stepAtivo.classList.add('ring-yellow-500');
     }
 
-    // 2. Filtra os Cards
     let visiveis = 0;
     
     cards.forEach(card => {
-        const statusCard = card.dataset.status; // Agora virá limpo do HTML (ex: 'producao')
-        
-        // Lógica de exibição:
-        // Se filtro == 'todos': mostra tudo.
-        // Se filtro == statusCard: mostra o que bate.
+        const statusCard = card.dataset.status;
         const deveMostrar = (status === 'todos') || (statusCard === status);
         
         if (deveMostrar) {
             card.style.display = 'flex';
-            card.classList.remove('hidden'); // Garante remoção da classe hidden do Tailwind
+            card.classList.remove('hidden');
             
-            // Reinicia animação para dar feedback visual
             card.classList.remove('card-animado');
-            void card.offsetWidth; // Trigger reflow (hack para reiniciar CSS animation)
+            void card.offsetWidth; 
             card.classList.add('card-animado');
             
             visiveis++;
@@ -72,13 +94,11 @@ function filtrarCards(status) {
         }
     });
 
-    // 3. Estado Vazio (Feedback para o usuário se não houver itens)
     if (emptyState) {
         if (visiveis === 0) {
             emptyState.classList.remove('hidden');
             emptyState.classList.add('flex');
             
-            // Atualiza mensagem do Empty State dinamicamente
             const tituloEmpty = emptyState.querySelector('h3');
             if(tituloEmpty) {
                 if(status === 'producao') tituloEmpty.innerText = "Nada sendo produzido agora!";
@@ -90,4 +110,99 @@ function filtrarCards(status) {
             emptyState.classList.remove('flex');
         }
     }
+}
+// --- FUNÇÕES DO MODAL DE DETALHES ---
+function verDetalhes(descricao, cliente, obs, metragem, tempoLabel, tempoVal) {
+    const modal = document.getElementById('modalDetalhesServico');
+    if(!modal) return;
+
+    document.getElementById('detDescricao').innerText = descricao || '--';
+    document.getElementById('detCliente').innerText = cliente || '--';
+    document.getElementById('detObs').innerText = obs || 'Sem observações.';
+    
+    // Proteção para valores vazios
+    document.getElementById('detMetragem').innerText = metragem || 'Não informada';
+    document.getElementById('detTempoLabel').innerText = tempoLabel || 'Tempo';
+    document.getElementById('detTempo').innerText = tempoVal || '--';
+    
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modal.querySelector('div').classList.remove('scale-95');
+    }, 10);
+    
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function fecharModalDetalhes() {
+    const modal = document.getElementById('modalDetalhesServico');
+    if(!modal) return;
+    
+    modal.classList.add('opacity-0');
+    modal.querySelector('div').classList.add('scale-95');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+}
+
+// --- FUNÇÕES DO MODAL DE BAIXA MANUAL ---
+function abrirModalBaixa(itemId) {
+    const modal = document.getElementById('modalBaixaMaterial');
+    const form = document.getElementById('formBaixa');
+    
+    if(!modal || !form) return;
+
+    form.action = `/operacional/item/${itemId}/finalizar_com_baixa`;
+    
+    // Reseta linhas
+    const container = document.getElementById('listaConsumo');
+    while (container.children.length > 1) {
+        container.removeChild(container.lastChild);
+    }
+    const firstRow = container.querySelector('.linha-consumo');
+    if(firstRow) {
+        firstRow.querySelector('select').value = "";
+        firstRow.querySelector('input').value = "";
+        firstRow.querySelector('input').classList.remove('border-red-500');
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function adicionarLinhaConsumo() {
+    const container = document.getElementById('listaConsumo');
+    const primeiraLinha = container.querySelector('.linha-consumo');
+    
+    if (primeiraLinha) {
+        const novaLinha = primeiraLinha.cloneNode(true);
+        const sel = novaLinha.querySelector('select');
+        const inp = novaLinha.querySelector('input');
+        sel.value = "";
+        inp.value = "";
+        inp.classList.remove('border-red-500');
+        container.appendChild(novaLinha);
+    }
+}
+
+function verificarDuplicidadeConsumo(selectAtual) {
+    const todosSelects = document.querySelectorAll('.produto-consumo');
+    const valorAtual = selectAtual.value;
+    
+    if (!valorAtual) return;
+
+    let contagem = 0;
+    todosSelects.forEach(sel => {
+        if (sel.value === valorAtual) contagem++;
+    });
+
+    if (contagem > 1) {
+        alert('Este produto já foi adicionado na lista de consumo.');
+        selectAtual.value = ""; 
+    }
+}
+
+function fecharModalBaixa() {
+    const modal = document.getElementById('modalBaixaMaterial');
+    if(modal) modal.classList.add('hidden');
 }
