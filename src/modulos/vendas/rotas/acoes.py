@@ -195,3 +195,37 @@ def deletar_foto(foto_id):
         return jsonify({'sucesso': True})
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
+    
+@bp_vendas.route('/itens/<int:item_id>/upload-foto', methods=['POST'])
+@login_required
+@cargo_exigido('vendas_operar')
+def upload_foto_item_especifico(item_id):
+    item = ItemVenda.query.get_or_404(item_id)
+    arquivo = request.files.get('foto')
+    
+    if not arquivo:
+        return jsonify({'erro': 'Nenhum arquivo enviado'}), 400
+        
+    try:
+        filename = secure_filename(arquivo.filename)
+        mimetype = arquivo.mimetype or 'application/octet-stream'
+        dados = arquivo.read()
+        
+        nova_foto = FotoItemVenda(
+            item_venda_id=item.id, # Vincula direto ao item correto
+            nome_arquivo=filename,
+            tipo_mime=mimetype,
+            dados_binarios=dados,
+            etapa='gestao_extra',
+            enviado_por_id=current_user.id
+        )
+        db.session.add(nova_foto)
+        db.session.commit()
+        
+        return jsonify({
+            'sucesso': True, 
+            'url': url_for('vendas.imagem_db', foto_id=nova_foto.id)
+        })
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500    

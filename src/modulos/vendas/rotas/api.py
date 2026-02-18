@@ -63,33 +63,35 @@ def buscar_produtos():
 def detalhes_servico(id):
     venda = Venda.query.get_or_404(id)
     
-    fotos = []
+    # Lista de Itens com suas respectivas fotos aninhadas
     itens_dados = []
     
     for item in venda.itens:
-        # Dados do Item
+        # 1. Processa fotos deste item específico
+        fotos_item = []
+        for foto in item.fotos:
+            fotos_item.append({
+                'id': foto.id,
+                'url': url_for('vendas.imagem_db', foto_id=foto.id),
+                'nome': foto.nome_arquivo
+            })
+
+        # 2. Monta o objeto do item
         itens_dados.append({
             'id': item.id,
             'descricao': item.descricao,
             'medidas': f"{float(venda.dimensao_1 or 0)} x {float(venda.dimensao_2 or 0)}" if venda.modo == 'simples' else "Sob Medida",
             'qtd': item.quantidade,
-            'material': item.produto.nome if item.produto else (item.cor.nome if item.cor else '-')
+            'material': item.produto.nome if item.produto else (item.cor.nome if item.cor else '-'),
+            'fotos': fotos_item # Fotos aninhadas aqui!
         })
-        
-        # Fotos do Item (Apontando para a rota de imagem do banco)
-        for foto in item.fotos:
-            fotos.append({
-                'id': foto.id,
-                'url': url_for('vendas.imagem_db', foto_id=foto.id),
-                'nome': foto.nome_arquivo
-            })
             
     return jsonify({
         'id': venda.id,
         'modo': venda.modo,
         'observacoes': venda.observacoes_internas,
         'itens': itens_dados,
-        'fotos': fotos,
+        # 'fotos': [] -> Removemos a lista global, agora está dentro de 'itens'
         'dimensao_1': float(venda.dimensao_1 or 0),
         'dimensao_2': float(venda.dimensao_2 or 0),
         'dimensao_3': float(venda.dimensao_3 or 0),

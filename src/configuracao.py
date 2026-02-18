@@ -11,7 +11,7 @@ class ConfiguracaoBase:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     basedir = os.path.abspath(os.path.dirname(__file__))
     UPLOAD_FOLDER = os.path.join(os.path.dirname(basedir), 'uploads_colaboradores')
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024 # Limite de 16MB
+    MAX_CONTENT_LENGTH = 64 * 1024 * 1024 # Limite de 16MB
 
     # --- CONFIGURAÇÃO DE TIMEOUT ---
     # Define que a sessão expira em 30 minutos

@@ -234,6 +234,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const formSubmit = document.getElementById('formMultiplo');
     if(formSubmit) {
         formSubmit.addEventListener('submit', function(e) {
+            let temErro = false;
+            
+            // 1. Validação de Tamanho de Arquivos (NOVO)
+            const inputsArquivo = document.querySelectorAll('input[type="file"]');
+            let tamanhoTotal = 0;
+            const LIMITE_MB = 64; // Deve ser igual ou menor que o do servidor
+            const LIMITE_BYTES = LIMITE_MB * 1024 * 1024;
+
+            inputsArquivo.forEach(input => {
+                if (input.files) {
+                    for (let i = 0; i < input.files.length; i++) {
+                        tamanhoTotal += input.files[i].size;
+                    }
+                }
+            });
+
+            if (tamanhoTotal > LIMITE_BYTES) {
+                e.preventDefault();
+                const tamanhoAtualMB = (tamanhoTotal / (1024 * 1024)).toFixed(2);
+                alert(`O tamanho total das imagens (${tamanhoAtualMB} MB) excede o limite permitido de ${LIMITE_MB} MB.\n\nPor favor, reduza o tamanho das fotos ou envie menos arquivos.`);
+                return;
+            }
+
+            // 2. Validação de Itens (EXISTENTE)
             const inputsUnit = document.querySelectorAll('input[name*="[unit]"]');
             
             if (inputsUnit.length === 0) {
@@ -241,6 +265,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert("Adicione pelo menos um item à venda.");
                 return;
             }
+            
+            // Recalcula final antes de enviar para garantir
             calcularTotal();
         });
     }

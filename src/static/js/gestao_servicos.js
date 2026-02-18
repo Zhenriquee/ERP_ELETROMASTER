@@ -282,104 +282,130 @@ document.addEventListener('DOMContentLoaded', function() {
 // FUNÇÕES GLOBAIS (FORA DO DOMContentLoaded PARA SEREM ACESSÍVEIS)
 // =========================================================================
 
-// Carrega os dados da Aba Técnico & Arquivos
-window.carregarDetalhesTecnicos = async function(id) {
-    const container = document.getElementById('detalhesTecnicosContainer');
-    const galeria = document.getElementById('galeriaFotos');
-    const vazio = document.getElementById('msgSemFotos');
+// Função para carregar e desenhar a tela separada por itens
+window.carregarDetalhesTecnicos = async function(vendaId) {
+    const container = document.getElementById('containerItensTecnicos');
+    if (!container) return;
     
-    if(container) container.innerHTML = '<p class="text-gray-400 text-xs animate-pulse">Carregando dados...</p>';
-    
+    container.innerHTML = '<div class="flex justify-center py-10 text-blue-500"><i data-lucide="loader-2" class="w-8 h-8 animate-spin"></i></div>';
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+
     try {
-        const res = await fetch(`/vendas/api/servico/${id}/detalhes`);
+        const res = await fetch(`/vendas/api/servico/${vendaId}/detalhes`);
         const data = await res.json();
         
-        // 1. Renderiza Dados Técnicos
-        let htmlTec = '';
-        if (data.modo === 'simples') {
-            htmlTec += `<div><span class="block text-xs text-gray-400 uppercase">Medidas</span><span class="font-bold text-navy-900">${data.dimensao_1} x ${data.dimensao_2}</span></div>`;
-            htmlTec += `<div><span class="block text-xs text-gray-400 uppercase">Tipo</span><span class="font-bold text-navy-900">${data.tipo_medida}</span></div>`;
-        }
-        
-        // Lista Itens com material e quantidade
-        data.itens.forEach((item) => {
-            htmlTec += `<div class="col-span-2 border-t border-gray-100 pt-2 mt-2">
-                <p class="font-bold text-navy-900">${item.descricao}</p>
-                <p class="text-xs text-gray-500">${item.material} • ${item.qtd} un</p>
-            </div>`;
-        });
-        
-        if(container) container.innerHTML = htmlTec;
+        container.innerHTML = ''; // Limpa loading
 
-        // 2. Renderiza Galeria de Fotos
-        if(galeria) {
-            galeria.innerHTML = '';
-            if (data.fotos && data.fotos.length > 0) {
-                if(vazio) vazio.classList.add('hidden');
-                
-                data.fotos.forEach(f => {
-                    const div = document.createElement('div');
-                    div.className = "relative group rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-100";
-                    div.innerHTML = `
-                        <img src="${f.url}" class="w-full h-full object-cover cursor-pointer transition-transform hover:scale-110" onclick="window.open('${f.url}', '_blank')">
-                        <button onclick="deletarFoto('${f.id}', '${id}')" class="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-sm" title="Excluir">
-                            <i data-lucide="trash-2" class="w-3 h-3"></i>
-                        </button>
-                    `;
-                    galeria.appendChild(div);
+        // Se não tiver itens (erro de dados), avisa
+        if (!data.itens || data.itens.length === 0) {
+            container.innerHTML = '<p class="text-center text-gray-400">Nenhum item encontrado.</p>';
+            return;
+        }
+
+        // GERA UMA SEÇÃO PARA CADA ITEM
+        data.itens.forEach((item, index) => {
+            
+            // 1. HTML das Fotos
+            let htmlFotos = '';
+            if (item.fotos && item.fotos.length > 0) {
+                item.fotos.forEach(f => {
+                    htmlFotos += `
+                        <div class="relative group rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-50">
+                            <img src="${f.url}" class="w-full h-full object-cover cursor-pointer transition-transform hover:scale-110" onclick="window.open('${f.url}', '_blank')">
+                            
+                            <button onclick="deletarFoto('${f.id}', '${vendaId}')" class="absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-sm" title="Excluir Imagem">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>`;
                 });
             } else {
-                if(vazio) vazio.classList.remove('hidden');
+                htmlFotos = `<div class="col-span-full py-4 text-center text-gray-400 text-xs italic border border-dashed border-gray-200 rounded-lg">Sem fotos para este item.</div>`;
             }
-        }
-        
+
+            // 2. Monta o Card do Item Completo
+            const itemHtml = `
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <div class="flex justify-between items-start mb-4 border-b border-gray-100 pb-3">
+                        <div>
+                            <h4 class="font-bold text-navy-900 text-lg flex items-center">
+                                <span class="bg-navy-50 text-navy-800 text-xs px-2 py-1 rounded mr-2">Item ${index + 1}</span>
+                                ${item.descricao}
+                            </h4>
+                            <p class="text-sm text-gray-500 mt-1">
+                                ${item.material} • <span class="font-bold text-navy-700">${item.qtd} un</span> 
+                                ${data.modo === 'simples' ? ` • ${item.medidas}` : ''}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <p class="text-xs font-bold text-gray-400 uppercase">Arquivos & Imagens</p>
+                            
+                            <label class="cursor-pointer bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center transition-colors border border-blue-200">
+                                <i data-lucide="upload" class="w-3 h-3 mr-1.5"></i> Add Foto
+                                <input type="file" class="hidden" accept="image/*" onchange="uploadFotoItem('${item.id}', '${vendaId}', this)">
+                            </label>
+                        </div>
+
+                        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                            ${htmlFotos}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', itemHtml);
+        });
+
         if(typeof lucide !== 'undefined') lucide.createIcons();
 
     } catch (error) {
         console.error(error);
-        if(container) container.innerHTML = '<p class="text-red-500 text-xs">Erro ao carregar detalhes.</p>';
+        container.innerHTML = '<div class="p-4 bg-red-50 text-red-600 rounded text-center text-sm">Erro ao carregar itens.</div>';
     }
 };
 
-// Envia a foto para o servidor
-window.uploadFoto = async function(vendaId, file) {
+// Nova Função de Upload (Recebe o ID do Item)
+window.uploadFotoItem = async function(itemId, vendaId, input) {
+    if (!input.files || !input.files[0]) return;
+    
+    const file = input.files[0];
     const formData = new FormData();
     formData.append('foto', file);
     
-    const btnLabel = document.querySelector('label[for="inputNovaFoto"]');
-    const originalText = btnLabel ? btnLabel.innerHTML : 'Nova Foto';
-    
-    // Mostra loading no botão
-    if(btnLabel) btnLabel.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 mr-1 animate-spin"></i> ...';
+    // Feedback visual simples (muda opacidade do label pai)
+    const labelBtn = input.parentElement;
+    const textoOriginal = labelBtn.innerHTML;
+    labelBtn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 mr-1 animate-spin"></i> Enviando...';
     if(typeof lucide !== 'undefined') lucide.createIcons();
-
+    
     try {
-        const res = await fetch(`/vendas/servicos/${vendaId}/upload-foto`, {
+        // Chama a NOVA rota específica de item
+        const res = await fetch(`/vendas/itens/${itemId}/upload-foto`, {
             method: 'POST',
             body: formData
         });
         const data = await res.json();
         
         if (data.sucesso) {
-            // Sucesso: Recarrega a lista de fotos
+            // Recarrega toda a lista para atualizar a foto no lugar certo
             carregarDetalhesTecnicos(vendaId);
         } else {
             alert('Erro: ' + data.erro);
+            labelBtn.innerHTML = textoOriginal; // Restaura se der erro
+            if(typeof lucide !== 'undefined') lucide.createIcons();
         }
     } catch (e) {
-        alert('Erro no upload.');
-        console.error(e);
-    } finally {
-        // Restaura o botão original
-        if(btnLabel) btnLabel.innerHTML = originalText;
+        alert('Erro de conexão no upload.');
+        labelBtn.innerHTML = textoOriginal;
         if(typeof lucide !== 'undefined') lucide.createIcons();
     }
 };
 
-// Deleta foto (função chamada pelo botão de lixeira nas fotos)
+// Deletar Foto (Mantido, mas certifique-se que está global)
 window.deletarFoto = async function(fotoId, vendaId) {
-    if(!confirm('Excluir esta imagem?')) return;
-    
+    if(!confirm('Excluir esta imagem permanentemente?')) return;
     try {
         const res = await fetch(`/vendas/fotos/${fotoId}/deletar`, { method: 'POST' });
         if (res.ok) {
