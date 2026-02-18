@@ -20,7 +20,7 @@
         </a>
     </div>
 
-    <form method="POST" id="formVenda" action="{{ url_for('vendas.nova_venda') }}">
+    <form method="POST" id="formVenda" action="{{ url_for('vendas.nova_venda') }}" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -37,18 +37,14 @@
                     <div class="mb-6">
                         <label class="text-xs font-bold text-gray-500 uppercase mb-2 block">Tipo de Pessoa</label>
                         <div class="flex gap-4">
+                            {% for subfield in form.tipo_cliente %}
                             <label class="cursor-pointer">
-                                <input type="radio" name="tipo_cliente" value="PF" class="peer sr-only" checked>
+                                {{ subfield(class="peer sr-only") }}
                                 <div class="px-4 py-2 rounded-lg border border-gray-300 text-gray-500 font-bold hover:bg-gray-50 peer-checked:bg-navy-900 peer-checked:text-white peer-checked:border-navy-900 transition-all shadow-sm">
-                                    Pessoa Física
+                                    {{ subfield.label.text }}
                                 </div>
                             </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="tipo_cliente" value="PJ" class="peer sr-only">
-                                <div class="px-4 py-2 rounded-lg border border-gray-300 text-gray-500 font-bold hover:bg-gray-50 peer-checked:bg-navy-900 peer-checked:text-white peer-checked:border-navy-900 transition-all shadow-sm">
-                                    Pessoa Jurídica
-                                </div>
-                            </label>
+                            {% endfor %}
                         </div>
                     </div>
 
@@ -102,21 +98,38 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        
+                        <div class="md:col-span-2">
+                            <label class="flex items-center gap-3 p-3 border border-red-200 bg-red-50 rounded-lg cursor-pointer hover:bg-red-100 transition-colors">
+                                {{ form.prioridade(class="w-5 h-5 text-red-600 rounded border-gray-300 focus:ring-red-500") }}
+                                <div>
+                                    <span class="block text-sm font-bold text-red-700 uppercase">Prioridade Alta (Urgente)</span>
+                                    <span class="block text-xs text-red-500">Marque para destacar este serviço na produção.</span>
+                                </div>
+                            </label>
+                        </div>
+
                         <div class="md:col-span-2">
                             <label class="label-padrao">Descrição do Serviço *</label>
                             {{ form.descricao_servico(class="input-navy h-20 resize-none", placeholder="Ex: Portão basculante...") }}
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="label-padrao">Fotos das Peças (Opcional - Máx 3)</label>
+                            {{ form.fotos_pecas(class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100", accept="image/*", multiple=True) }}
+                            <p class="text-[10px] text-gray-400 mt-1">Imagens para referência da equipe de produção.</p>
                         </div>
                         
                         <div>
                             <label class="label-padrao">Acabamento / Cor *</label>
                             <select name="produto_id" id="select-produto" class="input-navy bg-white cursor-pointer">
                                 <option value="" data-m2="0" data-m3="0">Selecione...</option>
-                                {% for id, label in form.produto_id.choices %}
-                                    {% set dados_prod = produtos_json | selectattr("id", "equalto", id) | first %}
-                                    <option value="{{ id }}" 
-                                            data-m2="{{ dados_prod.preco_m2 }}"
-                                            data-m3="{{ dados_prod.preco_m3 }}">
-                                        {{ label }}
+                                {% for item in produtos_json %}
+                                    <option value="{{ item.id }}" 
+                                            data-m2="{{ item.preco_m2 }}" 
+                                            data-m3="{{ item.preco_m3 }}"
+                                            {% if form.produto_id.data == item.id %}selected{% endif %}>
+                                        {{ item.nome }}
                                     </option>
                                 {% endfor %}
                             </select>
@@ -231,7 +244,9 @@
                                     <i data-lucide="check" class="w-5 h-5"></i>
                                 </button>
 
-                                <button type="button" onclick="gerarOrcamentoSimples()" class="w-full py-3 bg-white border-2 border-navy-900 text-navy-900 hover:bg-navy-50 rounded-xl font-bold flex items-center justify-center transition-all">
+                                <button type="button" 
+                                        onclick="gerarOrcamentoSimples('{{ current_user.nome }}', '{{ url_for('static', filename='img/logo_1.png', _external=True) }}')" 
+                                        class="w-full py-3 bg-white border-2 border-navy-900 text-navy-900 hover:bg-navy-50 rounded-xl font-bold flex items-center justify-center transition-all">
                                     <i data-lucide="printer" class="w-5 h-5 mr-2"></i>
                                     IMPRIMIR ORÇAMENTO
                                 </button>
@@ -248,124 +263,5 @@
 
 {% block scripts %}
     <script src="{{ url_for('static', filename='js/vendas.js') }}"></script>
-    <script>
-function gerarOrcamentoSimples() {
-    // Captura a URL da Logo gerada pelo Flask
-    const logoUrl = "{{ url_for('static', filename='img/logo_1.png', _external=True) }}";
-
-    // 1. Coleta os Dados do Formulário
-    const isPF = document.querySelector('input[name="tipo_cliente"][value="PF"]').checked;
-    
-    let cliente = {};
-    if (isPF) {
-        cliente.nome = document.querySelector('input[name="pf_nome"]').value || "Cliente não informado";
-        cliente.doc = document.querySelector('input[name="pf_cpf"]').value || "";
-    } else {
-        cliente.nome = document.querySelector('input[name="pj_fantasia"]').value || "Empresa não informada";
-        cliente.doc = document.querySelector('input[name="pj_cnpj"]').value || "";
-    }
-    cliente.telefone = document.querySelector('input[name="telefone"]').value || "";
-    cliente.email = document.querySelector('input[name="email"]').value || "";
-
-    // Dados do Serviço
-    const descServico = document.querySelector('textarea[name="descricao_servico"]').value || "-";
-    const selectProd = document.getElementById('select-produto');
-    const produtoNome = selectProd.options[selectProd.selectedIndex].text;
-    
-    const dim1 = document.getElementById('dimensao_1').value;
-    const dim2 = document.getElementById('dimensao_2').value;
-    const qtd = document.getElementById('quantidade_pecas').value;
-    
-    // Financeiro
-    const total = document.getElementById('resumo-total').innerText;
-    const obs = document.querySelector('textarea[name="observacoes_internas"]').value;
-
-    // 2. Monta o HTML da Janela de Impressão
-    const conteudo = `
-        <html>
-        <head>
-            <title>Orçamento - Eletromaster</title>
-            <script src="https://cdn.tailwindcss.com"><\/script>
-            <style>
-                @media print { 
-                    @page { margin: 0; size: A4; } 
-                    body { margin: 1.6cm; -webkit-print-color-adjust: exact; } 
-                }
-            </style>
-        </head>
-        <body class="bg-white text-gray-800 font-sans p-8">
-            <div class="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-6">
-                <div class="flex items-center gap-4">
-                    <img src="${logoUrl}" class="h-32 w-auto object-contain">
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-900 uppercase">Eletromaster</h1>
-                        <p class="text-sm font-bold text-gray-600">CNPJ: 63.172.616/0001-60</p>
-                        <p class="text-gray-500 text-xs uppercase tracking-widest font-bold mt-1">Pintura Eletrostática & Serviços</p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <h2 class="text-xl font-bold text-gray-600">ORÇAMENTO</h2>
-                    <p class="text-lg font-bold text-red-600">(PRÉVIA)</p>
-                    <p class="text-gray-500 text-xs mt-1">Data: ${new Date().toLocaleDateString('pt-BR')}</p>
-                </div>
-            </div>
-
-            <div class="flex justify-between mb-8">
-                <div class="w-1/2">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase mb-2 border-b">Cliente</h3>
-                    <p class="font-bold text-lg">${cliente.nome}</p>
-                    <p>${cliente.doc}</p>
-                    <p>${cliente.telefone}</p>
-                    <p>${cliente.email}</p>
-                </div>
-                <div class="w-1/2 text-right">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase mb-2 border-b">Emissor</h3>
-                    <p class="font-bold">Eletromaster Ltda.</p>
-                    <p>Vendedor: {{ current_user.nome }}</p>
-                </div>
-            </div>
-
-            <table class="w-full text-left border-collapse mb-8">
-                <thead>
-                    <tr class="bg-gray-100 text-gray-600 uppercase text-xs">
-                        <th class="p-3 border-b-2 border-gray-300">Descrição</th>
-                        <th class="p-3 border-b-2 border-gray-300 text-center">Qtd</th>
-                        <th class="p-3 border-b-2 border-gray-300 text-right">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr class="border-b border-gray-200">
-                        <td class="p-3">
-                            <span class="font-bold block">${descServico}</span>
-                            <span class="text-xs text-gray-500">${produtoNome} (${dim1} x ${dim2})</span>
-                        </td>
-                        <td class="p-3 text-center">${qtd}</td>
-                        <td class="p-3 text-right font-bold">R$ ${total}</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="flex justify-end mb-12">
-                <div class="text-right">
-                    <span class="text-xl font-black text-gray-900 border-t-2 border-gray-900 pt-2 block">
-                        TOTAL: R$ ${total}
-                    </span>
-                </div>
-            </div>
-
-            ${obs ? `<div class="bg-gray-50 p-4 rounded border text-xs"><h4 class="font-bold">Observações</h4><p>${obs}</p></div>` : ''}
-            
-            <script>
-                window.onload = function() { window.print(); }
-            <\/script>
-        </body>
-        </html>
-    `;
-
-    // 3. Abre a Janela
-    const janela = window.open('', '_blank', 'width=900,height=600');
-    janela.document.write(conteudo);
-    janela.document.close();
-}
-</script>
+    <script src="{{ url_for('static', filename='js/orcamento.js') }}"></script>
 {% endblock %}

@@ -206,3 +206,61 @@ function fecharModalBaixa() {
     const modal = document.getElementById('modalBaixaMaterial');
     if(modal) modal.classList.add('hidden');
 }
+
+// ... (código anterior)
+
+// --- FUNÇÕES GALERIA DE FOTOS ---
+function abrirModalFotos(listaFotos) {
+    const modal = document.getElementById('modalFotos');
+    const container = document.getElementById('galeriaContainer');
+    const avisoVazio = document.getElementById('semFotos');
+    
+    if(!modal) return;
+
+    container.innerHTML = ''; // Limpa anterior
+
+    if (!listaFotos || listaFotos.length === 0) {
+        container.classList.add('hidden');
+        avisoVazio.classList.remove('hidden');
+    } else {
+        container.classList.remove('hidden');
+        avisoVazio.classList.add('hidden');
+        
+        listaFotos.forEach(url => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'relative group rounded-lg overflow-hidden border border-gray-200 shadow-sm';
+            
+            const img = document.createElement('img');
+            img.src = url;
+            img.className = 'w-full h-64 object-cover hover:scale-105 transition-transform duration-300 cursor-pointer';
+            img.onclick = () => window.open(url, '_blank'); // Abre original ao clicar
+            
+            const zoomHint = document.createElement('div');
+            zoomHint.className = 'absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none';
+            zoomHint.innerHTML = '<span class="text-white text-xs font-bold bg-black/50 px-2 py-1 rounded"><i data-lucide="zoom-in" class="w-4 h-4 inline mr-1"></i> Ampliar</span>';
+
+            wrapper.appendChild(img);
+            wrapper.appendChild(zoomHint);
+            container.appendChild(wrapper);
+        });
+    }
+
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modal.querySelector('div').classList.remove('scale-95');
+    }, 10);
+    
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function fecharModalFotos() {
+    const modal = document.getElementById('modalFotos');
+    if(!modal) return;
+    
+    modal.classList.add('opacity-0');
+    modal.querySelector('div').classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+}

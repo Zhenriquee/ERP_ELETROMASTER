@@ -1,59 +1,42 @@
-// Adicione o parâmetro logoUrl aqui vvv
-function gerarOrcamentoMultiplo(logoUrl) {
-    // 1. Coleta os Dados do Cliente
-    const tipo = document.getElementById('tipo_cliente').value;
+// src/static/js/orcamento.js
+
+function gerarOrcamentoSimples(vendedorNome, logoUrl) {
+    // 1. Coleta os Dados do Formulário
+    const isPF = document.querySelector('input[name="tipo_cliente"][value="PF"]').checked;
     
-    // ... (Mantenha todo o código de coleta de dados igual até a parte do 'conteudo') ...
-    
-    let nome = "", doc = "", contato = "", email = "";
-    if (tipo === 'PF') {
-        nome = document.querySelector('input[name="pf_nome"]').value || "Consumidor Final";
-        doc = document.querySelector('input[name="pf_cpf"]').value || "";
+    let cliente = {};
+    if (isPF) {
+        cliente.nome = document.querySelector('input[name="pf_nome"]').value || "Cliente não informado";
+        cliente.doc = document.querySelector('input[name="pf_cpf"]').value || "";
     } else {
-        nome = document.querySelector('input[name="pj_fantasia"]').value || "Empresa";
-        doc = document.querySelector('input[name="pj_cnpj"]').value || "";
+        cliente.nome = document.querySelector('input[name="pj_fantasia"]').value || "Empresa não informada";
+        cliente.doc = document.querySelector('input[name="pj_cnpj"]').value || "";
     }
-    contato = document.querySelector('input[name="telefone"]').value || "";
-    email = document.querySelector('input[name="email"]').value || "";
+    cliente.telefone = document.querySelector('input[name="telefone"]').value || "";
+    cliente.email = document.querySelector('input[name="email"]').value || "";
 
-    let linhasHTML = '';
-    const linhas = document.querySelectorAll('#listaItens tr');
+    // Dados do Serviço
+    const descServico = document.querySelector('textarea[name="descricao_servico"]').value || "-";
+    const selectProd = document.getElementById('select-produto');
+    const produtoNome = selectProd.options[selectProd.selectedIndex].text;
     
-    if(linhas.length === 0) {
-        alert("Adicione itens antes de gerar o orçamento!");
-        return;
-    }
+    const dim1 = document.getElementById('dimensao_1').value;
+    const dim2 = document.getElementById('dimensao_2').value;
+    const qtd = document.getElementById('quantidade_pecas').value;
+    
+    // Financeiro
+    const total = document.getElementById('resumo-total').innerText;
+    const obs = document.querySelector('textarea[name="observacoes_internas"]').value;
 
-    linhas.forEach(tr => {
-        const desc = tr.querySelector('input[name*="[descricao]"]').value;
-        const selProd = tr.querySelector('select[name*="[produto_id]"]');
-        const prodNome = selProd.selectedIndex >= 0 ? selProd.options[selProd.selectedIndex].text : '-';
-        const qtd = tr.querySelector('input[name*="[qtd]"]').value;
-        const unit = tr.querySelector('input[name*="[unit]"]').value;
-        const total = tr.querySelector('input[name*="[total]"]').value;
+    // Data formatada
+    const dataHoje = new Date().toLocaleDateString('pt-BR');
 
-        linhasHTML += `
-            <tr class="border-b border-gray-200">
-                <td class="p-3">
-                    <span class="font-bold block text-sm">${desc}</span>
-                    <span class="text-xs text-gray-500">${prodNome}</span>
-                </td>
-                <td class="p-3 text-center text-sm">${qtd}</td>
-                <td class="p-3 text-right text-sm">R$ ${parseFloat(unit || 0).toFixed(2).replace('.', ',')}</td>
-                <td class="p-3 text-right font-bold text-sm">R$ ${parseFloat(total || 0).toFixed(2).replace('.', ',')}</td>
-            </tr>
-        `;
-    });
-
-    const totalFinal = document.getElementById('displayTotalFinal').innerText;
-    const obs = document.querySelector('textarea[name="obs_internas"]').value;
-
-    // --- AQUI ESTÁ A MUDANÇA NO HTML GERADO ---
+    // 2. Monta o HTML da Janela de Impressão
     const conteudo = `
         <html>
         <head>
-            <title>Orçamento Múltiplo - Eletromaster</title>
-            <script src="https://cdn.tailwindcss.com"><\/script>
+            <title>Orçamento - Eletromaster</title>
+            <script src="https://cdn.tailwindcss.com"></script>
             <style>
                 @media print { 
                     @page { margin: 0; size: A4; } 
@@ -64,73 +47,73 @@ function gerarOrcamentoMultiplo(logoUrl) {
         <body class="bg-white text-gray-800 font-sans p-8">
             <div class="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-6">
                 <div class="flex items-center gap-4">
-                    ${logoUrl ? `<img src="${logoUrl}" class="h-32 w-auto object-contain">` : ''}
+                    <img src="${logoUrl}" class="h-32 w-auto object-contain">
                     <div>
-                        <h1 class="text-3xl font-bold text-gray-900 uppercase tracking-wide">Eletromaster</h1>
+                        <h1 class="text-3xl font-bold text-gray-900 uppercase">Eletromaster</h1>
                         <p class="text-sm font-bold text-gray-600">CNPJ: 63.172.616/0001-60</p>
-                        <p class="text-gray-500 text-xs uppercase tracking-widest font-bold mt-1">Serviços & Pintura</p>
+                        <p class="text-gray-500 text-xs uppercase tracking-widest font-bold mt-1">Pintura Eletrostática & Serviços</p>
                     </div>
                 </div>
                 <div class="text-right">
                     <h2 class="text-xl font-bold text-gray-600">ORÇAMENTO</h2>
                     <p class="text-lg font-bold text-red-600">(PRÉVIA)</p>
-                    <p class="text-gray-500 text-xs mt-1">Data: ${new Date().toLocaleDateString('pt-BR')}</p>
+                    <p class="text-gray-500 text-xs mt-1">Data: ${dataHoje}</p>
                 </div>
             </div>
 
             <div class="flex justify-between mb-8">
-                <div class="w-1/2 pr-4">
+                <div class="w-1/2">
                     <h3 class="text-xs font-bold text-gray-400 uppercase mb-2 border-b">Cliente</h3>
-                    <p class="font-bold text-lg">${nome}</p>
-                    ${doc ? `<p class="text-sm">CPF/CNPJ: ${doc}</p>` : ''}
-                    <p class="text-sm">${contato}</p>
-                    <p class="text-sm">${email}</p>
+                    <p class="font-bold text-lg">${cliente.nome}</p>
+                    <p>${cliente.doc}</p>
+                    <p>${cliente.telefone}</p>
+                    <p>${cliente.email}</p>
                 </div>
-                <div class="w-1/2 pl-4 text-right">
+                <div class="w-1/2 text-right">
                     <h3 class="text-xs font-bold text-gray-400 uppercase mb-2 border-b">Emissor</h3>
                     <p class="font-bold">Eletromaster Ltda.</p>
+                    <p>Vendedor: ${vendedorNome}</p>
                 </div>
             </div>
 
-            <div class="mb-8">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-100 text-gray-600 uppercase text-xs">
-                            <th class="p-3 border-b-2 border-gray-300">Descrição / Material</th>
-                            <th class="p-3 border-b-2 border-gray-300 text-center">Qtd</th>
-                            <th class="p-3 border-b-2 border-gray-300 text-right">Unit.</th>
-                            <th class="p-3 border-b-2 border-gray-300 text-right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>${linhasHTML}</tbody>
-                </table>
-            </div>
+            <table class="w-full text-left border-collapse mb-8">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-600 uppercase text-xs">
+                        <th class="p-3 border-b-2 border-gray-300">Descrição</th>
+                        <th class="p-3 border-b-2 border-gray-300 text-center">Qtd</th>
+                        <th class="p-3 border-b-2 border-gray-300 text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-b border-gray-200">
+                        <td class="p-3">
+                            <span class="font-bold block">${descServico}</span>
+                            <span class="text-xs text-gray-500">${produtoNome} (${dim1} x ${dim2})</span>
+                        </td>
+                        <td class="p-3 text-center">${qtd}</td>
+                        <td class="p-3 text-right font-bold">R$ ${total}</td>
+                    </tr>
+                </tbody>
+            </table>
 
-            <div class="flex justify-end mb-8">
-                <div class="text-right w-1/3 border-t-2 border-gray-900 pt-2">
-                    <span class="text-xs font-bold text-gray-500 uppercase">Valor Total</span>
-                    <span class="text-3xl font-black text-navy-900 block mt-1">R$ ${totalFinal}</span>
+            <div class="flex justify-end mb-12">
+                <div class="text-right">
+                    <span class="text-xl font-black text-gray-900 border-t-2 border-gray-900 pt-2 block">
+                        TOTAL: R$ ${total}
+                    </span>
                 </div>
             </div>
+
+            ${obs ? `<div class="bg-gray-50 p-4 rounded border text-xs"><h4 class="font-bold">Observações</h4><p>${obs}</p></div>` : ''}
             
-            ${obs ? `
-            <div class="bg-gray-50 p-4 rounded border border-gray-200 text-xs mb-8">
-                <h4 class="font-bold text-gray-500 uppercase mb-1">Observações Internas</h4>
-                <p>${obs}</p>
-            </div>` : ''}
-
-            <div class="text-center text-xs text-gray-400 pt-6 border-t mt-auto">
-                <p>Este documento é um orçamento e não garante reserva de estoque sem confirmação.</p>
-            </div>
-
             <script>
                 window.onload = function() { window.print(); }
-            <\/script>
+            </script>
         </body>
         </html>
     `;
 
-    // 5. Abre a Janela de Impressão
+    // 3. Abre a Janela
     const janela = window.open('', '_blank', 'width=900,height=600');
     janela.document.write(conteudo);
     janela.document.close();

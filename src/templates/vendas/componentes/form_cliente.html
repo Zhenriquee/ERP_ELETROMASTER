@@ -1,0 +1,108 @@
+<div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 mb-8">
+    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+        <div class="bg-blue-100 p-2 rounded-lg text-blue-600">
+            <i data-lucide="user" class="w-6 h-6"></i>
+        </div>
+        <div>
+            <h3 class="text-lg font-bold text-navy-900">1. Dados do Cliente</h3>
+            <p class="text-sm text-gray-500">Identifique quem está solicitando o serviço.</p>
+        </div>
+    </div>
+
+    <div class="mb-6 flex gap-6">
+        {% for subfield in (form.tipo_cliente if form else []) %}
+        <label class="flex items-center gap-3 cursor-pointer group">
+            <div class="relative flex items-center">
+                {{ subfield(class="peer sr-only", onchange="alternarTipoCliente(this.value)") }}
+                <div class="w-5 h-5 border-2 border-gray-300 rounded-full peer-checked:border-blue-600 peer-checked:bg-blue-600 transition-all"></div>
+                <div class="absolute inset-0 m-auto w-2 h-2 bg-white rounded-full scale-0 peer-checked:scale-100 transition-transform"></div>
+            </div>
+            <span class="text-sm font-bold text-gray-600 group-hover:text-blue-600 transition-colors">{{ subfield.label.text }}</span>
+        </label>
+        {% else %}
+        <label class="flex items-center gap-3 cursor-pointer group">
+            <input type="radio" name="tipo_cliente" value="PF" checked onchange="alternarTipoCliente('PF')" class="peer sr-only">
+            <div class="w-5 h-5 border-2 border-gray-300 rounded-full peer-checked:border-blue-600 peer-checked:bg-blue-600"></div>
+            <span class="text-sm font-bold text-gray-600">Pessoa Física</span>
+        </label>
+        <label class="flex items-center gap-3 cursor-pointer group">
+            <input type="radio" name="tipo_cliente" value="PJ" onchange="alternarTipoCliente('PJ')" class="peer sr-only">
+            <div class="w-5 h-5 border-2 border-gray-300 rounded-full peer-checked:border-blue-600 peer-checked:bg-blue-600"></div>
+            <span class="text-sm font-bold text-gray-600">Pessoa Jurídica</span>
+        </label>
+        {% endfor %}
+    </div>
+
+    <div id="campos-pf" class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+        <div class="md:col-span-2">
+            <label class="label-padrao">Nome Completo *</label>
+            {% if form %}
+                {{ form.pf_nome(class="input-navy", placeholder="Nome do cliente") }}
+            {% else %}
+                <input type="text" name="pf_nome" class="input-navy" placeholder="Nome do cliente">
+            {% endif %}
+        </div>
+        <div>
+            <label class="label-padrao">CPF</label>
+            {% if form %}
+                {{ form.pf_cpf(class="input-navy", placeholder="000.000.000-00") }}
+            {% else %}
+                <input type="text" name="pf_cpf" class="input-navy" placeholder="000.000.000-00">
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="campos-pj" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+        <div class="md:col-span-2">
+            <label class="label-padrao">Razão Social / Fantasia *</label>
+            {% if form %}
+                {{ form.pj_fantasia(class="input-navy", placeholder="Nome da empresa") }}
+            {% else %}
+                <input type="text" name="pj_fantasia" class="input-navy" placeholder="Nome da empresa">
+            {% endif %}
+        </div>
+        <div>
+            <label class="label-padrao">CNPJ</label>
+            {% if form %}
+                {{ form.pj_cnpj(class="input-navy", placeholder="00.000.000/0000-00") }}
+            {% else %}
+                <input type="text" name="pj_cnpj" class="input-navy" placeholder="00.000.000/0000-00">
+            {% endif %}
+        </div>
+        <div>
+            <label class="label-padrao">Solicitante (Contato na Empresa)</label>
+            {% if form %}
+                {{ form.pj_solicitante(class="input-navy", placeholder="Quem pediu o serviço?") }}
+            {% else %}
+                <input type="text" name="pj_solicitante" class="input-navy" placeholder="Quem pediu o serviço?">
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-50">
+        <div>
+            <label class="label-padrao">Telefone / WhatsApp *</label>
+            {% if form %}
+                {{ form.telefone(class="input-navy", placeholder="(00) 00000-0000") }}
+            {% else %}
+                <input type="text" name="telefone" class="input-navy" placeholder="(00) 00000-0000" required>
+            {% endif %}
+        </div>
+        <div>
+            <label class="label-padrao">E-mail</label>
+            {% if form %}
+                {{ form.email(class="input-navy", placeholder="cliente@email.com") }}
+            {% else %}
+                <input type="email" name="email" class="input-navy" placeholder="cliente@email.com">
+            {% endif %}
+        </div>
+        <div class="md:col-span-2">
+            <label class="label-padrao">Endereço Completo</label>
+            {% if form %}
+                {{ form.endereco(class="input-navy", placeholder="Rua, Número, Bairro, Cidade") }}
+            {% else %}
+                <input type="text" name="endereco" class="input-navy" placeholder="Rua, Número, Bairro, Cidade">
+            {% endif %}
+        </div>
+    </div>
+</div>

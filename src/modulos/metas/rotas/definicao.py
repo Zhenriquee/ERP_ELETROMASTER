@@ -106,40 +106,43 @@ def editar_meta(id):
 
     return render_template('metas/nova_meta.html', form=form, editando=True)
 
+# No arquivo: src/modulos/metas/rotas/definicao.py
+
 @bp_metas.route('/distribuir/<int:id>', methods=['GET', 'POST'])
 @login_required
 def distribuir_meta(id):
     meta_mensal = MetaMensal.query.get_or_404(id)
     
-    # Filtra por equipe Vendas
-    vendedores = Usuario.query.filter(
-        Usuario.ativo == True,
-        Usuario.equipe.ilike('vendas')
-    ).all()
+    # 1. Busca todos os usuários ativos
+    todos_usuarios = Usuario.query.filter_by(ativo=True).all()
     
+    # 2. FILTRO ATUALIZADO: Verifica o campo 'faz_parte_meta' do Colaborador
+    vendedores = []
+    for u in todos_usuarios:
+        # Verifica se tem vínculo com colaborador e se a flag está marcada
+        if u.colaborador and u.colaborador.faz_parte_meta:
+            vendedores.append(u)
+            
+    # Fallback visual caso ninguém esteja marcado (evita tela vazia, mas avisa)
     if not vendedores:
-        flash('Atenção: Nenhum usuário ativo encontrado para distribuir a meta.', 'warning')
+        flash('Atenção: Nenhum colaborador está marcado com "Participa de Metas" no cadastro de RH.', 'error')
     
     if request.method == 'POST':
         total_distribuido = 0
         
-        # Limpa metas anteriores desse mês
+        # Limpa metas anteriores para evitar duplicidade
         MetaVendedor.query.filter_by(meta_mensal_id=id).delete()
         
         for vend in vendedores:
-            # O nome do input no HTML é 'meta_ID'
             valor_input = request.form.get(f'meta_{vend.id}')
             
             if valor_input:
                 try:
-                    # CORREÇÃO AQUI: Lógica robusta para conversão de valores
-                    # 1. Se tiver vírgula, assume formato BR (1.000,00) -> remove ponto milhar, troca virgula por ponto
+                    # Tratamento de formato monetário (R$ 1.000,00 ou 1000.00)
                     if ',' in valor_input:
                         valor_limpo = valor_input.replace('.', '').replace(',', '.')
                         valor_decimal = float(valor_limpo)
                     else:
-                        # 2. Se não tem vírgula, assume formato float padrão (1000.00) ou inteiro (1000)
-                        # Não removemos o ponto aqui, pois ele é o decimal!
                         valor_decimal = float(valor_input)
                 except ValueError:
                     valor_decimal = 0.0

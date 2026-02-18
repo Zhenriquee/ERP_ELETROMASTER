@@ -178,6 +178,9 @@ def novo_colaborador():
                 salario_base=form.salario_base.data,
                 ativo=form.ativo.data,
                 
+                # --- NOVO CAMPO ---
+                faz_parte_meta=form.faz_parte_meta.data,
+                
                 # Campos Financeiros
                 chave_pix=form.chave_pix.data,
                 banco=form.banco.data,

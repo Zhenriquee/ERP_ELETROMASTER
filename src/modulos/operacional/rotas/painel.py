@@ -1,37 +1,28 @@
-from flask import render_template
+from flask import render_template, url_for
 from flask_login import login_required
 from src.modulos.vendas.modelos import ItemVenda, Venda, hora_brasilia
 from src.modulos.autenticacao.permissoes import cargo_exigido
 from src.modulos.estoque.modelos import ProdutoEstoque
 from . import bp_operacional
 
-# --- FUNÇÃO AUXILIAR PARA CALCULAR TEMPO ---
 def calcular_tempo_decorrido(data_inicio):
     """Retorna string amigável: '2d 4h' ou '35m'"""
     if not data_inicio:
         return "-"
     
     agora = hora_brasilia()
-    
-    # Remove info de fuso se necessário para cálculo simples
-    if data_inicio.tzinfo:
-        data_inicio = data_inicio.replace(tzinfo=None)
-    if agora.tzinfo:
-        agora = agora.replace(tzinfo=None)
+    if data_inicio.tzinfo: data_inicio = data_inicio.replace(tzinfo=None)
+    if agora.tzinfo: agora = agora.replace(tzinfo=None)
         
     diff = agora - data_inicio
-    
     dias = diff.days
     segundos = diff.seconds
     horas = segundos // 3600
     minutos = (segundos % 3600) // 60
     
-    if dias > 0:
-        return f"{dias}d {horas}h"
-    elif horas > 0:
-        return f"{horas}h {minutos}m"
-    else:
-        return f"{minutos}m"
+    if dias > 0: return f"{dias}d {horas}h"
+    elif horas > 0: return f"{horas}h {minutos}m"
+    else: return f"{minutos}m"
 
 @bp_operacional.route('/painel')
 @login_required
@@ -61,10 +52,8 @@ def painel():
         if i.produto: nome_acabamento = i.produto.nome
         elif i.cor: nome_acabamento = i.cor.nome
 
-        # Lógica de Tempo
         data_ref = i.venda.criado_em
         tempo_label = "Tempo em Fila"
-        
         if i.status == 'producao':
             data_ref = i.data_inicio_producao or i.venda.criado_em
             tempo_label = "Tempo em Execução"
@@ -72,11 +61,15 @@ def painel():
             data_ref = i.data_pronto or i.venda.criado_em
             tempo_label = "Tempo Aguardando"
 
-        # Lógica de Metragem
         metragem_texto = "Não informada"
         if i.metragem_total and i.metragem_total > 0:
             un = "m³" if i.tipo_medida == 'm3' else "m²"
             metragem_texto = f"{float(i.metragem_total):.2f} {un}"
+
+        # Coleta URLs das fotos (se existirem)
+        fotos_urls = []
+        if i.fotos:
+            fotos_urls = [url_for('static', filename=f.caminho_arquivo) for f in i.fotos]
 
         tarefas.append({
             'tipo': 'item',
@@ -90,11 +83,12 @@ def painel():
             'obs': i.venda.observacoes_internas,
             'criado_em': i.venda.criado_em,
             'is_producao': (i.status == 'producao'),
-            
-            # --- NOVOS CAMPOS ENVIADOS AO TEMPLATE ---
             'tempo_decorrido': calcular_tempo_decorrido(data_ref),
             'tempo_label': tempo_label,
-            'metragem': metragem_texto
+            'metragem': metragem_texto,
+            # NOVOS CAMPOS
+            'prioridade': i.venda.prioridade,
+            'fotos': fotos_urls
         })
 
     # --- PROCESSAMENTO DE VENDAS SIMPLES ---
@@ -103,10 +97,8 @@ def painel():
         if v.produto: nome_acabamento = v.produto.nome
         elif v.cor: nome_acabamento = v.cor.nome
 
-        # Lógica de Tempo
         data_ref = v.criado_em
         tempo_label = "Tempo em Fila"
-        
         if v.status == 'producao':
             data_ref = v.data_inicio_producao or v.criado_em
             tempo_label = "Tempo em Execução"
@@ -114,15 +106,22 @@ def painel():
             data_ref = v.data_pronto or v.criado_em
             tempo_label = "Tempo Aguardando"
 
-        # Lógica de Metragem
         dimensoes = ""
         if v.dimensao_1 and v.dimensao_2:
-            dimensoes = f"({float(v.dimensao_1)} x {float(v.dimensao_2)})"
+            if v.tipo_medida == 'm3' and v.dimensao_3:
+                dimensoes = f"({float(v.dimensao_1)} x {float(v.dimensao_2)} x {float(v.dimensao_3)})"
+            else:
+                dimensoes = f"({float(v.dimensao_1)} x {float(v.dimensao_2)})"
         
         metragem_texto = "Não informada"
         if v.metragem_total and v.metragem_total > 0:
             un = "m³" if v.tipo_medida == 'm3' else "m²"
             metragem_texto = f"{float(v.metragem_total):.2f} {un} {dimensoes}"
+
+        # Coleta fotos do primeiro item (Venda simples sempre tem 1 item oculto)
+        fotos_urls = []
+        if v.itens and v.itens[0].fotos:
+            fotos_urls = [url_for('static', filename=f.caminho_arquivo) for f in v.itens[0].fotos]
 
         tarefas.append({
             'tipo': 'venda',
@@ -137,17 +136,17 @@ def painel():
             'obs': v.observacoes_internas,
             'criado_em': v.criado_em,
             'is_producao': (v.status == 'producao'),
-            
-            # --- NOVOS CAMPOS ENVIADOS AO TEMPLATE ---
             'tempo_decorrido': calcular_tempo_decorrido(data_ref),
             'tempo_label': tempo_label,
-            'metragem': metragem_texto
+            'metragem': metragem_texto,
+            # NOVOS CAMPOS
+            'prioridade': v.prioridade,
+            'fotos': fotos_urls
         })
 
-    # Ordenação
-    tarefas.sort(key=lambda x: (not x['is_producao'], x['criado_em']))
+    # Ordenação: Prioridade primeiro, depois quem está em produção
+    tarefas.sort(key=lambda x: (not x['prioridade'], not x['is_producao'], x['criado_em']))
 
-    # Contagem KPIs
     qtd_fila = sum(1 for t in tarefas if t['status'] == 'pendente')
     qtd_producao = sum(1 for t in tarefas if t['status'] == 'producao')
     qtd_pronto = sum(1 for t in tarefas if t['status'] == 'pronto')

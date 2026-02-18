@@ -58,6 +58,9 @@ class FormularioColaborador(FlaskForm):
     
     ativo = BooleanField('Colaborador Ativo na Empresa', default=True)
     
+    # --- NOVO CAMPO NO FORMULÁRIO ---
+    faz_parte_meta = BooleanField('Participa de Metas', default=False)
+    
     submit = SubmitField('Salvar Colaborador')
 
 class FormularioDocumentoRH(FlaskForm):

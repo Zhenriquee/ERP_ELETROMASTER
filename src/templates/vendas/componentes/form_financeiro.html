@@ -1,0 +1,83 @@
+<div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+        <div class="bg-green-100 p-2 rounded-lg text-green-600">
+            <i data-lucide="dollar-sign" class="w-6 h-6"></i>
+        </div>
+        <div>
+            <h3 class="text-lg font-bold text-navy-900">3. Financeiro</h3>
+            <p class="text-sm text-gray-500">Definição de valores e descontos.</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="space-y-6">
+            <div>
+                <label class="label-padrao">Acréscimo / Taxa Extra (R$)</label>
+                {% if form %}
+                    {{ form.valor_acrescimo(class="input-navy text-right font-mono", placeholder="0.00", oninput="calcularTotal()") }}
+                {% else %}
+                    <input type="number" name="acrescimo" id="inputAcrescimo" class="input-navy text-right font-mono" placeholder="0.00" step="0.01" oninput="calcularTotal()">
+                {% endif %}
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <label class="label-padrao mb-3">Aplicar Desconto</label>
+                <div class="flex gap-4 mb-3">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="tipo_desconto" value="sem" checked onchange="toggleDesconto()" class="text-navy-900 focus:ring-navy-900">
+                        <span class="text-sm font-medium text-gray-700">Sem Desconto</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="tipo_desconto" value="perc" onchange="toggleDesconto()" class="text-navy-900 focus:ring-navy-900">
+                        <span class="text-sm font-medium text-gray-700">% Percentual</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="tipo_desconto" value="real" onchange="toggleDesconto()" class="text-navy-900 focus:ring-navy-900">
+                        <span class="text-sm font-medium text-gray-700">R$ Reais</span>
+                    </label>
+                </div>
+                
+                {% if form %}
+                    {{ form.valor_desconto_aplicado(class="input-navy text-right font-mono disabled:bg-gray-100 disabled:text-gray-400 transition-colors", placeholder="0.00", disabled=True, oninput="calcularTotal()") }}
+                {% else %}
+                    <input type="number" name="valor_desconto" id="inputDesconto" class="input-navy text-right font-mono disabled:bg-gray-100 disabled:text-gray-400 transition-colors" placeholder="0.00" step="0.01" disabled oninput="calcularTotal()">
+                {% endif %}
+            </div>
+            
+            <div class="pt-4">
+                <label class="label-padrao">Observações Internas (Não sai na nota)</label>
+                {% if form %}
+                    {{ form.observacoes_internas(class="input-navy h-24 resize-none", placeholder="Anotações para a equipe...") }}
+                {% else %}
+                    <textarea name="obs_internas" class="input-navy h-24 resize-none" placeholder="Anotações para a equipe..."></textarea>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="bg-navy-900 rounded-xl p-6 text-white flex flex-col justify-between shadow-lg relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-4 opacity-10">
+                <i data-lucide="calculator" class="w-32 h-32"></i>
+            </div>
+            
+            <div class="space-y-4 relative z-10">
+                <div class="flex justify-between items-end border-b border-navy-700 pb-2">
+                    <span class="text-sm text-gray-400">Valor Base</span>
+                    <span class="text-lg font-mono" id="displayBase">R$ 0,00</span>
+                </div>
+                <div class="flex justify-between items-end border-b border-navy-700 pb-2">
+                    <span class="text-sm text-gray-400">Acréscimos</span>
+                    <span class="text-lg font-mono text-green-400" id="displayAcrescimo">+ R$ 0,00</span>
+                </div>
+                <div class="flex justify-between items-end border-b border-navy-700 pb-2">
+                    <span class="text-sm text-gray-400">Descontos</span>
+                    <span class="text-lg font-mono text-red-400" id="displayDesconto">- R$ 0,00</span>
+                </div>
+            </div>
+
+            <div class="mt-8 relative z-10">
+                <span class="block text-sm text-gray-400 uppercase tracking-widest font-bold">Total Final</span>
+                <span class="block text-4xl font-bold font-mono mt-1" id="displayTotal">R$ 0,00</span>
+            </div>
+        </div>
+    </div>
+</div>

@@ -25,6 +25,9 @@ class Colaborador(db.Model):
     
     # --- DADOS FINANCEIROS ---
     salario_base = db.Column(db.Numeric(10, 2))
+
+    # --- NOVO CAMPO: Define se o colaborador recebe meta ---
+    faz_parte_meta = db.Column(db.Boolean, default=False)
     
     # Estes campos estavam faltando:
     chave_pix = db.Column(db.String(100))

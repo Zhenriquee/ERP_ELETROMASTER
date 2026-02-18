@@ -171,6 +171,7 @@ class Venda(db.Model):
     usuario_entrega = db.relationship('Usuario', foreign_keys=[usuario_entrega_id])
 
     itens = db.relationship('ItemVenda', backref='venda', lazy=True, cascade="all, delete-orphan")
+    prioridade = db.Column(db.Boolean, default=False)
 
     @property
     def valor_pago(self):

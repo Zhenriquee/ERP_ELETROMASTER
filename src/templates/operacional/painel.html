@@ -78,7 +78,9 @@
         {% endif %}
         
         <div class="card-servico card-animado bg-white rounded-2xl shadow-lg border overflow-hidden flex flex-col relative transition-all duration-300 cursor-pointer
-            {{ 'status-producao border-blue-400' if status_code == 'producao' else 'border-gray-100 hover:border-gray-300' }}"
+            {{ 'status-producao border-blue-400' if status_code == 'producao' else 'border-gray-100 hover:border-gray-300' }}
+            {# --- BORDA VERMELHA SE FOR PRIORIDADE --- #}
+            {{ 'border-l-4 border-l-red-500 shadow-red-100' if t.prioridade else '' }}"
             data-status="{{ status_code }}"
             onclick="verDetalhes(
                 '{{ t.descricao|e }}',
@@ -90,19 +92,24 @@
             )">
     
             <div class="absolute left-0 top-0 bottom-0 w-2 
-                {{ 'bg-gray-300' if status_code == 'pendente' }}
-                {{ 'bg-blue-500' if status_code == 'producao' }}
-                {{ 'bg-yellow-400' if status_code == 'pronto' }}">
+                {{ 'bg-red-500' if t.prioridade else ('bg-gray-300' if status_code == 'pendente' else ('bg-blue-500' if status_code == 'producao' else 'bg-yellow-400')) }}">
             </div>
 
             <div class="p-6 pl-8 flex-1">
                 <div class="flex justify-between items-start mb-4">
                     <div>
-                        <div class="flex gap-2 mb-1">
+                        <div class="flex flex-wrap gap-2 mb-1">
                             <span class="inline-block px-2 py-1 rounded bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-wider">
                                 Pedido #{{ t.venda_id }}
                             </span>
                             
+                            {# --- BADGE PRIORIDADE --- #}
+                            {% if t.prioridade %}
+                            <span class="inline-flex items-center px-2 py-1 rounded bg-red-100 text-red-600 text-[10px] font-black uppercase tracking-wider animate-pulse">
+                                <i data-lucide="flame" class="w-3 h-3 mr-1"></i> URGENTE
+                            </span>
+                            {% endif %}
+
                             {% if t.tipo == 'venda' %}
                                 <span class="inline-block px-2 py-1 rounded bg-purple-100 text-purple-700 text-[10px] font-black uppercase tracking-wider">
                                     Serviço Simples
@@ -115,13 +122,22 @@
                         </div>
                         <h3 class="text-xl font-bold text-navy-900 leading-tight">{{ t.descricao }}</h3>
                     </div>
-                    <div class="shrink-0 ml-2">
+                    
+                    <div class="shrink-0 ml-2 flex flex-col gap-2">
                         {% if t.status == 'pendente' %}
                             <div class="bg-gray-100 p-2 rounded-full text-gray-400"><i data-lucide="clock" class="w-5 h-5"></i></div>
                         {% elif t.status == 'producao' %}
                             <div class="bg-blue-100 p-2 rounded-full text-blue-600 animate-spin-slow"><i data-lucide="settings" class="w-5 h-5"></i></div>
                         {% elif t.status == 'pronto' %}
                             <div class="bg-yellow-100 p-2 rounded-full text-yellow-600"><i data-lucide="package-check" class="w-5 h-5"></i></div>
+                        {% endif %}
+
+                        {# --- BOTÃO DE FOTOS --- #}
+                        {% if t.fotos %}
+                        <button onclick="event.stopPropagation(); abrirModalFotos({{ t.fotos|tojson }})" 
+                                class="p-2 bg-pink-50 text-pink-600 rounded-full hover:bg-pink-100 transition-colors shadow-sm" title="Ver Fotos">
+                            <i data-lucide="camera" class="w-5 h-5"></i>
+                        </button>
                         {% endif %}
                     </div>
                 </div>
