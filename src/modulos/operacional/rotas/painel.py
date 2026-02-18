@@ -69,8 +69,7 @@ def painel():
         # Coleta URLs das fotos (se existirem)
         fotos_urls = []
         if i.fotos:
-            fotos_urls = [url_for('static', filename=f.caminho_arquivo) for f in i.fotos]
-
+            fotos_urls = [url_for('vendas.imagem_db', foto_id=f.id) for f in i.fotos]
         tarefas.append({
             'tipo': 'item',
             'id': i.id,
@@ -121,8 +120,7 @@ def painel():
         # Coleta fotos do primeiro item (Venda simples sempre tem 1 item oculto)
         fotos_urls = []
         if v.itens and v.itens[0].fotos:
-            fotos_urls = [url_for('static', filename=f.caminho_arquivo) for f in v.itens[0].fotos]
-
+            fotos_urls = [url_for('vendas.imagem_db', foto_id=f.id) for f in v.itens[0].fotos]
         tarefas.append({
             'tipo': 'venda',
             'id': v.id,

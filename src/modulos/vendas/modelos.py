@@ -38,23 +38,6 @@ class Pagamento(db.Model):
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     usuario = db.relationship('Usuario')
 
-# --- TABELA DE FOTOS (NOVO) ---
-class FotoItemVenda(db.Model):
-    __tablename__ = 'fotos_itens_venda'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    item_venda_id = db.Column(db.Integer, db.ForeignKey('venda_itens.id'), nullable=False)
-    
-    caminho_arquivo = db.Column(db.String(255), nullable=False)
-    
-    # 'recebimento' (antes) ou 'entrega' (depois)
-    etapa = db.Column(db.String(20), nullable=False) 
-    
-    data_upload = db.Column(db.DateTime, default=hora_brasilia)
-    enviado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
-    
-    usuario = db.relationship('Usuario')
-
 # --- ITEM DA VENDA (ATUALIZADO) ---
 class ItemVenda(db.Model):
     __tablename__ = 'venda_itens'
@@ -198,3 +181,25 @@ class ItemVendaHistorico(db.Model):
     
     usuario = db.relationship('Usuario')
     item = db.relationship('ItemVenda', backref=db.backref('historico_acoes', lazy=True, cascade="all, delete-orphan"))
+
+# --- TABELA DE FOTOS (ALTERADA PARA BINÁRIO) ---
+class FotoItemVenda(db.Model):
+    __tablename__ = 'fotos_itens_venda'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    item_venda_id = db.Column(db.Integer, db.ForeignKey('venda_itens.id'), nullable=False)
+    
+    # NOVAS COLUNAS PARA ARMAZENAMENTO NO BANCO
+    nome_arquivo = db.Column(db.String(255), nullable=False) # Ex: "foto1.jpg"
+    tipo_mime = db.Column(db.String(50), nullable=False)     # Ex: "image/jpeg"
+    dados_binarios = db.Column(db.LargeBinary, nullable=False) # O arquivo em si (BLOB)
+    
+    # REMOVIDO: caminho_arquivo
+    
+    # 'recebimento' (antes) ou 'entrega' (depois) ou 'gestao'
+    etapa = db.Column(db.String(20), nullable=False) 
+    
+    data_upload = db.Column(db.DateTime, default=hora_brasilia)
+    enviado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
+    
+    usuario = db.relationship('Usuario')    

@@ -134,7 +134,7 @@
 
                         {# --- BOTÃO DE FOTOS --- #}
                         {% if t.fotos %}
-                        <button onclick="event.stopPropagation(); abrirModalFotos({{ t.fotos|tojson }})" 
+                        <button onclick='event.stopPropagation(); abrirModalFotos({{ t.fotos|tojson }})' 
                                 class="p-2 bg-pink-50 text-pink-600 rounded-full hover:bg-pink-100 transition-colors shadow-sm" title="Ver Fotos">
                             <i data-lucide="camera" class="w-5 h-5"></i>
                         </button>

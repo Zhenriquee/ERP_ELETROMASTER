@@ -1,8 +1,10 @@
-from flask import redirect, url_for, flash, request
+from flask import redirect, url_for, flash, request, jsonify, send_file
 from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
 from src.extensoes import banco_de_dados as db
-from src.modulos.vendas.modelos import Venda,  hora_brasilia, ItemVenda, ItemVendaHistorico
+from src.modulos.vendas.modelos import Venda,  hora_brasilia, ItemVenda, ItemVendaHistorico, FotoItemVenda
 from src.modulos.autenticacao.permissoes import cargo_exigido  # <--- IMPORTAR
+from io import BytesIO # Necessário para converter bytes em arquivo
 from . import bp_vendas
 
 @bp_vendas.route('/servicos/<int:id>/status/<novo_status>')
@@ -124,3 +126,72 @@ def cancelar_venda(id):
     flash('Serviço cancelado.', 'info')
     
     return redirect(url_for('vendas.listar_vendas'))
+
+
+# --- NOVA ROTA: SERVIR IMAGEM DO BANCO ---
+@bp_vendas.route('/imagem/<int:foto_id>')
+@login_required
+def imagem_db(foto_id):
+    foto = FotoItemVenda.query.get_or_404(foto_id)
+    
+    return send_file(
+        BytesIO(foto.dados_binarios),
+        mimetype=foto.tipo_mime,
+        as_attachment=False,
+        download_name=foto.nome_arquivo
+    )
+# -----------------------------------------
+
+@bp_vendas.route('/servicos/<int:id>/upload-foto', methods=['POST'])
+@login_required
+@cargo_exigido('vendas_operar')
+def upload_foto_servico(id):
+    venda = Venda.query.get_or_404(id)
+    arquivo = request.files.get('foto')
+    
+    if not arquivo:
+        return jsonify({'erro': 'Nenhum arquivo enviado'}), 400
+        
+    try:
+        # Pega o primeiro item para vincular (regra atual)
+        item_alvo = venda.itens[0] if venda.itens else None
+        if not item_alvo:
+             return jsonify({'erro': 'Venda sem itens para vincular foto'}), 400
+
+        filename = secure_filename(arquivo.filename)
+        mimetype = arquivo.mimetype
+        dados = arquivo.read()
+        
+        # Salva no banco
+        nova_foto = FotoItemVenda(
+            item_venda_id=item_alvo.id,
+            nome_arquivo=filename,
+            tipo_mime=mimetype,
+            dados_binarios=dados,
+            etapa='gestao',
+            enviado_por_id=current_user.id
+        )
+        db.session.add(nova_foto)
+        db.session.commit()
+        
+        # Retorna a URL da nova rota de imagem
+        return jsonify({
+            'sucesso': True, 
+            'url': url_for('vendas.imagem_db', foto_id=nova_foto.id)
+        })
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+# ... (Rota deletar_foto - basta remover a parte de os.remove e manter o db.delete) ...
+@bp_vendas.route('/fotos/<int:foto_id>/deletar', methods=['POST'])
+@login_required
+@cargo_exigido('vendas_operar')
+def deletar_foto(foto_id):
+    foto = FotoItemVenda.query.get_or_404(foto_id)
+    try:
+        db.session.delete(foto)
+        db.session.commit()
+        return jsonify({'sucesso': True})
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500

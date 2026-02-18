@@ -19,31 +19,30 @@ def converter_decimal(valor_str):
     except: return Decimal('0.00')
 
 def salvar_fotos_item(item_id, arquivos):
-    """Função auxiliar para salvar fotos"""
+    """Salva as fotos diretamente no Banco de Dados (BLOB)"""
     if not arquivos: return
     
-    # Cria pasta se não existir
-    upload_folder = os.path.join('src', 'static', 'uploads', 'vendas')
-    if not os.path.exists(upload_folder):
-        os.makedirs(upload_folder)
-        
     contador = 0
     for arquivo in arquivos:
-        if arquivo and arquivo.filename and contador < 3: # Limite de 3
-            filename = secure_filename(f"item_{item_id}_{hora_brasilia().strftime('%Y%m%d%H%M%S')}_{contador}.jpg")
-            caminho_completo = os.path.join(upload_folder, filename)
-            arquivo.save(caminho_completo)
+        # Verifica se o arquivo tem nome e conteúdo
+        if arquivo and arquivo.filename and contador < 3: 
+            filename = secure_filename(arquivo.filename)
+            mimetype = arquivo.mimetype or 'application/octet-stream'
             
-            # Salva no banco (caminho relativo para o HTML)
-            caminho_relativo = f"uploads/vendas/{filename}"
-            foto = FotoItemVenda(
-                item_venda_id=item_id,
-                caminho_arquivo=caminho_relativo,
-                etapa='recebimento', # Etapa inicial
-                enviado_por_id=current_user.id
-            )
-            db.session.add(foto)
-            contador += 1
+            # Lê os bytes do arquivo para a memória
+            dados = arquivo.read()
+            
+            if len(dados) > 0:
+                foto = FotoItemVenda(
+                    item_venda_id=item_id,
+                    nome_arquivo=filename,
+                    tipo_mime=mimetype,
+                    dados_binarios=dados, # Salva aqui!
+                    etapa='recebimento',
+                    enviado_por_id=current_user.id
+                )
+                db.session.add(foto)
+                contador += 1
 
 @bp_vendas.route('/nova', methods=['GET', 'POST'])
 @login_required

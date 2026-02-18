@@ -1,4 +1,4 @@
-from flask import jsonify, request
+from flask import jsonify, request, url_for
 from flask_login import login_required
 from src.extensoes import banco_de_dados as db
 from src.modulos.vendas.modelos import Venda, CorServico
@@ -56,3 +56,44 @@ def buscar_produtos():
         })
         
     return jsonify(resultados)
+
+
+@bp_vendas.route('/api/servico/<int:id>/detalhes')
+@login_required
+def detalhes_servico(id):
+    venda = Venda.query.get_or_404(id)
+    
+    # Coleta fotos de TODOS os itens da venda
+    fotos = []
+    itens_dados = []
+    
+    for item in venda.itens:
+        # Dados do Item
+        itens_dados.append({
+            'id': item.id,
+            'descricao': item.descricao,
+            'medidas': f"{float(venda.dimensao_1 or 0)} x {float(venda.dimensao_2 or 0)}" if venda.modo == 'simples' else "Sob Medida",
+            'qtd': item.quantidade,
+            'material': item.produto.nome if item.produto else (item.cor.nome if item.cor else '-')
+        })
+        
+        # Fotos do Item
+        for foto in item.fotos:
+            fotos.append({
+                'id': foto.id,
+                # MUDANÇA AQUI: Aponta para a rota que lê do banco
+                'url': url_for('vendas.imagem_db', foto_id=foto.id),
+                'nome': foto.nome_arquivo
+            })
+            
+    return jsonify({
+        'id': venda.id,
+        'modo': venda.modo,
+        'observacoes': venda.observacoes_internas,
+        'itens': itens_dados,
+        'fotos': fotos,
+        'dimensao_1': float(venda.dimensao_1 or 0),
+        'dimensao_2': float(venda.dimensao_2 or 0),
+        'dimensao_3': float(venda.dimensao_3 or 0),
+        'tipo_medida': venda.tipo_medida
+    })
