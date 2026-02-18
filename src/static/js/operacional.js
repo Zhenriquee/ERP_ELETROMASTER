@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // --- FUNÇÕES DE FILTRO ---
+// --- FUNÇÕES DE FILTRO ---
 function filtrarCards(status) {
     const cards = document.querySelectorAll('.card-servico');
     const steps = document.querySelectorAll('.step-pipeline');
@@ -63,7 +64,7 @@ function filtrarCards(status) {
     localStorage.setItem('filtroProducao', status);
 
     steps.forEach(step => {
-        step.classList.remove('ativo', 'ring-2', 'ring-offset-2', 'ring-gray-300', 'ring-blue-500', 'ring-yellow-500');
+        step.classList.remove('ativo', 'ring-2', 'ring-offset-2', 'ring-gray-300', 'ring-blue-500', 'ring-yellow-500', 'ring-orange-500');
     });
 
     const stepAtivo = document.getElementById(`step-${status}`);
@@ -71,6 +72,7 @@ function filtrarCards(status) {
         stepAtivo.classList.add('ativo', 'ring-2', 'ring-offset-2');
         if(status === 'pendente') stepAtivo.classList.add('ring-gray-300');
         if(status === 'producao') stepAtivo.classList.add('ring-blue-500');
+        if(status === 'retrabalho') stepAtivo.classList.add('ring-orange-500'); // NOVO
         if(status === 'pronto') stepAtivo.classList.add('ring-yellow-500');
     }
 
@@ -102,6 +104,7 @@ function filtrarCards(status) {
             const tituloEmpty = emptyState.querySelector('h3');
             if(tituloEmpty) {
                 if(status === 'producao') tituloEmpty.innerText = "Nada sendo produzido agora!";
+                else if(status === 'retrabalho') tituloEmpty.innerText = "Nenhum retrabalho pendente!";
                 else if(status === 'pronto') tituloEmpty.innerText = "Nenhum item aguardando entrega!";
                 else tituloEmpty.innerText = "Nenhum serviço nesta etapa!";
             }

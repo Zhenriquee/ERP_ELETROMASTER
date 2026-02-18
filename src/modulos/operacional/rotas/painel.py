@@ -29,18 +29,18 @@ def calcular_tempo_decorrido(data_inicio):
 @cargo_exigido('producao_operar')
 def painel():
     
-    # 1. Busca ITENS (Vendas Múltiplas)
+    # 1. Busca ITENS (Vendas Múltiplas) - Adicionado 'retrabalho'
     itens_multi = ItemVenda.query.join(Venda).filter(
-        ItemVenda.status.in_(['pendente', 'producao', 'pronto']),
+        ItemVenda.status.in_(['pendente', 'producao', 'retrabalho', 'pronto']),
         Venda.status != 'cancelado',
         Venda.status != 'orcamento',
         Venda.modo == 'multipla'
     ).all()
 
-    # 2. Busca VENDAS SIMPLES
+    # 2. Busca VENDAS SIMPLES - Adicionado 'retrabalho'
     vendas_simples = Venda.query.filter(
         Venda.modo == 'simples',
-        Venda.status.in_(['pendente', 'producao', 'pronto']),
+        Venda.status.in_(['pendente', 'producao', 'retrabalho', 'pronto']),
         Venda.status != 'orcamento'
     ).all()
 
@@ -54,9 +54,15 @@ def painel():
 
         data_ref = i.venda.criado_em
         tempo_label = "Tempo em Fila"
+        
+        # Lógica de Tempo para Retrabalho
         if i.status == 'producao':
             data_ref = i.data_inicio_producao or i.venda.criado_em
             tempo_label = "Tempo em Execução"
+        elif i.status == 'retrabalho':
+            # Usa data de início de produção ou a última ação
+            data_ref = i.data_inicio_producao or i.venda.criado_em
+            tempo_label = "Tempo em Retrabalho"
         elif i.status == 'pronto':
             data_ref = i.data_pronto or i.venda.criado_em
             tempo_label = "Tempo Aguardando"
@@ -66,10 +72,10 @@ def painel():
             un = "m³" if i.tipo_medida == 'm3' else "m²"
             metragem_texto = f"{float(i.metragem_total):.2f} {un}"
 
-        # Coleta URLs das fotos (se existirem)
         fotos_urls = []
         if i.fotos:
             fotos_urls = [url_for('vendas.imagem_db', foto_id=f.id) for f in i.fotos]
+            
         tarefas.append({
             'tipo': 'item',
             'id': i.id,
@@ -81,11 +87,10 @@ def painel():
             'cliente': i.venda.cliente_nome,
             'obs': i.venda.observacoes_internas,
             'criado_em': i.venda.criado_em,
-            'is_producao': (i.status == 'producao'),
+            'is_producao': (i.status in ['producao', 'retrabalho']), # Considera retrabalho como produção ativa
             'tempo_decorrido': calcular_tempo_decorrido(data_ref),
             'tempo_label': tempo_label,
             'metragem': metragem_texto,
-            # NOVOS CAMPOS
             'prioridade': i.venda.prioridade,
             'fotos': fotos_urls
         })
@@ -98,9 +103,13 @@ def painel():
 
         data_ref = v.criado_em
         tempo_label = "Tempo em Fila"
+        
         if v.status == 'producao':
             data_ref = v.data_inicio_producao or v.criado_em
             tempo_label = "Tempo em Execução"
+        elif v.status == 'retrabalho':
+            data_ref = v.data_inicio_producao or v.criado_em
+            tempo_label = "Tempo em Retrabalho"
         elif v.status == 'pronto':
             data_ref = v.data_pronto or v.criado_em
             tempo_label = "Tempo Aguardando"
@@ -117,10 +126,10 @@ def painel():
             un = "m³" if v.tipo_medida == 'm3' else "m²"
             metragem_texto = f"{float(v.metragem_total):.2f} {un} {dimensoes}"
 
-        # Coleta fotos do primeiro item (Venda simples sempre tem 1 item oculto)
         fotos_urls = []
         if v.itens and v.itens[0].fotos:
             fotos_urls = [url_for('vendas.imagem_db', foto_id=f.id) for f in v.itens[0].fotos]
+            
         tarefas.append({
             'tipo': 'venda',
             'id': v.id,
@@ -133,20 +142,21 @@ def painel():
             'cliente': v.cliente_nome,
             'obs': v.observacoes_internas,
             'criado_em': v.criado_em,
-            'is_producao': (v.status == 'producao'),
+            'is_producao': (v.status in ['producao', 'retrabalho']),
             'tempo_decorrido': calcular_tempo_decorrido(data_ref),
             'tempo_label': tempo_label,
             'metragem': metragem_texto,
-            # NOVOS CAMPOS
             'prioridade': v.prioridade,
             'fotos': fotos_urls
         })
 
-    # Ordenação: Prioridade primeiro, depois quem está em produção
+    # Ordenação
     tarefas.sort(key=lambda x: (not x['prioridade'], not x['is_producao'], x['criado_em']))
 
+    # Contadores
     qtd_fila = sum(1 for t in tarefas if t['status'] == 'pendente')
     qtd_producao = sum(1 for t in tarefas if t['status'] == 'producao')
+    qtd_retrabalho = sum(1 for t in tarefas if t['status'] == 'retrabalho') # NOVO
     qtd_pronto = sum(1 for t in tarefas if t['status'] == 'pronto')
     
     produtos_estoque = ProdutoEstoque.query.filter_by(ativo=True).order_by(ProdutoEstoque.nome).all()
@@ -154,6 +164,7 @@ def painel():
     return render_template('operacional/painel.html', 
                            tarefas=tarefas,
                            qtd_fila=qtd_fila, 
-                           qtd_producao=qtd_producao, 
+                           qtd_producao=qtd_producao,
+                           qtd_retrabalho=qtd_retrabalho, # Passando novo contador
                            qtd_pronto=qtd_pronto,
                            produtos_estoque=produtos_estoque)

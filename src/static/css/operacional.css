@@ -71,3 +71,20 @@
 .arrow-separator {
     color: #cbd5e1;
 }
+
+/* --- Status Retrabalho (Laranja) --- */
+.status-retrabalho {
+    border-color: #f97316; /* orange-500 */
+}
+
+.card-animado.status-retrabalho {
+    animation: 
+        slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards, 
+        softPulseOrange 2s infinite;
+}
+
+@keyframes softPulseOrange {
+    0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); border-color: #f97316; }
+    70% { box-shadow: 0 0 0 10px rgba(249, 115, 22, 0); border-color: #fb923c; }
+    100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); border-color: #f97316; }
+}
