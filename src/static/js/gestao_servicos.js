@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const areaPagamento = document.getElementById('areaPagamento');
     const msgPago = document.getElementById('msgPago');
     
+    // Controle de Abas
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             tabs.forEach(t => {
@@ -92,16 +93,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Abrir Modal
     const btnsAbrir = document.querySelectorAll('.btn-abrir-modal');
     btnsAbrir.forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             const d = this.dataset;
+            const vendaId = d.id; // ID da venda para usar nas fotos
             
+            // Preenche dados básicos
             document.getElementById('modalTitulo').innerText = `Serviço #${d.id} - ${d.cliente}`;
             document.getElementById('modalDescricao').innerText = d.descricao;
             document.getElementById('modalContato').innerText = d.contato || '--';
             
+            // Botão WhatsApp
             if(d.contato) {
                 const num = d.contato.replace(/\D/g, '');
                 if(num.length >= 10) {
@@ -110,6 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else { btnWhatsapp.classList.add('hidden'); }
             } else { btnWhatsapp.classList.add('hidden'); }
 
+            // Histórico e Timeline
             try {
                 const hist = JSON.parse(d.historico);
                 document.getElementById('modalVendedor').innerText = hist.vendedor || '--';
@@ -117,12 +123,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 montarTimeline(hist);
             } catch(e) { console.error('Erro historico', e); }
 
+            // Botões de Ação (Status)
             gerarBotoesStatus(d.id, d.status);
 
+            // Aba Financeira
             if(document.getElementById('modalRestanteDisplay')) {
                 const restante = parseFloat(d.restante);
-                
-                // Formatação manual para o modal, já que é dinâmico
                 document.getElementById('modalRestanteDisplay').innerText = restante.toLocaleString('pt-BR', {minimumFractionDigits: 2});
                 
                 if(formPagamento) formPagamento.action = `/vendas/servicos/${d.id}/pagamento`;
@@ -145,11 +151,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if(formCancelar) formCancelar.action = `/vendas/servicos/${d.id}/cancelar`;
             
+            // --- NOVO: Carregar Detalhes Técnicos e Fotos ---
+            if(typeof carregarDetalhesTecnicos === 'function') {
+                carregarDetalhesTecnicos(vendaId);
+            }
+
+            // --- NOVO: Configurar Input de Upload ---
+            const inputFoto = document.getElementById('inputNovaFoto');
+            if(inputFoto) {
+                // Clona o input para remover listeners antigos e evitar duplicação de eventos
+                const novoInput = inputFoto.cloneNode(true);
+                inputFoto.parentNode.replaceChild(novoInput, inputFoto);
+                
+                novoInput.addEventListener('change', function() {
+                    if (this.files && this.files[0]) {
+                        uploadFoto(vendaId, this.files[0]);
+                    }
+                });
+            }
+
+            // Reseta para a primeira aba e mostra modal
             if(tabs.length > 0) tabs[0].click();
             modal.classList.remove('hidden');
         });
     });
 
+    // Funções Auxiliares do Modal
     function formatarData(dataStr) {
         if(!dataStr) return '--';
         if(dataStr.includes('T') || dataStr.includes(' ')) {
@@ -250,3 +277,115 @@ document.addEventListener('DOMContentLoaded', function() {
     if(btnFechar) btnFechar.addEventListener('click', fechar);
     if(overlay) overlay.addEventListener('click', fechar);
 });
+
+// =========================================================================
+// FUNÇÕES GLOBAIS (FORA DO DOMContentLoaded PARA SEREM ACESSÍVEIS)
+// =========================================================================
+
+// Carrega os dados da Aba Técnico & Arquivos
+window.carregarDetalhesTecnicos = async function(id) {
+    const container = document.getElementById('detalhesTecnicosContainer');
+    const galeria = document.getElementById('galeriaFotos');
+    const vazio = document.getElementById('msgSemFotos');
+    
+    if(container) container.innerHTML = '<p class="text-gray-400 text-xs animate-pulse">Carregando dados...</p>';
+    
+    try {
+        const res = await fetch(`/vendas/api/servico/${id}/detalhes`);
+        const data = await res.json();
+        
+        // 1. Renderiza Dados Técnicos
+        let htmlTec = '';
+        if (data.modo === 'simples') {
+            htmlTec += `<div><span class="block text-xs text-gray-400 uppercase">Medidas</span><span class="font-bold text-navy-900">${data.dimensao_1} x ${data.dimensao_2}</span></div>`;
+            htmlTec += `<div><span class="block text-xs text-gray-400 uppercase">Tipo</span><span class="font-bold text-navy-900">${data.tipo_medida}</span></div>`;
+        }
+        
+        // Lista Itens com material e quantidade
+        data.itens.forEach((item) => {
+            htmlTec += `<div class="col-span-2 border-t border-gray-100 pt-2 mt-2">
+                <p class="font-bold text-navy-900">${item.descricao}</p>
+                <p class="text-xs text-gray-500">${item.material} • ${item.qtd} un</p>
+            </div>`;
+        });
+        
+        if(container) container.innerHTML = htmlTec;
+
+        // 2. Renderiza Galeria de Fotos
+        if(galeria) {
+            galeria.innerHTML = '';
+            if (data.fotos && data.fotos.length > 0) {
+                if(vazio) vazio.classList.add('hidden');
+                
+                data.fotos.forEach(f => {
+                    const div = document.createElement('div');
+                    div.className = "relative group rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-100";
+                    div.innerHTML = `
+                        <img src="${f.url}" class="w-full h-full object-cover cursor-pointer transition-transform hover:scale-110" onclick="window.open('${f.url}', '_blank')">
+                        <button onclick="deletarFoto('${f.id}', '${id}')" class="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-sm" title="Excluir">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
+                    `;
+                    galeria.appendChild(div);
+                });
+            } else {
+                if(vazio) vazio.classList.remove('hidden');
+            }
+        }
+        
+        if(typeof lucide !== 'undefined') lucide.createIcons();
+
+    } catch (error) {
+        console.error(error);
+        if(container) container.innerHTML = '<p class="text-red-500 text-xs">Erro ao carregar detalhes.</p>';
+    }
+};
+
+// Envia a foto para o servidor
+window.uploadFoto = async function(vendaId, file) {
+    const formData = new FormData();
+    formData.append('foto', file);
+    
+    const btnLabel = document.querySelector('label[for="inputNovaFoto"]');
+    const originalText = btnLabel ? btnLabel.innerHTML : 'Nova Foto';
+    
+    // Mostra loading no botão
+    if(btnLabel) btnLabel.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 mr-1 animate-spin"></i> ...';
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+
+    try {
+        const res = await fetch(`/vendas/servicos/${vendaId}/upload-foto`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        
+        if (data.sucesso) {
+            // Sucesso: Recarrega a lista de fotos
+            carregarDetalhesTecnicos(vendaId);
+        } else {
+            alert('Erro: ' + data.erro);
+        }
+    } catch (e) {
+        alert('Erro no upload.');
+        console.error(e);
+    } finally {
+        // Restaura o botão original
+        if(btnLabel) btnLabel.innerHTML = originalText;
+        if(typeof lucide !== 'undefined') lucide.createIcons();
+    }
+};
+
+// Deleta foto (função chamada pelo botão de lixeira nas fotos)
+window.deletarFoto = async function(fotoId, vendaId) {
+    if(!confirm('Excluir esta imagem?')) return;
+    
+    try {
+        const res = await fetch(`/vendas/fotos/${fotoId}/deletar`, { method: 'POST' });
+        if (res.ok) {
+            carregarDetalhesTecnicos(vendaId);
+        } else {
+            alert('Erro ao excluir.');
+        }
+    } catch(e) { console.error(e); }
+};

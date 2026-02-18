@@ -28,15 +28,25 @@ document.addEventListener('DOMContentLoaded', function() {
         row.className = 'hover:bg-gray-50 transition-colors group';
         row.id = `linha-${index}`;
         
+        // AQUI ESTÁ A MUDANÇA: Inclusão da coluna de Fotos
         row.innerHTML = `
             <td class="p-2 align-top">
-                <input type="text" name="itens[${index}][descricao]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy-900 outline-none" placeholder="Ex: Pintura Portão" required>
+                <input type="text" name="itens[${index}][descricao]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy-900 outline-none" placeholder="Ex: Grade Janela" required>
             </td>
             <td class="p-2 align-top">
                 <select name="itens[${index}][produto_id]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-navy-900 outline-none" required>
                     ${optionsProd}
                 </select>
             </td>
+            
+            <td class="p-2 align-top text-center">
+                <label class="inline-flex flex-col items-center justify-center p-2 border border-dashed border-gray-400 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-500 transition-all text-gray-500 hover:text-blue-600 w-full h-full">
+                    <i data-lucide="camera" class="w-4 h-4 mb-1"></i>
+                    <span class="text-[10px] font-bold leading-none" id="label-foto-${index}">Add Foto</span>
+                    <input type="file" name="itens[${index}][fotos]" multiple accept="image/*" class="hidden" onchange="atualizarLabelFoto(this, ${index})">
+                </label>
+            </td>
+
             <td class="p-2 align-top">
                 <input type="number" name="itens[${index}][qtd]" id="qtd-${index}" value="1" min="0.1" step="0.1" 
                        class="w-full px-2 py-2 border border-gray-300 rounded-lg text-center text-sm font-bold focus:ring-2 focus:ring-navy-900 outline-none" 
@@ -62,6 +72,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if(typeof lucide !== 'undefined') lucide.createIcons();
     };
+
+    // --- FUNÇÃO PARA ATUALIZAR CONTADOR DE FOTOS ---
+    window.atualizarLabelFoto = function(input, index) {
+        const label = document.getElementById(`label-foto-${index}`);
+        if(input.files && input.files.length > 0) {
+            const qtd = input.files.length;
+            label.innerText = qtd + (qtd === 1 ? ' Foto' : ' Fotos');
+            label.classList.add('text-green-600');
+        } else {
+            label.innerText = 'Add Foto';
+            label.classList.remove('text-green-600');
+        }
+    }
 
     // --- REMOVER LINHA ---
     window.removerLinha = function(index) {
@@ -110,7 +133,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Pega valores do componente Financeiro
         const acrescimo = parseFloat(document.getElementById('inputAcrescimo').value) || 0;
         
-        // Verifica se é form Flask ou input manual para o desconto
         let descValor = 0;
         let descTipo = 'sem';
         
@@ -120,7 +142,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if(inputDescFlask) descValor = parseFloat(inputDescFlask.value) || 0;
         else if(inputDescManual) descValor = parseFloat(inputDescManual.value) || 0;
 
-        // Verifica radio de desconto
         const radiosTipo = document.getElementsByName('tipo_desconto');
         for(let r of radiosTipo) {
             if(r.checked) {
@@ -141,21 +162,17 @@ document.addEventListener('DOMContentLoaded', function() {
         let final = baseCalculo - descontoReais;
         if (final < 0) final = 0;
 
-        // Atualiza Displays do Componente Financeiro
         document.getElementById('displayBase').innerText = `R$ ${subtotal.toFixed(2)}`;
         document.getElementById('displayAcrescimo').innerText = `+ R$ ${acrescimo.toFixed(2)}`;
         document.getElementById('displayDesconto').innerText = `- R$ ${descontoReais.toFixed(2)}`;
         document.getElementById('displayTotal').innerText = `R$ ${final.toFixed(2)}`;
         
-        // Atualiza inputs ocultos se existirem (para submit)
-        const hiddenTotal = document.getElementById('hiddenTotalFinal'); // Se houver no HTML legado
+        const hiddenTotal = document.getElementById('hiddenTotalFinal'); 
         if(hiddenTotal) hiddenTotal.value = final.toFixed(2);
     };
     
-    // Alias para compatibilidade
     window.calcularFinal = window.calcularTotal;
 
-    // --- TOGGLE DESCONTO ---
     window.toggleDesconto = function() {
         const radios = document.getElementsByName('tipo_desconto');
         let tipo = 'sem';
@@ -174,37 +191,30 @@ document.addEventListener('DOMContentLoaded', function() {
         calcularTotal();
     };
 
-    // --- LÓGICA DE CLIENTE (Toggle PF/PJ) ---
     window.alternarTipoCliente = function(tipo) {
         const areaPf = document.getElementById('campos-pf');
         const areaPj = document.getElementById('campos-pj');
         
-        if (!areaPf || !areaPj) return; // Proteção
+        if (!areaPf || !areaPj) return;
 
         if (tipo === 'PF') {
             areaPf.classList.remove('hidden');
             areaPj.classList.add('hidden');
-            
-            // Ajusta required
             areaPf.querySelectorAll('input').forEach(i => { if(i.name !== 'pf_cpf') i.required = true; });
             areaPj.querySelectorAll('input').forEach(i => i.required = false);
         } else {
             areaPf.classList.add('hidden');
             areaPj.classList.remove('hidden');
-            
             areaPf.querySelectorAll('input').forEach(i => i.required = false);
             areaPj.querySelectorAll('input').forEach(i => { if(i.name !== 'pj_cnpj') i.required = true; });
         }
     };
     
-    // Alias para compatibilidade com código antigo se necessário
     window.toggleTipoCliente = function() {
         const select = document.getElementById('tipo_cliente');
-        // Se for select (legado) ou radio
         if(select && select.tagName === 'SELECT') alternarTipoCliente(select.value);
     }
 
-    // --- MÁSCARAS ---
     window.mascaraCpf = function(i){
         let v = i.value.replace(/\D/g,"");
         v=v.replace(/(\d{3})(\d)/,"$1.$2");
@@ -221,7 +231,6 @@ document.addEventListener('DOMContentLoaded', function() {
         i.value = v.substring(0, 18);
     }
 
-    // --- VALIDAÇÃO AO ENVIAR ---
     const formSubmit = document.getElementById('formMultiplo');
     if(formSubmit) {
         formSubmit.addEventListener('submit', function(e) {
@@ -232,15 +241,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert("Adicione pelo menos um item à venda.");
                 return;
             }
-            
-            // Recalcula final antes de enviar para garantir
             calcularTotal();
         });
     }
 
     if(typeof lucide !== 'undefined') lucide.createIcons();
     
-    // Inicialização
     if(document.querySelector('input[name="tipo_cliente"]:checked')) {
         alternarTipoCliente(document.querySelector('input[name="tipo_cliente"]:checked').value);
     } else {

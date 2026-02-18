@@ -63,7 +63,6 @@ def buscar_produtos():
 def detalhes_servico(id):
     venda = Venda.query.get_or_404(id)
     
-    # Coleta fotos de TODOS os itens da venda
     fotos = []
     itens_dados = []
     
@@ -77,11 +76,10 @@ def detalhes_servico(id):
             'material': item.produto.nome if item.produto else (item.cor.nome if item.cor else '-')
         })
         
-        # Fotos do Item
+        # Fotos do Item (Apontando para a rota de imagem do banco)
         for foto in item.fotos:
             fotos.append({
                 'id': foto.id,
-                # MUDANÇA AQUI: Aponta para a rota que lê do banco
                 'url': url_for('vendas.imagem_db', foto_id=foto.id),
                 'nome': foto.nome_arquivo
             })

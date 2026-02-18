@@ -160,7 +160,7 @@ def nova_venda_multipla():
 @cargo_exigido('vendas_operar')
 def salvar_venda_multipla():
     try:
-        # ... (Logica Cliente igual) ...
+        # ... (Lógica Cliente igual) ...
         tipo_cliente = request.form.get('tipo_cliente')
         if tipo_cliente == 'PF':
             nome = request.form.get('pf_nome')
@@ -171,12 +171,12 @@ def salvar_venda_multipla():
             doc = request.form.get('pj_cnpj')
             solicitante = request.form.get('pj_solicitante')
 
-        # Captura Prioridade (Checkbox no HTML retorna 'on' ou nada)
+        # Captura Prioridade
         is_prioridade = True if request.form.get('prioridade') == 'on' else False
 
         nova_venda = Venda(
             modo='multipla',
-            prioridade=is_prioridade, # <--- NOVO
+            prioridade=is_prioridade,
             tipo_cliente=tipo_cliente,
             cliente_nome=nome,
             cliente_documento=doc,
@@ -195,10 +195,11 @@ def salvar_venda_multipla():
         itens_para_adicionar = []
         valor_base_total = Decimal(0)
         
-        # ... (Processamento de Itens igual) ...
+        # --- Processamento de Itens ---
         dados_itens = {}
         for key, value in request.form.items():
             if key.startswith('itens['):
+                # Formato: itens[0][campo]
                 parts = key.replace(']', '').split('[')
                 idx = int(parts[1])
                 field = parts[2]
@@ -206,6 +207,9 @@ def salvar_venda_multipla():
                 dados_itens[idx][field] = value
 
         primeiro_produto_id = None
+
+        # Lista para guardar (item_objeto, indice_original) para salvar fotos depois
+        itens_com_idx = []
 
         for idx, item_data in dados_itens.items():
             qtd = Decimal(item_data['qtd'])
@@ -225,6 +229,7 @@ def salvar_venda_multipla():
                 status='pendente'
             )
             itens_para_adicionar.append(novo_item)
+            itens_com_idx.append((novo_item, idx)) # Guarda o par (Item, Índice)
 
         # ... (Cálculo Financeiro igual) ...
         nova_venda.valor_base = valor_base_total
@@ -250,15 +255,20 @@ def salvar_venda_multipla():
 
         db.session.add(nova_venda)
         db.session.flush() 
-        
-        primeiro_item_salvo = None # Referência para salvar as fotos
 
-        for i, item in enumerate(itens_para_adicionar):
+        # Salva itens e suas respectivas fotos
+        for item, original_idx in itens_com_idx:
             item.venda_id = nova_venda.id
             db.session.add(item)
-            db.session.flush() 
+            db.session.flush() # Gera ID do item
             
-            if i == 0: primeiro_item_salvo = item # Pega o primeiro item para vincular as fotos gerais
+            # --- NOVA LÓGICA DE FOTOS POR ITEM ---
+            # Busca arquivos especificos deste indice: itens[0][fotos], itens[1][fotos]...
+            chave_arquivo = f'itens[{original_idx}][fotos]'
+            arquivos = request.files.getlist(chave_arquivo)
+            
+            if arquivos:
+                salvar_fotos_item(item.id, arquivos)
 
             # Log... (mantido)
             log = ItemVendaHistorico(
@@ -270,12 +280,6 @@ def salvar_venda_multipla():
                 data_acao=hora_brasilia()
             )
             db.session.add(log)
-            
-        # --- SALVAR FOTOS (Venda Múltipla) ---
-        # Vinculamos as fotos gerais ao PRIMEIRO item da lista, já que o modelo exige vínculo com Item
-        if primeiro_item_salvo:
-            arquivos = request.files.getlist('fotos_pecas')
-            salvar_fotos_item(primeiro_item_salvo.id, arquivos)
 
         db.session.commit()
         flash(f'Venda Múltipla #{nova_venda.id} criada com sucesso!', 'success')

@@ -189,17 +189,14 @@ class FotoItemVenda(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     item_venda_id = db.Column(db.Integer, db.ForeignKey('venda_itens.id'), nullable=False)
     
-    # NOVAS COLUNAS PARA ARMAZENAMENTO NO BANCO
-    nome_arquivo = db.Column(db.String(255), nullable=False) # Ex: "foto1.jpg"
-    tipo_mime = db.Column(db.String(50), nullable=False)     # Ex: "image/jpeg"
-    dados_binarios = db.Column(db.LargeBinary, nullable=False) # O arquivo em si (BLOB)
+    # SALVANDO NO BANCO (BLOB)
+    nome_arquivo = db.Column(db.String(255), nullable=False)
+    tipo_mime = db.Column(db.String(50), nullable=False) # ex: image/jpeg
+    dados_binarios = db.Column(db.LargeBinary, nullable=False) # Arquivo real
     
-    # REMOVIDO: caminho_arquivo
-    
-    # 'recebimento' (antes) ou 'entrega' (depois) ou 'gestao'
-    etapa = db.Column(db.String(20), nullable=False) 
+    etapa = db.Column(db.String(20), nullable=False) # 'recebimento' ou 'gestao'
     
     data_upload = db.Column(db.DateTime, default=hora_brasilia)
     enviado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
     
-    usuario = db.relationship('Usuario')    
+    usuario = db.relationship('Usuario')

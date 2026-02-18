@@ -128,7 +128,7 @@ def cancelar_venda(id):
     return redirect(url_for('vendas.listar_vendas'))
 
 
-# --- NOVA ROTA: SERVIR IMAGEM DO BANCO ---
+# --- ROTA PARA SERVIR IMAGEM DO BANCO ---
 @bp_vendas.route('/imagem/<int:foto_id>')
 @login_required
 def imagem_db(foto_id):
@@ -142,6 +142,7 @@ def imagem_db(foto_id):
     )
 # -----------------------------------------
 
+# --- UPLOAD DE FOTO (MODAL) ---
 @bp_vendas.route('/servicos/<int:id>/upload-foto', methods=['POST'])
 @login_required
 @cargo_exigido('vendas_operar')
@@ -153,14 +154,14 @@ def upload_foto_servico(id):
         return jsonify({'erro': 'Nenhum arquivo enviado'}), 400
         
     try:
-        # Pega o primeiro item para vincular (regra atual)
+        # Vincula ao primeiro item da venda
         item_alvo = venda.itens[0] if venda.itens else None
         if not item_alvo:
              return jsonify({'erro': 'Venda sem itens para vincular foto'}), 400
 
         filename = secure_filename(arquivo.filename)
-        mimetype = arquivo.mimetype
-        dados = arquivo.read()
+        mimetype = arquivo.mimetype or 'application/octet-stream'
+        dados = arquivo.read() # Lê o arquivo para memória
         
         # Salva no banco
         nova_foto = FotoItemVenda(
@@ -174,7 +175,6 @@ def upload_foto_servico(id):
         db.session.add(nova_foto)
         db.session.commit()
         
-        # Retorna a URL da nova rota de imagem
         return jsonify({
             'sucesso': True, 
             'url': url_for('vendas.imagem_db', foto_id=nova_foto.id)
@@ -183,7 +183,7 @@ def upload_foto_servico(id):
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
-# ... (Rota deletar_foto - basta remover a parte de os.remove e manter o db.delete) ...
+# --- DELETAR FOTO ---
 @bp_vendas.route('/fotos/<int:foto_id>/deletar', methods=['POST'])
 @login_required
 @cargo_exigido('vendas_operar')
