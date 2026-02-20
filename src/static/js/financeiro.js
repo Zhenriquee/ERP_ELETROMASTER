@@ -12,9 +12,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const divFuncionario = document.getElementById('div-funcionario');
     const inputCNPJ = document.getElementById('cnpj');
 
-    // --- ELEMENTOS DE RECORRÊNCIA (NOVO) ---
-    const chkRecorrente = document.getElementById('recorrente');
+    // --- ELEMENTOS DE RECORRÊNCIA E TIPO ---
+    const toggleTipo = document.getElementById('toggleTipo');
+    const areaEstoque = document.getElementById('area-estoque');
+    const divDescricao = document.getElementById('div-descricao');
+    const divCategoria = document.getElementById('div-categoria');
+    const divTipoCusto = document.getElementById('div-tipo-custo');
+    const areaExtras = document.getElementById('area-extras');
+    
+    const chkRecorrente = document.getElementById('checkRecorrente');
     const divRepeticoes = document.getElementById('div-repeticoes');
+    const labelRecorrente = document.getElementById('labelRecorrente');
+    const labelQtd = document.getElementById('labelQtd');
+    const labelSulfixoQtd = document.getElementById('labelSulfixoQtd');
+    const avisoParcelamento = document.getElementById('aviso-parcelamento');
 
     // --- 1. LÓGICA DE PAGAMENTO (Boleto/Pix) ---
     if (selectFormaPagamento) {
@@ -49,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
         atualizarCamposCategoria();
     }
 
-    // --- 3. LÓGICA DE RECORRÊNCIA (AQUI ESTÁ O CÓDIGO NOVO) ---
+    // --- 3. LÓGICA DE RECORRÊNCIA E PARCELAMENTO ---
     if (chkRecorrente && divRepeticoes) {
         chkRecorrente.addEventListener('change', function() {
             if (this.checked) {
@@ -59,15 +70,57 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Garante estado correto se a página recarregar com erro de validação
-        if (chkRecorrente.checked) {
-            divRepeticoes.classList.remove('hidden');
-        } else {
-            divRepeticoes.classList.add('hidden');
+        if (chkRecorrente.checked) divRepeticoes.classList.remove('hidden');
+    }
+
+    // --- 4. LÓGICA DO TIPO DE DESPESA (COMPRA x DESPESA) ---
+    if (toggleTipo) {
+        function atualizarInterfaceTipo() {
+            if (toggleTipo.checked) {
+                // MODO COMPRA DE ESTOQUE
+                areaEstoque.classList.remove('hidden');
+                divDescricao.classList.add('hidden');
+                divCategoria.classList.add('hidden');
+                divTipoCusto.classList.add('hidden');
+                
+                // Muda Recorrência para Parcelamento
+                labelRecorrente.innerText = "Esta compra foi parcelada?";
+                labelQtd.innerText = "Nº Parcelas:";
+                labelSulfixoQtd.innerText = "x";
+                if(avisoParcelamento) avisoParcelamento.classList.remove('hidden');
+                
+                // Força visualização do Fornecedor e Recorrência (agora parcelamento)
+                if(divFornecedor) divFornecedor.classList.remove('hidden');
+                
+            } else {
+                // MODO DESPESA COMUM
+                areaEstoque.classList.add('hidden');
+                divDescricao.classList.remove('hidden');
+                divCategoria.classList.remove('hidden');
+                divTipoCusto.classList.remove('hidden');
+                
+                // Restaura Recorrência padrão
+                labelRecorrente.innerText = "Esta é uma despesa recorrente?";
+                labelQtd.innerText = "Repetir por:";
+                labelSulfixoQtd.innerText = "meses";
+                if(avisoParcelamento) avisoParcelamento.classList.add('hidden');
+                
+                // Atualiza categoria para decidir sobre fornecedor
+                if (selectCategoria) selectCategoria.dispatchEvent(new Event('change'));
+            }
+        }
+
+        toggleTipo.addEventListener('change', atualizarInterfaceTipo);
+        atualizarInterfaceTipo(); // Init
+        
+        // Adiciona a primeira linha de produto se a tabela estiver vazia E o modo for estoque
+        const tbody = document.getElementById('listaProdutos');
+        if (toggleTipo.checked && tbody && tbody.children.length === 0) {
+            adicionarLinhaProduto();
         }
     }
 
-    // --- 4. MÁSCARA CNPJ ---
+    // --- 5. MÁSCARA CNPJ ---
     if (inputCNPJ) {
         inputCNPJ.addEventListener('input', function(e) {
             let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,3})(\d{0,3})(\d{0,4})(\d{0,2})/);
@@ -75,38 +128,92 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-// --- 5. FILTROS DO PAINEL (ATUALIZADO) ---
+    // --- 6. FILTROS DO PAINEL ---
     const filtroPeriodo = document.getElementById('filtroPeriodo');
-    const filtroCat = document.getElementById('filtroCat');
-    const filtroStatus = document.getElementById('filtroStatus');
-    const filtroFornecedor = document.getElementById('filtroFornecedor');
-    const filtroPagamento = document.getElementById('filtroPagamento');
-    const filtroTipo = document.getElementById('filtroTipo');
-    const filtroVencimento = document.getElementById('filtroVencimento');
-
+    // ... (restante dos filtros se houver) ...
     if (filtroPeriodo) {
-        // Agora esta função está global para ser chamada pelo botão "Aplicar Filtros"
         window.aplicarFiltros = function() {
-            // Período (Obrigatório)
             const valorPeriodo = filtroPeriodo.value; 
+            if(!valorPeriodo) return;
             const [mes, ano] = valorPeriodo.split('-');
-
-            const params = new URLSearchParams();
-            params.append('mes', mes);
-            params.append('ano', ano);
             
-            // Filtros Opcionais (só adiciona se tiver valor)
-            if (filtroCat && filtroCat.value) params.append('categoria', filtroCat.value);
-            if (filtroStatus && filtroStatus.value) params.append('status', filtroStatus.value);
-            if (filtroFornecedor && filtroFornecedor.value) params.append('fornecedor', filtroFornecedor.value);
-            if (filtroPagamento && filtroPagamento.value) params.append('forma_pagamento', filtroPagamento.value);
-            if (filtroTipo && filtroTipo.value) params.append('tipo_custo', filtroTipo.value);
-            if (filtroVencimento && filtroVencimento.value) params.append('vencimento', filtroVencimento.value);
+            const params = new URLSearchParams(window.location.search);
+            params.set('mes', mes);
+            params.set('ano', ano);
+            
+            // Adiciona outros filtros se existirem na tela
+            ['filtroCat', 'filtroStatus', 'filtroFornecedor', 'filtroPagamento', 'filtroTipo', 'filtroVencimento'].forEach(id => {
+                const el = document.getElementById(id);
+                const paramName = id.replace('filtro', '').toLowerCase(); // ex: filtroCat -> cat (ajuste conforme backend espera, ex: categoria)
+                if(el && el.value) {
+                    // Mapeamento manual para garantir nomes corretos do backend
+                    let key = paramName;
+                    if(key === 'cat') key = 'categoria';
+                    if(key === 'tipo') key = 'tipo_custo';
+                    if(key === 'pagamento') key = 'forma_pagamento';
+                    
+                    params.set(key, el.value);
+                }
+            });
 
             window.location.href = `/financeiro/?${params.toString()}`;
         }
-
-        // Evento apenas no Período (para troca rápida)
         filtroPeriodo.addEventListener('change', window.aplicarFiltros);
     }
 });
+
+// =========================================================
+// FUNÇÕES GLOBAIS (FORA DO DOMContentLoaded)
+// Isso garante que o botão HTML onclick="adicionarLinhaProduto()" encontre a função
+// =========================================================
+
+function adicionarLinhaProduto() {
+    const tbody = document.getElementById('listaProdutos');
+    const emptyState = document.getElementById('emptyProdutos');
+    const templateSelect = document.getElementById('templateProdutoSelect');
+    
+    if (!tbody || !templateSelect) {
+        console.error("Elementos da tabela não encontrados.");
+        return;
+    }
+    
+    if (emptyState) emptyState.classList.add('hidden');
+
+    const tr = document.createElement('tr');
+    tr.className = "hover:bg-gray-50 border-b border-gray-100";
+    
+    const optionsHtml = templateSelect.innerHTML;
+    
+    tr.innerHTML = `
+        <td class="p-2">
+            <select name="produtos_ids[]" class="w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-navy-900 outline-none text-sm" required>
+                ${optionsHtml}
+            </select>
+        </td>
+        <td class="p-2">
+            <input type="number" name="quantidades[]" step="0.001" min="0.001" placeholder="0.000" class="w-full p-2 border border-gray-300 rounded outline-none text-sm" required>
+        </td>
+        <td class="p-2 text-center">
+            <button type="button" onclick="removerLinhaProduto(this)" class="text-red-400 hover:text-red-600 transition-colors p-1 rounded hover:bg-red-50">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+        </td>
+    `;
+    
+    tbody.appendChild(tr);
+    
+    // Recarrega os ícones para o novo botão de lixeira aparecer
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function removerLinhaProduto(btn) {
+    const tr = btn.closest('tr');
+    tr.remove();
+    
+    const tbody = document.getElementById('listaProdutos');
+    const emptyState = document.getElementById('emptyProdutos');
+    
+    if (tbody && tbody.children.length === 0 && emptyState) {
+        emptyState.classList.remove('hidden');
+    }
+}

@@ -73,9 +73,11 @@
                     <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-navy-900"></div>
                 </div>
                 <div>
-                    <span class="font-bold text-navy-900 text-sm md:text-base">Isso é uma compra de Produto/Tinta para Estoque?</span>
+                    <span class="font-bold text-navy-900 text-sm md:text-base">Isso é uma compra de Material/Estoque?</span>
                     {% if eh_compra_estoque %}
                         <p class="text-xs text-red-500 font-bold mt-1">Vínculo com Estoque não pode ser removido na edição.</p>
+                    {% else %}
+                         <p class="text-xs text-gray-500 mt-1">Habilita a entrada de múltiplos produtos no estoque.</p>
                     {% endif %}
                 </div>
             </label>
@@ -84,38 +86,49 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             <div id="area-estoque" class="md:col-span-2 bg-gray-50 p-5 rounded-lg border border-gray-200 hidden">
-                <h4 class="text-sm font-bold text-navy-900 uppercase mb-3 border-b pb-2 flex items-center">
-                    <i data-lucide="package" class="w-4 h-4 mr-2"></i> Dados do Produto
+                <h4 class="text-sm font-bold text-navy-900 uppercase mb-3 border-b pb-2 flex items-center justify-between">
+                    <span><i data-lucide="package" class="w-4 h-4 mr-2 inline"></i> Lista de Produtos</span>
+                    <button type="button" onclick="adicionarLinhaProduto()" class="text-xs bg-navy-900 text-white px-3 py-1 rounded hover:bg-navy-700 transition-colors">
+                        + Adicionar Item
+                    </button>
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="label-padrao">Selecione o Produto</label>
-                        {% if eh_compra_estoque %}
-                            {{ form.produto_estoque_id(class="w-full px-4 py-2 border border-gray-300 bg-gray-100 rounded-lg outline-none cursor-not-allowed", disabled=True) }}
-                        {% else %}
-                            {{ form.produto_estoque_id(class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none bg-white") }}
-                        {% endif %}
-                    </div>
-                    <div>
-                        <label class="label-padrao">Quantidade</label>
-                        {% if eh_compra_estoque %}
-                            {{ form.qtd_estoque(class="w-full px-4 py-2 border border-gray-300 bg-gray-100 rounded-lg outline-none cursor-not-allowed", disabled=True) }}
-                            <p class="text-[10px] text-gray-500 mt-1">Para ajustar qtd, use o módulo de Estoque.</p>
-                        {% else %}
-                            {{ form.qtd_estoque(class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none bg-white", placeholder="0.000") }}
-                        {% endif %}
-                    </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-gray-500 uppercase font-bold bg-gray-100">
+                            <tr>
+                                <th class="p-2 w-2/3">Produto</th>
+                                <th class="p-2 w-1/3">Qtd Comprada</th>
+                                <th class="p-2 w-10"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaProdutos" class="divide-y divide-gray-200">
+                            </tbody>
+                    </table>
                 </div>
+                <div id="emptyProdutos" class="text-center py-4 text-gray-400 text-xs italic">
+                    Nenhum produto adicionado.
+                </div>
+                
+                <select id="templateProdutoSelect" class="hidden">
+                    <option value="">Selecione...</option>
+                    {% if produtos_disponiveis %}
+                        {% for p in produtos_disponiveis %}
+                            <option value="{{ p.id }}" data-unidade="{{ p.unidade }}">{{ p.nome }} ({{ p.unidade }})</option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
             </div>
 
             <div class="md:col-span-2" id="div-descricao">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Descrição da Despesa *</label>
                 {{ form.descricao(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none", placeholder="Ex: Conta de Luz") }}
             </div>
-
+            
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Valor Total (R$) *</label>
-                {{ form.valor(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none") }}
+                <label class="block text-sm font-medium text-navy-900 font-bold mb-1">Valor Total da Nota (R$) *</label>
+                {{ form.valor(class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-900 outline-none font-bold text-lg", placeholder="0.00") }}
+                <p class="text-[10px] text-gray-400 mt-1" id="aviso-parcelamento">Se parcelado, este valor será dividido.</p>
             </div>
 
             <div id="div-categoria">
@@ -128,9 +141,15 @@
                 {% endif %}
             </div>
 
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Data de Vencimento *</label>
-                {{ form.data_vencimento(class="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-600 outline-none", type="date") }}
+            <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Data da Compra *</label>
+                    {{ form.data_compra(class="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-600 outline-none", type="date") }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Vencimento (1ª Parcela) *</label>
+                    {{ form.data_vencimento(class="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-600 outline-none", type="date") }}
+                </div>
             </div>
 
             <div id="div-fornecedor" class="md:col-span-2 transition-all">
@@ -176,14 +195,14 @@
 
             <div id="area-extras" class="md:col-span-2 mt-4 pt-4 border-t border-gray-100">
                 <label class="flex items-center gap-2 mb-2 cursor-pointer w-fit">
-                    {{ form.recorrente(class="w-4 h-4 text-navy-900 border-gray-300 rounded focus:ring-navy-900") }}
-                    <span class="text-sm font-medium text-gray-700">Esta é uma despesa recorrente?</span>
+                    {{ form.recorrente(class="w-4 h-4 text-navy-900 border-gray-300 rounded focus:ring-navy-900", id="checkRecorrente") }}
+                    <span class="text-sm font-medium text-gray-700" id="labelRecorrente">Esta é uma despesa recorrente?</span>
                 </label>
                 
-                <div id="div-repeticoes" class="hidden ml-6">
-                    <label class="text-xs font-bold text-gray-500 uppercase mr-2">Repetir por:</label>
+                <div id="div-repeticoes" class="hidden ml-6 transition-all">
+                    <label class="text-xs font-bold text-gray-500 uppercase mr-2" id="labelQtd">Repetir por:</label>
                     {{ form.qtd_repeticoes(class="w-20 px-2 py-1 border border-gray-300 rounded text-center outline-none") }}
-                    <span class="text-sm text-gray-600 ml-1">meses</span>
+                    <span class="text-sm text-gray-600 ml-1" id="labelSulfixoQtd">meses</span>
                 </div>
             </div>
 
@@ -202,59 +221,6 @@
         </div>
     </form>
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const toggleTipo = document.getElementById('toggleTipo');
-        const areaEstoque = document.getElementById('area-estoque');
-        
-        // Elementos para ocultar/mostrar
-        const divDescricao = document.getElementById('div-descricao');
-        const divCategoria = document.getElementById('div-categoria');
-        const divTipoCusto = document.getElementById('div-tipo-custo');
-        const divFornecedor = document.getElementById('div-fornecedor');
-        const areaExtras = document.getElementById('area-extras');
-        
-        // Categoria (pode não existir como select se estiver disabled no HTML)
-        const selectCat = document.getElementById('categoria');
-
-        function atualizarInterface() {
-            if (!toggleTipo) return; // Segurança
-
-            if (toggleTipo.checked) {
-                // --- MODO PRODUTO ---
-                areaEstoque.classList.remove('hidden');
-                
-                // Oculta campos desnecessários
-                if(divDescricao) divDescricao.classList.add('hidden'); 
-                if(divCategoria) divCategoria.classList.add('hidden'); 
-                if(divTipoCusto) divTipoCusto.classList.add('hidden');
-                if(areaExtras) areaExtras.classList.add('hidden');
-                
-                // Força visualização do Fornecedor
-                if(divFornecedor) divFornecedor.classList.remove('hidden');
-                
-            } else {
-                // --- MODO DESPESA COMUM ---
-                areaEstoque.classList.add('hidden');
-                
-                if(divDescricao) divDescricao.classList.remove('hidden'); 
-                if(divCategoria) divCategoria.classList.remove('hidden');
-                if(divTipoCusto) divTipoCusto.classList.remove('hidden');
-                if(areaExtras) areaExtras.classList.remove('hidden');
-                
-                // Dispara o evento change da categoria para decidir se mostra fornecedor (se o campo existir)
-                if (selectCat) selectCat.dispatchEvent(new Event('change'));
-            }
-        }
-
-        if (toggleTipo) {
-            toggleTipo.addEventListener('change', atualizarInterface);
-            // Inicializa imediatamente
-            atualizarInterface();
-        }
-    });
-</script>
 {% endblock %}
 
 {% block scripts %}

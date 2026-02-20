@@ -296,6 +296,7 @@ def voltar_venda(id):
     db.session.commit()
     return redirect(url_for('operacional.painel'))
 
+
 @bp_operacional.route('/item/<int:id>/finalizar_com_baixa', methods=['POST'])
 @login_required
 def finalizar_com_baixa(id):
@@ -309,57 +310,52 @@ def finalizar_com_baixa(id):
     item.data_pronto = hora_brasilia()
     item.usuario_pronto_id = current_user.id
     
-    # Coleta dados do formulário (Modal de Baixa Manual)
+    # Coleta dados do formulário
     produtos_ids = request.form.getlist('produtos_ids[]')
     quantidades = request.form.getlist('quantidades[]')
     
     consumo_texto = []
     total_debitado = 0
 
-    # Processa cada linha de insumo informado
     for p_id, qtd_str in zip(produtos_ids, quantidades):
         if p_id and qtd_str:
             try:
-                # Converte string "1,500" para Decimal 1.500
+                # Tratamento de número (Brasil -> Python)
                 qtd_str_limpa = qtd_str.replace('.', '').replace(',', '.') if ',' in qtd_str and '.' in qtd_str else qtd_str.replace(',', '.')
                 qtd = Decimal(qtd_str_limpa)
                 
                 if qtd > 0:
                     prod = ProdutoEstoque.query.get(int(p_id))
                     if prod:
-                        # Regra de Unidade: Se o produto é KG mas informou gramas
-                        # (O modal diz "Qtd (g)", então assumimos que a entrada é sempre gramas ou unidades inteiras)
+                        # --- CORREÇÃO AQUI ---
+                        # Removemos a divisão por 1000. 
+                        # Agora o sistema respeita exatamente o que foi digitado.
                         qtd_baixa = qtd
                         unidade_log = prod.unidade
                         
-                        # Se o produto é controlado em KG, a entrada do modal (g) deve ser dividida por 1000
-                        if prod.unidade.upper() == 'KG':
-                            qtd_baixa = qtd / 1000
-                            unidade_log = 'g' # Loga como gramas para bater com o que o usuário digitou
-                        
-                        # Cria a movimentação de saída
+                        # Cria movimentação
                         mov = MovimentacaoEstoque(
                             produto_id=prod.id,
                             tipo='saida',
                             quantidade=qtd_baixa,
                             saldo_anterior=prod.quantidade_atual,
                             saldo_novo=prod.quantidade_atual - qtd_baixa,
-                            origem='producao', # Origem da baixa
-                            referencia_id=item.id, # Vincula a este item de venda
+                            origem='producao', 
+                            referencia_id=item.id, 
                             usuario_id=current_user.id,
                             observacao=f"Consumo Manual Item #{item.id} ({'Retrabalho' if status_anterior == 'retrabalho' else 'Produção'})"
                         )
                         
-                        # Atualiza saldo do produto
+                        # Atualiza saldo
                         prod.quantidade_atual -= qtd_baixa
                         db.session.add(mov)
                         
-                        consumo_texto.append(f"{qtd:.2f}{unidade_log} de {prod.nome}")
+                        consumo_texto.append(f"{qtd:.3f} {unidade_log} de {prod.nome}")
                         total_debitado += 1
             except ValueError:
-                continue # Pula se o número for inválido
+                continue 
 
-    # Gera Log do Histórico do Item
+    # Gera Log
     acao_msg = "Finalizou Produção"
     if status_anterior == 'retrabalho':
         acao_msg = "Finalizou Retrabalho"
@@ -376,10 +372,10 @@ def finalizar_com_baixa(id):
     )
     db.session.add(log)
     
-    # Verifica se a VENDA PAI inteira ficou pronta (se todos os itens acabaram)
+    # Verifica status do Pai
     venda_pai = Venda.query.get(item.venda_id)
     todos_itens = ItemVenda.query.filter_by(venda_id=venda_pai.id).all()
-    # Checa se todos estão 'pronto' ou 'entregue'
+    
     if all(i.status in ['pronto', 'entregue'] for i in todos_itens):
         if venda_pai.status not in ['pronto', 'entregue']:
             venda_pai.status = 'pronto'
@@ -389,8 +385,8 @@ def finalizar_com_baixa(id):
     db.session.commit()
     
     if total_debitado > 0:
-        flash(f'Item finalizado e estoque debitado: {", ".join(consumo_texto)}.', 'success')
+        flash(f'Item finalizado! Estoque atualizado: {", ".join(consumo_texto)}.', 'success')
     else:
-        flash('Item finalizado. Nenhum material foi debitado do estoque.', 'info')
+        flash('Item finalizado sem baixa de material.', 'info')
         
     return redirect(url_for('operacional.painel'))

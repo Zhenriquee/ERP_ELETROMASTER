@@ -147,7 +147,7 @@
         <i data-lucide="hammer" class="w-5 h-5 text-gray-400"></i> Produção & Operacional
     </h3>
     
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
         
         <div onclick="abrirModal('modalOpFila')" class="kpi-card cursor-pointer group bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:border-gray-300">
             <div class="flex items-center justify-between">
@@ -169,6 +169,17 @@
                 <div class="p-3 bg-blue-50 rounded-lg text-blue-600 group-hover:bg-blue-100 animate-pulse"><i data-lucide="loader" class="w-6 h-6"></i></div>
             </div>
             <div class="mt-2 text-xs text-gray-400">Sendo produzidos agora</div>
+        </div>
+
+        <div onclick="abrirModal('modalOpRetrabalho')" class="kpi-card cursor-pointer group bg-white rounded-xl shadow-sm p-4 border-b-4 border-orange-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-orange-600 uppercase">Retrabalho</p>
+                    <h3 class="text-2xl font-bold text-navy-900 mt-1">{{ qtd_retrabalho }}</h3>
+                </div>
+                <div class="p-3 bg-orange-50 rounded-lg text-orange-600 group-hover:bg-orange-100"><i data-lucide="rotate-ccw" class="w-6 h-6"></i></div>
+            </div>
+            <div class="mt-2 text-xs text-gray-400">Correção / Refazer</div>
         </div>
 
         <div onclick="abrirModal('modalOpProntos')" class="kpi-card cursor-pointer group bg-white rounded-xl shadow-sm p-4 border-b-4 border-green-500">
@@ -349,7 +360,7 @@
 
     {{ modal_lista('modalOpFila', 'Itens na Fila', op_fila, 'Nenhum item na fila.') }}
     {{ modal_lista('modalOpExec', 'Em Execução', op_execucao, 'Nenhum item em produção.') }}
-    {{ modal_lista('modalOpProntos', 'Itens Prontos', op_prontos, 'Nenhum item aguardando entrega.') }}
+    {{ modal_lista('modalOpRetrabalho', 'Em Retrabalho', op_retrabalho, 'Nenhum item em retrabalho.') }} {{ modal_lista('modalOpProntos', 'Itens Prontos', op_prontos, 'Nenhum item aguardando entrega.') }}
     {{ modal_lista('modalOpAtrasados', 'Itens Atrasados', op_atrasados, 'Nenhum item atrasado.') }}
     {{ modal_lista('modalOpFinal', 'Entregues no Mês', op_finalizados, 'Nenhum item entregue este mês.') }}
 

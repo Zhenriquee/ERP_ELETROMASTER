@@ -1,7 +1,8 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, DecimalField, DateField, SelectField, TextAreaField, IntegerField, BooleanField
 from wtforms.validators import DataRequired, Optional, Length, NumberRange
-from src.modulos.estoque.modelos import ProdutoEstoque # Importe no topo
+from src.modulos.estoque.modelos import ProdutoEstoque
+from datetime import date
 
 class FormularioFornecedor(FlaskForm):
     nome_fantasia = StringField('Nome Fantasia', validators=[DataRequired(), Length(min=2, max=100)])
@@ -22,28 +23,27 @@ class FormularioFornecedor(FlaskForm):
 
 class FormularioDespesa(FlaskForm):
 
-    # --- NOVO CAMPO: Decisor do Tipo de Despesa ---
+    # --- CAMPO DECISOR ---
     eh_compra_produto = BooleanField('É compra de material para estoque?')
     
-    # Campos de Estoque (Validadores Opcionais pois só usamos se o checkbox acima estiver marcado)
-    produto_estoque_id = SelectField('Produto (Estoque)', coerce=int, validators=[Optional()])
-    qtd_estoque = DecimalField('Quantidade Comprada', places=3, validators=[Optional()])
-
+    # OBS: Os campos de produto único (produto_estoque_id, qtd_estoque) foram removidos da validação
+    # pois agora os produtos virão via lista dinâmica no request.form
+    
     descricao = StringField('Descrição', validators=[Optional(), Length(max=100)])
     
     # Valores e Datas
-    valor = DecimalField('Valor (R$)', places=2, validators=[DataRequired()])
-    data_vencimento = DateField('Data de Vencimento', format='%Y-%m-%d', validators=[DataRequired()])
+    valor = DecimalField('Valor Total (R$)', places=2, validators=[DataRequired()])
     
-    # REMOVIDO: data_competencia = StringField(...) -> Agora é automático no backend
+    data_compra = DateField('Data da Compra', format='%Y-%m-%d', default=date.today, validators=[DataRequired()])
+    data_vencimento = DateField('Data de Vencimento (1ª Parcela)', format='%Y-%m-%d', validators=[DataRequired()])
     
-    # Data de Pagamento
+    # Data de Pagamento (Se pago)
     data_pagamento = DateField('Data do Pagamento', format='%Y-%m-%d', validators=[Optional()])
 
-    # --- ATUALIZAÇÃO DAS CATEGORIAS ---
+    # Categorias
     categoria = SelectField('Categoria', choices=[
-        ('salarios', 'Salários & Folha de Pagamento'), # NOVA
-        ('pessoal', 'Retiradas / Pessoal (Sócios)'),   # REBATIZADA
+        ('salarios', 'Salários & Folha de Pagamento'),
+        ('pessoal', 'Retiradas / Pessoal (Sócios)'),
         ('infraestrutura', 'Infraestrutura (Aluguel, Energia, Água)'),
         ('material', 'Material / Insumos'),
         ('impostos', 'Impostos / Taxas'),
@@ -53,7 +53,6 @@ class FormularioDespesa(FlaskForm):
         ('outros', 'Outros')
     ], validators=[DataRequired()])
     
-    # ALTERADO: Adicionada opção 'extra'
     tipo_custo = SelectField('Tipo de Custo', choices=[
         ('fixo', 'Custo Fixo (Recorrente)'),
         ('variavel', 'Custo Variável (Produção/Venda)'),
@@ -80,7 +79,7 @@ class FormularioDespesa(FlaskForm):
     codigo_barras = StringField('Código de Barras / Chave Pix', validators=[Optional()])
     observacao = TextAreaField('Observações', validators=[Optional()])
 
-    recorrente = BooleanField('Despesa Recorrente?')
-    qtd_repeticoes = IntegerField('Repetir por quantos meses?', 
+    recorrente = BooleanField('Parcelar / Repetir?')
+    qtd_repeticoes = IntegerField('Nº Parcelas / Meses', 
                                   default=1, 
                                   validators=[Optional(), NumberRange(min=1, max=60)])

@@ -1,7 +1,7 @@
 from flask import render_template
 from flask_login import login_required, current_user
 from sqlalchemy import func, extract, desc
-from datetime import date, timedelta, datetime # Adicionado datetime
+from datetime import date, timedelta, datetime
 from dateutil.relativedelta import relativedelta
 
 from src.extensoes import banco_de_dados as db
@@ -22,16 +22,15 @@ def painel():
     mes_atual = hoje.month
     ano_atual = hoje.year
 
-    # --- VERIFICAÇÃO DE PERMISSÃO ---
     cargo_atual = current_user.cargo.lower() if current_user.cargo else ''
     exibir_financeiro = cargo_atual == 'dono' or current_user.tem_permissao('financeiro_acesso')
 
-    # Inicializa variáveis com 0 para evitar erros se o bloco financeiro não rodar
+    # Inicializa variáveis
     recebido_mes = 0
     a_receber = 0
     vendas_hoje = 0
-    recebido_hoje = 0  # <--- INICIALIZAÇÃO IMPORTANTE
-    vendido_hoje = 0   # <--- INICIALIZAÇÃO IMPORTANTE
+    recebido_hoje = 0
+    vendido_hoje = 0
     meta_diaria_alvo = 0
     atingimento_dia_perc = 0
     a_pagar_mes = 0
@@ -49,9 +48,9 @@ def painel():
     doughnut_labels = []
     doughnut_data = []
 
-    # === BLOCO FINANCEIRO ===
+    # === BLOCO FINANCEIRO (COM CORREÇÃO DE VENCIMENTO) ===
     if exibir_financeiro:
-        # 1. ENTRADAS & PREVISÃO
+        # 1. ENTRADAS
         recebido_mes = db.session.query(func.sum(Pagamento.valor))\
             .filter(extract('month', Pagamento.data_pagamento) == mes_atual, 
                     extract('year', Pagamento.data_pagamento) == ano_atual).scalar() or 0
@@ -61,7 +60,7 @@ def painel():
         a_receber = total_vendido_geral - total_pago_geral
         if a_receber < 0: a_receber = 0
 
-        # 2. META DIÁRIA
+        # 2. METAS
         meta_config = MetaMensal.query.filter_by(mes=mes_atual, ano=ano_atual).first()
         meta_valor_mes = float(meta_config.valor_loja) if meta_config else 1
         dias_uteis = meta_config.dias_uteis if meta_config and meta_config.dias_uteis > 0 else 1
@@ -70,16 +69,14 @@ def painel():
         recebido_hoje = db.session.query(func.sum(Pagamento.valor))\
             .filter(func.date(Pagamento.data_pagamento) == hoje).scalar() or 0
 
-        # 2. Vendido Hoje (Soma da tabela Venda - Orçamentos confirmados hoje)
         vendido_hoje = db.session.query(func.sum(Venda.valor_final))\
             .filter(func.date(Venda.criado_em) == hoje,
                     Venda.status != 'cancelado', 
                     Venda.status != 'orcamento').scalar() or 0
 
-        # O atingimento da meta continua sendo baseado no Recebido
         atingimento_dia_perc = (float(recebido_hoje) / meta_diaria_alvo) * 100 if meta_diaria_alvo > 0 else 0
 
-        # 3. A PAGAR
+        # 3. SAÍDAS (Filtrado por Data de VENCIMENTO)
         a_pagar_mes = db.session.query(func.sum(Despesa.valor))\
             .filter(extract('month', Despesa.data_vencimento) == mes_atual,
                     extract('year', Despesa.data_vencimento) == ano_atual,
@@ -92,7 +89,7 @@ def painel():
         qtd_vencidos = len(lista_vencidos)
         qtd_proximos = len(lista_proximos)
 
-        # 5. TICKET MÉDIO
+        # 5. KPIS GERAIS
         qtd_vendas_mes = db.session.query(func.count(Venda.id))\
             .filter(extract('month', Venda.criado_em) == mes_atual, 
                     extract('year', Venda.criado_em) == ano_atual,
@@ -106,7 +103,7 @@ def painel():
         ticket_medio = (float(faturamento_mes) / qtd_vendas_mes) if qtd_vendas_mes > 0 else 0
         perc_meta_mes = (float(faturamento_mes) / meta_valor_mes) * 100
 
-        # 6. GRÁFICOS
+        # 6. GRÁFICOS (Usando Vencimento para Despesas)
         for i in range(5, -1, -1):
             data_ref = hoje - relativedelta(months=i)
             mes_iter = data_ref.month
@@ -122,19 +119,19 @@ def painel():
             chart_data_vendas.append(float(soma_v))
 
             soma_d = db.session.query(func.sum(Despesa.valor))\
-                .filter(extract('month', Despesa.data_competencia) == mes_iter, 
-                        extract('year', Despesa.data_competencia) == ano_iter).scalar() or 0
+                .filter(extract('month', Despesa.data_vencimento) == mes_iter, 
+                        extract('year', Despesa.data_vencimento) == ano_iter).scalar() or 0
             chart_data_despesas.append(float(soma_d))
 
         cats_db = db.session.query(Despesa.categoria, func.sum(Despesa.valor))\
-            .filter(extract('month', Despesa.data_competencia) == mes_atual,
-                    extract('year', Despesa.data_competencia) == ano_atual)\
+            .filter(extract('month', Despesa.data_vencimento) == mes_atual,
+                    extract('year', Despesa.data_vencimento) == ano_atual)\
             .group_by(Despesa.categoria).all()
         doughnut_labels = [c[0].title() for c in cats_db]
         doughnut_data = [float(c[1]) for c in cats_db]
 
     # =================================================================
-    # --- INDICADORES OPERACIONAIS ---
+    # --- INDICADORES OPERACIONAIS (COM RESTAURAÇÃO DO RETRABALHO) ---
     # =================================================================
     
     def formatar_tarefa(obj, tipo):
@@ -171,6 +168,7 @@ def painel():
 
     op_fila = []
     op_execucao = []
+    op_retrabalho = [] # RESTAURADO
     op_prontos = []
     op_finalizados = []
 
@@ -178,6 +176,7 @@ def painel():
         tarefa = formatar_tarefa(i, 'item')
         if i.status == 'pendente': op_fila.append(tarefa)
         elif i.status == 'producao': op_execucao.append(tarefa)
+        elif i.status == 'retrabalho': op_retrabalho.append(tarefa) # RESTAURADO
         elif i.status == 'pronto': op_prontos.append(tarefa)
         elif i.status == 'entregue': 
             if i.data_entregue and i.data_entregue.month == mes_atual and i.data_entregue.year == ano_atual:
@@ -187,24 +186,22 @@ def painel():
         tarefa = formatar_tarefa(v, 'venda')
         if v.status == 'pendente': op_fila.append(tarefa)
         elif v.status == 'producao': op_execucao.append(tarefa)
+        elif v.status == 'retrabalho': op_retrabalho.append(tarefa) # RESTAURADO
         elif v.status == 'pronto': op_prontos.append(tarefa)
         elif v.status == 'entregue':
             if v.data_entrega and v.data_entrega.month == mes_atual and v.data_entrega.year == ano_atual:
                 op_finalizados.append(tarefa)
 
-    # --- NOVO KPI: ATRASADOS (5 dias ou mais) ---
     op_atrasados = []
     limite_atraso = datetime.utcnow() - timedelta(days=5)
     
-    for tarefa in op_fila + op_execucao:
+    # Adicionamos retrabalho na contagem de atrasados
+    for tarefa in op_fila + op_execucao + op_retrabalho:
         if tarefa['data_criacao'] and tarefa['data_criacao'] <= limite_atraso:
             op_atrasados.append(tarefa)
             
     qtd_atrasados = len(op_atrasados)
 
-    # =================================================================
-    # --- TOP PRODUTOS (ÚLTIMOS 30 DIAS) ---
-    # =================================================================
     data_limite_30_dias = hoje - timedelta(days=30)
     
     top_produtos = db.session.query(ProdutoEstoque.nome, func.sum(ItemVenda.quantidade).label('total_qtd'))\
@@ -221,8 +218,8 @@ def painel():
                            
                            kpi_recebido=fmt_moeda(recebido_mes),
                            kpi_receber=fmt_moeda(a_receber),
-                           vendas_hoje=fmt_moeda(recebido_hoje), # Corrigido: Agora existe mesmo se IF for falso
-                           valor_vendido_hoje=fmt_moeda(vendido_hoje), # Corrigido
+                           vendas_hoje=fmt_moeda(recebido_hoje), 
+                           valor_vendido_hoje=fmt_moeda(vendido_hoje), 
                            meta_diaria_alvo=fmt_moeda(meta_diaria_alvo),
                            atingimento_dia_perc=round(atingimento_dia_perc, 2),
                            kpi_pagar=fmt_moeda(a_pagar_mes),
@@ -233,6 +230,7 @@ def painel():
                            
                            op_fila=op_fila,
                            op_execucao=op_execucao,
+                           op_retrabalho=op_retrabalho, # VARIAVEL RESTAURADA
                            op_prontos=op_prontos,
                            op_finalizados=op_finalizados,
                            op_atrasados=op_atrasados, 
@@ -240,6 +238,7 @@ def painel():
                            
                            qtd_fila=len(op_fila),
                            qtd_execucao=len(op_execucao),
+                           qtd_retrabalho=len(op_retrabalho), # CONTAGEM RESTAURADA
                            qtd_prontos=len(op_prontos),
                            qtd_finalizados=len(op_finalizados),
 

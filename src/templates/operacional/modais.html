@@ -4,8 +4,10 @@
             <h3 class="text-lg font-bold text-navy-900">Registrar Consumo Manual</h3>
             <button onclick="document.getElementById('modalBaixaMaterial').classList.add('hidden')" class="text-gray-400 hover:text-red-500"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
-        <p class="text-sm text-gray-500 mb-4 bg-yellow-50 p-3 rounded-lg border border-yellow-100 text-yellow-800">
-            <strong>Atenção:</strong> Como este item não possui medidas calculadas, informe o gasto manualmente em <strong>GRAMAS</strong>.
+        
+        <p class="text-sm text-gray-500 mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100 text-blue-800">
+            <strong>Atenção:</strong> Informe a quantidade exata consumida respeitando a unidade do produto (Ex: KG, UN, L).
+            <br><span class="text-xs">Exemplo: Para meio quilo de tinta, digite <strong>0,500</strong>.</span>
         </p>
         
         <form id="formBaixa" method="POST">
@@ -17,7 +19,7 @@
                         <option value="{{ p.id }}">{{ p.nome }} ({{ p.unidade }})</option>
                         {% endfor %}
                     </select>
-                    <input type="number" name="quantidades[]" step="0.001" min="0.001" placeholder="Qtd (g)" class="qtd-consumo w-24 border border-gray-300 rounded-lg p-2 text-sm text-center focus:ring-2 focus:ring-blue-500 outline-none">
+                    <input type="number" name="quantidades[]" step="0.001" min="0.001" placeholder="Qtd" class="qtd-consumo w-24 border border-gray-300 rounded-lg p-2 text-sm text-center focus:ring-2 focus:ring-blue-500 outline-none">
                 </div>
             </div>
             

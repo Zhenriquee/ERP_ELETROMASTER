@@ -2,7 +2,7 @@ from flask import render_template, request
 from flask_login import login_required
 from sqlalchemy import extract, desc, and_
 from datetime import date
-from src.modulos.autenticacao.permissoes import cargo_exigido # Importante
+from src.modulos.autenticacao.permissoes import cargo_exigido
 
 from src.extensoes import banco_de_dados as db
 from src.modulos.financeiro.modelos import Despesa, Fornecedor
@@ -10,7 +10,7 @@ from . import bp_financeiro
 
 @bp_financeiro.route('/', methods=['GET'])
 @login_required
-@cargo_exigido('financeiro_acesso') # <--- GARANTIR QUE ESTEJA AQUI
+@cargo_exigido('financeiro_acesso')
 def painel():
     hoje = date.today()
     
@@ -18,10 +18,10 @@ def painel():
     # 1. PREPARAÇÃO DOS FILTROS (PERIODOS E LISTAS)
     # ============================================================
     
-    # Busca competências disponíveis
+    # MUDANÇA 1: Busca competências baseadas na DATA DE VENCIMENTO
     competencias_db = db.session.query(
-            extract('year', Despesa.data_competencia).label('ano'),
-            extract('month', Despesa.data_competencia).label('mes')
+            extract('year', Despesa.data_vencimento).label('ano'),
+            extract('month', Despesa.data_vencimento).label('mes')
         ).group_by('ano', 'mes').all()
     
     lista_competencias = []
@@ -39,7 +39,6 @@ def painel():
     for ano, mes in lista_competencias:
         periodos.append({'valor': f"{mes}-{ano}", 'label': f"{mapa_meses[mes]} {ano}", 'mes': mes, 'ano': ano})
 
-    # Busca Fornecedores para o Select de Filtro
     fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome_fantasia).all()
 
     # ============================================================
@@ -53,7 +52,7 @@ def painel():
     
     # Filtros Avançados
     f_categoria = request.args.get('categoria', '')
-    f_vencimento = request.args.get('vencimento', '') # Data específica
+    f_vencimento = request.args.get('vencimento', '')
     f_forma_pagamento = request.args.get('forma_pagamento', '')
     f_tipo_custo = request.args.get('tipo_custo', '')
     f_fornecedor = request.args.get('fornecedor', type=int)
@@ -62,12 +61,13 @@ def painel():
     # ============================================================
     # 3. QUERY PRINCIPAL (LISTA)
     # ============================================================
+    
+    # MUDANÇA 2: Filtra pela DATA DE VENCIMENTO
     query = Despesa.query.filter(
-        extract('month', Despesa.data_competencia) == mes,
-        extract('year', Despesa.data_competencia) == ano
+        extract('month', Despesa.data_vencimento) == mes,
+        extract('year', Despesa.data_vencimento) == ano
     )
     
-    # Aplicação dos Filtros Dinâmicos
     if f_status:
         query = query.filter(Despesa.status == f_status)
     if f_categoria:
@@ -87,12 +87,10 @@ def painel():
     # 4. CÁLCULO DE TOTAIS (KPIS)
     # ============================================================
     
-    # Totais da Lista Atual (Respeita os filtros)
     total_pendente = sum(d.valor for d in despesas if d.status == 'pendente')
     total_pago = sum(d.valor for d in despesas if d.status == 'pago')
     
-    # KPI EXTRA: Total Vencido GERAL (Alerta Global da Empresa)
-    # Pega tudo que é pendente e venceu antes de hoje, independente do mês selecionado
+    # Total Vencido Geral (Alerta Global) - Mantido pela data de vencimento
     total_vencido_geral = db.session.query(db.func.sum(Despesa.valor))\
         .filter(Despesa.status == 'pendente', Despesa.data_vencimento < hoje)\
         .scalar() or 0
@@ -105,7 +103,6 @@ def painel():
                            total_pendente=total_pendente,
                            total_pago=total_pago,
                            total_vencido_geral=total_vencido_geral,
-                           # Devolve filtros para manter selects preenchidos
                            filtros={
                                'categoria': f_categoria,
                                'vencimento': f_vencimento,
