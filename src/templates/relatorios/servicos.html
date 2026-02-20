@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/relatorios.css') }}">
+{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto px-0 sm:px-4 pb-12">
+    
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 no-print">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <a href="{{ url_for('relatorios.painel') }}" class="text-gray-400 hover:text-navy-900 transition-colors">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </a>
+                <h2 class="text-2xl font-bold text-navy-900">Relatório Dinâmico de Serviços</h2>
+            </div>
+            <p class="text-sm text-gray-500 ml-7">Monte sua tabela agrupando ou detalhando os dados.</p>
+        </div>
+        
+        <div class="flex gap-2">
+            <button onclick="window.print()" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-bold flex items-center shadow-sm transition-colors">
+                <i data-lucide="printer" class="w-4 h-4 mr-2"></i> Imprimir
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 mb-6 no-print">
+        <form method="GET" class="space-y-4">
+            <div class="flex items-center gap-4 border-b border-gray-100 pb-4">
+                <label class="flex items-center gap-2 text-sm font-bold text-gray-700 cursor-pointer">
+                    <input type="radio" name="tipo_periodo" value="mes" class="text-navy-900 focus:ring-navy-900" 
+                           {% if filtros.get('tipo_periodo', 'mes') == 'mes' %}checked{% endif %}
+                           onchange="togglePeriodo()">
+                    Filtrar por Mês
+                </label>
+                <label class="flex items-center gap-2 text-sm font-bold text-gray-700 cursor-pointer">
+                    <input type="radio" name="tipo_periodo" value="periodo" class="text-navy-900 focus:ring-navy-900"
+                           {% if filtros.get('tipo_periodo') == 'periodo' %}checked{% endif %}
+                           onchange="togglePeriodo()">
+                    Período Específico
+                </label>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div id="filtroMesAno" class="flex gap-2 {% if filtros.get('tipo_periodo') == 'periodo' %}hidden{% endif %}">
+                    <div class="w-1/2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Mês</label>
+                        <select name="mes" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                            {% for m in range(1, 13) %}<option value="{{ m }}" {% if m == mes_atual %}selected{% endif %}>{{ ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m-1] }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Ano</label>
+                        <input type="number" name="ano" value="{{ ano_atual }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    </div>
+                </div>
+
+                <div id="filtroDatas" class="col-span-2 flex gap-2 {% if filtros.get('tipo_periodo', 'mes') == 'mes' %}hidden{% endif %}">
+                    <div class="w-1/2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Início</label>
+                        <input type="date" name="data_inicio" value="{{ filtros.get('data_inicio', '') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Fim</label>
+                        <input type="date" name="data_fim" value="{{ filtros.get('data_fim', '') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Status Pagamento</label>
+                    <select name="status_pagamento" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                        <option value="todos" {% if filtros.get('status_pagamento') == 'todos' %}selected{% endif %}>Todos</option>
+                        <option value="pago" {% if filtros.get('status_pagamento') == 'pago' %}selected{% endif %}>Pago</option>
+                        <option value="parcial" {% if filtros.get('status_pagamento') == 'parcial' %}selected{% endif %}>Parcial</option>
+                        <option value="pendente" {% if filtros.get('status_pagamento') == 'pendente' %}selected{% endif %}>Pendente</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Status Produção</label>
+                    <select name="status_servico" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                        <option value="todos" {% if filtros.get('status_servico') == 'todos' %}selected{% endif %}>Todos</option>
+                        <option value="pendente" {% if filtros.get('status_servico') == 'pendente' %}selected{% endif %}>Fila</option>
+                        <option value="producao" {% if filtros.get('status_servico') == 'producao' %}selected{% endif %}>Produção</option>
+                        <option value="retrabalho" {% if filtros.get('status_servico') == 'retrabalho' %}selected{% endif %}>Retrabalho</option>
+                        <option value="pronto" {% if filtros.get('status_servico') == 'pronto' %}selected{% endif %}>Pronto</option>
+                        <option value="entregue" {% if filtros.get('status_servico') == 'entregue' %}selected{% endif %}>Entregue</option>
+                    </select>
+                </div>
+                <div class="flex items-end gap-2 col-span-1 md:col-span-4 lg:col-span-1">
+                    <button type="submit" class="flex-1 bg-navy-900 text-white font-bold py-2 rounded-lg shadow-md hover:bg-navy-800">Buscar</button>
+                    <button type="submit" name="exportar" value="excel" class="px-4 py-2 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700" title="Baixar Excel"><i data-lucide="file-spreadsheet" class="w-5 h-5"></i></button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-navy-900"><p class="text-xs font-bold text-gray-400 uppercase">Serviços / Itens</p><h3 class="text-xl font-black text-navy-900 mt-1">{{ qtd_servicos }} <span class="text-sm text-gray-500">/ {{ qtd_itens }}</span></h3></div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-blue-500"><p class="text-xs font-bold text-gray-400 uppercase">Faturamento Bruto</p><h3 class="text-lg font-bold text-blue-600 mt-1">R$ {{ "%.2f"|format(total_valor)|replace('.', ',') }}</h3></div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-green-500"><p class="text-xs font-bold text-gray-400 uppercase">Recebido (Caixa)</p><h3 class="text-lg font-bold text-green-600 mt-1">R$ {{ "%.2f"|format(total_pago)|replace('.', ',') }}</h3></div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-orange-500"><p class="text-xs font-bold text-gray-400 uppercase">A Receber</p><h3 class="text-lg font-bold text-orange-600 mt-1">R$ {{ "%.2f"|format(total_restante)|replace('.', ',') }}</h3></div>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-6">
+        
+        <div class="w-full lg:w-1/4 bg-white p-5 rounded-xl shadow-sm border border-gray-100 h-fit no-print">
+            <h3 class="font-bold text-navy-900 mb-4 flex items-center border-b pb-2"><i data-lucide="layout-grid" class="w-4 h-4 mr-2 text-blue-500"></i> Estrutura da Tabela</h3>
+            
+            <p class="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-wider">Identificação</p>
+            <div class="space-y-2 mb-4">
+                <label class="flex items-center text-sm cursor-pointer"><input type="checkbox" value="id" class="chk-col mr-2" checked disabled> ID / Data</label>
+                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="cliente" class="chk-col mr-2" checked> Cliente</label>
+                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="vendedor" class="chk-col mr-2"> Vendedor</label>
+            </div>
+
+            <p class="text-[10px] text-blue-500 uppercase font-bold mb-2 tracking-wider">Nível de Detalhamento</p>
+            <div class="space-y-2 mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                <label class="flex items-center text-sm cursor-pointer font-medium text-navy-900"><input type="checkbox" value="item" class="chk-col mr-2"> Item / Serviço Específico</label>
+                <label class="flex items-center text-sm cursor-pointer text-gray-700"><input type="checkbox" value="produto" class="chk-col mr-2"> Acabamento / Material</label>
+                <label class="flex items-center text-sm cursor-pointer text-gray-700"><input type="checkbox" value="vunit" class="chk-col mr-2"> Valor Unitário</label>
+                <p class="text-[10px] text-blue-600 mt-1 leading-tight italic">* Marcar opções acima divide a tabela por item.</p>
+            </div>
+
+            <p class="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-wider">Valores e Status</p>
+            <div class="space-y-2">
+                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="qtd" class="chk-col mr-2" checked> Quantidade</label>
+                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="vtotal" class="chk-col mr-2" checked> Valor Total</label>
+                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="acresc_desc" class="chk-col mr-2" checked> Acrésc. / Desc.</label>
+                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="vpago" class="chk-col mr-2"> Valor Pago</label>
+                <label class="flex items-center text-sm cursor-pointer font-bold text-orange-600"><input type="checkbox" value="vareceber" class="chk-col mr-2" checked> A Receber</label>
+                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="sprod" class="chk-col mr-2" checked> Status Produção</label>
+                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="spgto" class="chk-col mr-2" checked> Status Pagamento</label>
+            </div>
+        </div>
+
+        <div class="w-full lg:w-3/4 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm" id="tabelaDinamica">
+                    <thead class="bg-navy-900 text-white text-xs uppercase font-bold tracking-wider" id="tabelaHead">
+                        </thead>
+                    <tbody class="divide-y divide-gray-100 text-gray-700" id="tabelaBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script id="dados-relatorio" type="application/json">
+    {{ dados_json|tojson|safe }}
+</script>
+
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/relatorios.js') }}"></script>
+{% endblock %}

@@ -32,6 +32,7 @@ def painel():
         'Estoque': [],
         'Operacional': [],
         'Metas': [],
+        'Relatórios': [], # <--- NOVA CATEGORIA ADICIONADA AQUI
         'Administrativo': []
     }
 
@@ -43,6 +44,8 @@ def painel():
         elif cod.startswith('estoque_'): grupos_permissoes['Estoque'].append(m)
         elif cod.startswith('producao_'): grupos_permissoes['Operacional'].append(m)
         elif cod.startswith('metas_'): grupos_permissoes['Metas'].append(m)
+        elif cod.startswith('relatorios_'): grupos_permissoes['Relatórios'].append(m) # <--- CAPTURA O NOVO MÓDULO
+        elif cod.startswith('rh_'): grupos_permissoes['Administrativo'].append(m)
         else: grupos_permissoes['Administrativo'].append(m)
     
     # Remove grupos vazios

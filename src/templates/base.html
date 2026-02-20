@@ -71,6 +71,11 @@
                 {% if current_user.tem_permissao('metas_equipe') %}
                     {{ nav_link('metas.painel', 'target', 'Metas & Objetivos', ['metas.nova_meta']) }}
                 {% endif %}
+
+                {% if current_user.tem_permissao('relatorios_acesso') %}
+                    {{ nav_header('Análises') }}
+                    {{ nav_link('relatorios.painel', 'bar-chart-2', 'Central de Relatórios', ['relatorios.relatorio_servicos']) }}
+                {% endif %}
                 
                 {% if current_user.tem_permissao('rh_equipe') %}
                     {{ nav_header('Administrativo') }}

@@ -60,6 +60,10 @@ def criar_app(nome_configuracao='desenvolvimento'):
     from src.modulos.rh import bp_rh
     app.register_blueprint(bp_rh)
 
+    # --- NOVO BLUEPRINT AQUI ---
+    from src.modulos.relatorios import bp_relatorios
+    app.register_blueprint(bp_relatorios)
+
     @app.cli.command("backup")
     def comando_backup():
         """Executa backup rotativo (dias 1, 10, 20) para nuvem."""
@@ -231,7 +235,10 @@ def sincronizar_modulos_oficiais():
         
         # 4. RH
         {'codigo': 'rh_equipe',         'nome': 'RH - Gestão de Usuários'},
-        {'codigo': 'rh_salarios',       'nome': 'RH - Ver Salários'}
+        {'codigo': 'rh_salarios',       'nome': 'RH - Ver Salários'},
+
+        # 5. NOVO: Relatórios
+        {'codigo': 'relatorios_acesso', 'nome': 'Relatórios - Acesso Geral'}    
     ]
     
     codigos_oficiais = [m['codigo'] for m in modulos_oficiais]
