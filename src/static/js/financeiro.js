@@ -167,6 +167,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // Isso garante que o botão HTML onclick="adicionarLinhaProduto()" encontre a função
 // =========================================================
 
+// =========================================================
+// FUNÇÕES GLOBAIS (FORA DO DOMContentLoaded)
+// =========================================================
+
 function adicionarLinhaProduto() {
     const tbody = document.getElementById('listaProdutos');
     const emptyState = document.getElementById('emptyProdutos');
@@ -185,15 +189,19 @@ function adicionarLinhaProduto() {
     const optionsHtml = templateSelect.innerHTML;
     
     tr.innerHTML = `
-        <td class="p-2">
-            <select name="produtos_ids[]" class="w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-navy-900 outline-none text-sm" required>
+        <td class="p-2 align-top">
+            <select name="produtos_ids[]" onchange="atualizarUnidadeDespesa(this)" class="w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-navy-900 outline-none text-sm" required>
                 ${optionsHtml}
             </select>
         </td>
-        <td class="p-2">
-            <input type="number" name="quantidades[]" step="0.001" min="0.001" placeholder="0.000" class="w-full p-2 border border-gray-300 rounded outline-none text-sm" required>
+        <td class="p-2 align-top">
+            <div class="relative">
+                <input type="number" name="quantidades[]" step="0.001" min="0.001" placeholder="Ex: 25.000" class="w-full p-2 pr-10 border border-gray-300 rounded outline-none text-sm" required>
+                <span class="unidade-display absolute right-3 top-2 text-xs font-bold text-gray-400">UN</span>
+            </div>
+            <p class="text-[10px] text-gray-500 mt-1">Informe a Qtd em <span class="unidade-texto font-bold">UN</span>.</p>
         </td>
-        <td class="p-2 text-center">
+        <td class="p-2 text-center align-top pt-2">
             <button type="button" onclick="removerLinhaProduto(this)" class="text-red-400 hover:text-red-600 transition-colors p-1 rounded hover:bg-red-50">
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
@@ -202,8 +210,25 @@ function adicionarLinhaProduto() {
     
     tbody.appendChild(tr);
     
-    // Recarrega os ícones para o novo botão de lixeira aparecer
     if(typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// NOVA FUNÇÃO: Atualiza a unidade escrita ao lado do campo (ex: muda de UN para KG automaticamente)
+function atualizarUnidadeDespesa(selectElement) {
+    const tr = selectElement.closest('tr');
+    const unidadeDisplay = tr.querySelector('.unidade-display');
+    const unidadeTexto = tr.querySelector('.unidade-texto');
+    
+    const option = selectElement.options[selectElement.selectedIndex];
+    let unidade = 'UN';
+    
+    // Pega a unidade direto da opção selecionada (que vem do banco de dados)
+    if (option && option.getAttribute('data-unidade')) {
+        unidade = option.getAttribute('data-unidade');
+    }
+    
+    if (unidadeDisplay) unidadeDisplay.innerText = unidade;
+    if (unidadeTexto) unidadeTexto.innerText = unidade;
 }
 
 function removerLinhaProduto(btn) {
