@@ -175,7 +175,7 @@ class ItemVendaHistorico(db.Model):
     
     status_anterior = db.Column(db.String(20), nullable=False)
     status_novo = db.Column(db.String(20), nullable=False)
-    acao = db.Column(db.String(50))
+    acao = db.Column(db.String(255))
     
     data_acao = db.Column(db.DateTime, default=hora_brasilia)
     
