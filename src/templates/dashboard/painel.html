@@ -69,6 +69,8 @@
         {% endif %}
 
         {% if current_user.tem_permissao('dash_despesas') %}
+        
+        {% if pode_ver_totais_despesas %}
         <div onclick="abrirModal('modalSaidas')" class="kpi-card cursor-pointer group bg-white rounded-xl shadow-sm p-5 border-l-4 border-red-500">
             <div class="flex justify-between items-start mb-2">
                 <div>
@@ -83,6 +85,7 @@
                 <span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Pendente</span>
             </div>
         </div>
+        {% endif %}
 
         <div onclick="abrirModal('modalAlertas')" class="kpi-card cursor-pointer group bg-white rounded-xl shadow-sm p-5 border-l-4 border-navy-600">
             <div class="flex justify-between items-start mb-2">
@@ -279,7 +282,9 @@
             </div>
             <div class="p-4 bg-red-50 rounded-lg text-center">
                 <p class="text-sm text-red-500">Total a Pagar (Mês Atual)</p>
-                <p class="text-3xl font-bold text-red-700 mt-2">R$ {{ kpi_pagar }}</p>
+                <p class="text-3xl font-bold text-red-700 mt-2">
+                    {% if pode_ver_totais_despesas %}R$ {{ kpi_pagar }}{% else %}R$ ***{% endif %}
+                </p>
                 <p class="text-xs text-red-400 mt-2">Valores com status 'pendente'.</p>
             </div>
             <div class="mt-4 text-center">

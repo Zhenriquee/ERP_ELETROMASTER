@@ -1,5 +1,5 @@
 from flask import render_template, request
-from flask_login import login_required
+from flask_login import login_required, current_user
 from sqlalchemy import extract, desc, and_
 from datetime import date
 from src.modulos.autenticacao.permissoes import cargo_exigido
@@ -94,6 +94,9 @@ def painel():
     total_vencido_geral = db.session.query(db.func.sum(Despesa.valor))\
         .filter(Despesa.status == 'pendente', Despesa.data_vencimento < hoje)\
         .scalar() or 0
+    
+    # --- VERIFICAÇÃO DE PERMISSÃO PARA VER TOTAIS ---
+    pode_ver_totais = current_user.tem_permissao('financeiro_ver_totais')
 
     return render_template('financeiro/painel.html', 
                            despesas=despesas, 
@@ -103,6 +106,7 @@ def painel():
                            total_pendente=total_pendente,
                            total_pago=total_pago,
                            total_vencido_geral=total_vencido_geral,
+                           pode_ver_totais=pode_ver_totais, # <--- ENVIAR PARA O HTML AQUI                           
                            filtros={
                                'categoria': f_categoria,
                                'vencimento': f_vencimento,

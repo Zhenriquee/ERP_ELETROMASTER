@@ -1,12 +1,12 @@
 from flask import render_template, url_for
 from flask_login import login_required
+from sqlalchemy.orm import joinedload # <--- NOVA IMPORTAÇÃO
 from src.modulos.vendas.modelos import ItemVenda, Venda, hora_brasilia
 from src.modulos.autenticacao.permissoes import cargo_exigido
 from src.modulos.estoque.modelos import ProdutoEstoque
 from . import bp_operacional
 
 def calcular_tempo_decorrido(data_inicio):
-    """Retorna string amigável: '2d 4h' ou '35m'"""
     if not data_inicio:
         return "-"
     
@@ -29,19 +29,28 @@ def calcular_tempo_decorrido(data_inicio):
 @cargo_exigido('producao_operar')
 def painel():
     
-    # 1. Busca ITENS (Vendas Múltiplas) - Adicionado 'retrabalho'
+    # 1. Busca ITENS (Vendas Múltiplas) - OTIMIZADO (Traz venda, produto, cor e fotos juntos)
     itens_multi = ItemVenda.query.join(Venda).filter(
         ItemVenda.status.in_(['pendente', 'producao', 'retrabalho', 'pronto']),
         Venda.status != 'cancelado',
         Venda.status != 'orcamento',
         Venda.modo == 'multipla'
+    ).options(
+        joinedload(ItemVenda.venda),
+        joinedload(ItemVenda.produto),
+        joinedload(ItemVenda.cor),
+        joinedload(ItemVenda.fotos)
     ).all()
 
-    # 2. Busca VENDAS SIMPLES - Adicionado 'retrabalho'
+    # 2. Busca VENDAS SIMPLES - OTIMIZADO (Traz produto, cor e itens[com fotos] juntos)
     vendas_simples = Venda.query.filter(
         Venda.modo == 'simples',
         Venda.status.in_(['pendente', 'producao', 'retrabalho', 'pronto']),
         Venda.status != 'orcamento'
+    ).options(
+        joinedload(Venda.produto),
+        joinedload(Venda.cor),
+        joinedload(Venda.itens).joinedload(ItemVenda.fotos)
     ).all()
 
     tarefas = []
@@ -55,12 +64,10 @@ def painel():
         data_ref = i.venda.criado_em
         tempo_label = "Tempo em Fila"
         
-        # Lógica de Tempo para Retrabalho
         if i.status == 'producao':
             data_ref = i.data_inicio_producao or i.venda.criado_em
             tempo_label = "Tempo em Execução"
         elif i.status == 'retrabalho':
-            # Usa data de início de produção ou a última ação
             data_ref = i.data_inicio_producao or i.venda.criado_em
             tempo_label = "Tempo em Retrabalho"
         elif i.status == 'pronto':
@@ -87,7 +94,7 @@ def painel():
             'cliente': i.venda.cliente_nome,
             'obs': i.venda.observacoes_internas,
             'criado_em': i.venda.criado_em,
-            'is_producao': (i.status in ['producao', 'retrabalho']), # Considera retrabalho como produção ativa
+            'is_producao': (i.status in ['producao', 'retrabalho']),
             'tempo_decorrido': calcular_tempo_decorrido(data_ref),
             'tempo_label': tempo_label,
             'metragem': metragem_texto,
@@ -156,7 +163,7 @@ def painel():
     # Contadores
     qtd_fila = sum(1 for t in tarefas if t['status'] == 'pendente')
     qtd_producao = sum(1 for t in tarefas if t['status'] == 'producao')
-    qtd_retrabalho = sum(1 for t in tarefas if t['status'] == 'retrabalho') # NOVO
+    qtd_retrabalho = sum(1 for t in tarefas if t['status'] == 'retrabalho')
     qtd_pronto = sum(1 for t in tarefas if t['status'] == 'pronto')
     
     produtos_estoque = ProdutoEstoque.query.filter_by(ativo=True).order_by(ProdutoEstoque.nome).all()
@@ -165,6 +172,6 @@ def painel():
                            tarefas=tarefas,
                            qtd_fila=qtd_fila, 
                            qtd_producao=qtd_producao,
-                           qtd_retrabalho=qtd_retrabalho, # Passando novo contador
+                           qtd_retrabalho=qtd_retrabalho,
                            qtd_pronto=qtd_pronto,
                            produtos_estoque=produtos_estoque)

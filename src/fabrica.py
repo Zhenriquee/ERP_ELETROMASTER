@@ -229,6 +229,7 @@ def sincronizar_modulos_oficiais():
 
         # 3. Módulos de Gestão
         {'codigo': 'financeiro_acesso', 'nome': 'Financeiro - Acesso Completo'},
+        {'codigo': 'financeiro_ver_totais', 'nome': 'Financeiro - Ver Totais (Cards)'}, # <--- NOVA PERMISSÃO AQUI
         {'codigo': 'producao_operar',   'nome': 'Produção - Painel Operacional'},
         {'codigo': 'estoque_gerir',     'nome': 'Estoque - Gestão de Produtos'},
         {'codigo': 'metas_equipe',      'nome': 'Metas - Acesso ao Painel'},
