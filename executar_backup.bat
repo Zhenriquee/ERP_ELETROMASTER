@@ -13,3 +13,4 @@ echo.
 echo ---------------------------------------------------
 echo Se apareceu erro acima, leia. Se finalizou, feche.
 echo ---------------------------------------------------
+pause
