@@ -15,9 +15,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputPerc = document.getElementById('inputPerc');
     const txtSimulacao = document.getElementById('simulacaoValores');
 
+    // NOVO: Captura o campo de CPF
+    const inputCpf = document.getElementById('cpf');
+
     if(typeof lucide !== 'undefined') lucide.createIcons();
 
     function atualizarInterface() {
+        // ... (código existente mantido) ...
         const val = selectFreq.value;
         
         // Reset
@@ -64,6 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- CÁLCULO DE SIMULAÇÃO ---
     function simularValores() {
+        // ... (código existente mantido) ...
         if (!txtSimulacao || !inputSalario || !inputPerc) return;
         
         const salario = parseFloat(inputSalario.value) || 0;
@@ -83,6 +88,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- LISTENERS ---
+    
+    // NOVO: Aplica a máscara no CPF enquanto o usuário digita
+    if (inputCpf) {
+        inputCpf.addEventListener('input', function(e) {
+            let v = e.target.value.replace(/\D/g,""); // Remove tudo que não é número
+            v = v.replace(/(\d{3})(\d)/,"$1.$2");     // Coloca ponto entre o 3º e 4º dígitos
+            v = v.replace(/(\d{3})(\d)/,"$1.$2");     // Coloca ponto entre o 6º e 7º dígitos
+            v = v.replace(/(\d{3})(\d{1,2})$/,"$1-$2"); // Coloca traço antes dos últimos 2 dígitos
+            e.target.value = v.substring(0, 14);      // Limita a 14 caracteres exatos
+        });
+    }
+
     if(inputMensal) inputMensal.addEventListener('input', function() { if(inputReal) inputReal.value = this.value; });
     if(selectSemana) selectSemana.addEventListener('change', function() { if(inputReal) inputReal.value = this.value; });
 

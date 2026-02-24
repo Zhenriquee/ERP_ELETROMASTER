@@ -12,7 +12,7 @@ from src.modulos.relatorios import bp_relatorios
 
 @bp_relatorios.route('/servicos')
 @login_required
-@cargo_exigido('relatorios_acesso')
+@cargo_exigido('relatorios_servicos')
 def relatorio_servicos():
     tipo_periodo = request.args.get('tipo_periodo', 'mes')
     mes = request.args.get('mes', date.today().month, type=int)
