@@ -1,7 +1,7 @@
 from flask import render_template
 from flask_login import login_required, current_user
 from sqlalchemy import func, extract, desc
-from sqlalchemy.orm import joinedload # <--- NOVA IMPORTAÇÃO
+from sqlalchemy.orm import joinedload
 from datetime import date, timedelta, datetime
 from dateutil.relativedelta import relativedelta
 
@@ -23,9 +23,9 @@ def painel():
     mes_atual = hoje.month
     ano_atual = hoje.year
 
-    cargo_atual = current_user.cargo.lower() if current_user.cargo else ''
-    exibir_financeiro = cargo_atual == 'dono' or current_user.tem_permissao('financeiro_acesso')
-
+    # =================================================================
+    # --- INICIALIZAÇÃO SEGURA DE VARIÁVEIS (Evita erro 500) ---
+    # =================================================================
     recebido_mes = 0
     a_receber = 0
     vendas_hoje = 0
@@ -48,7 +48,20 @@ def painel():
     doughnut_labels = []
     doughnut_data = []
 
-    if exibir_financeiro:
+    # Inicializada FORA do IF para garantir que a tela não quebre!
+    pode_ver_totais_despesas = current_user.tem_permissao('financeiro_ver_totais')
+    
+    # Se o usuário for dono ou tiver ALGUMA permissão do dashboard, carrega os dados
+    eh_dono = current_user.cargo and current_user.cargo.lower() == 'dono'
+    pode_ver_dados_financeiros = (
+        eh_dono or
+        current_user.tem_permissao('dash_financeiro') or 
+        current_user.tem_permissao('dash_despesas') or 
+        current_user.tem_permissao('dash_performance') or 
+        current_user.tem_permissao('financeiro_acesso')
+    )
+
+    if pode_ver_dados_financeiros:
         recebido_mes = db.session.query(func.sum(Pagamento.valor))\
             .filter(extract('month', Pagamento.data_pagamento) == mes_atual, 
                     extract('year', Pagamento.data_pagamento) == ano_atual).scalar() or 0
@@ -96,8 +109,6 @@ def painel():
         
         ticket_medio = (float(faturamento_mes) / qtd_vendas_mes) if qtd_vendas_mes > 0 else 0
         perc_meta_mes = (float(faturamento_mes) / meta_valor_mes) * 100
-
-        pode_ver_totais_despesas = current_user.tem_permissao('financeiro_ver_totais')
 
         for i in range(5, -1, -1):
             data_ref = hoje - relativedelta(months=i)
@@ -157,7 +168,6 @@ def painel():
                 'data_criacao': obj.criado_em
             }
 
-    # OTIMIZAÇÃO: joinedload(ItemVenda.venda) traz a venda e o cliente junto com o item!
     itens_multi = db.session.query(ItemVenda).join(Venda).filter(
         Venda.status != 'cancelado', 
         Venda.status != 'orcamento',
@@ -217,7 +227,7 @@ def painel():
         .limit(5).all()
 
     return render_template('dashboard/painel.html',
-                           exibir_financeiro=exibir_financeiro,
+                           exibir_financeiro=pode_ver_dados_financeiros,
                            pode_ver_totais_despesas=pode_ver_totais_despesas,
                            
                            kpi_recebido=fmt_moeda(recebido_mes),

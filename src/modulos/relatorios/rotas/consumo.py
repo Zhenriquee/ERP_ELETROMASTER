@@ -13,7 +13,7 @@ from src.modulos.relatorios import bp_relatorios
 
 @bp_relatorios.route('/consumo-materiais')
 @login_required
-@cargo_exigido('relatorios_acesso')
+@cargo_exigido('relatorios_consumo')
 def relatorio_consumo():
     tipo_periodo = request.args.get('tipo_periodo', 'mes')
     mes = request.args.get('mes', date.today().month, type=int)

@@ -238,9 +238,10 @@ def sincronizar_modulos_oficiais():
         {'codigo': 'rh_equipe',         'nome': 'RH - Gestão de Usuários'},
         {'codigo': 'rh_salarios',       'nome': 'RH - Ver Salários'},
 
-        # 5. Relatórios (Permissões Individuais)
-        {'codigo': 'relatorios_servicos', 'nome': 'Relatórios - Ver Serviços Solicitados'},
-        {'codigo': 'relatorios_financeiro', 'nome': 'Relatórios - Ver Extrato Financeiro'}
+        # 5. NOVO: Relatórios
+        {'codigo': 'relatorios_servicos',   'nome': 'Relatórios - Serviços Solicitados'},
+        {'codigo': 'relatorios_consumo',    'nome': 'Relatórios - Consumo de Materiais'},
+        {'codigo': 'relatorios_financeiro', 'nome': 'Relatórios - Financeiro'}  
     ]
     
     codigos_oficiais = [m['codigo'] for m in modulos_oficiais]

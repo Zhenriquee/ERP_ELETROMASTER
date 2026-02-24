@@ -72,19 +72,11 @@
                     {{ nav_link('metas.painel', 'target', 'Metas & Objetivos', ['metas.nova_meta']) }}
                 {% endif %}
 
-                {% if current_user.tem_permissao('relatorios_servicos') or current_user.tem_permissao('relatorios_financeiro') %}
-                    {{ nav_header('Análises & Relatórios') }}
-                {% endif %}
-
-                {% if current_user.tem_permissao('relatorios_servicos') %}
-                    {{ nav_link('relatorios.relatorio_servicos', 'clipboard-list', 'Relatório de Serviços') }}
-                {% endif %}
-
-                {% if current_user.tem_permissao('relatorios_financeiro') %}
-                    {# Botão inativo enquanto o relatório não é programado #}
-                    <div class="px-4 py-2 mx-2 text-sm text-gray-400 flex items-center cursor-not-allowed opacity-60">
-                        <i data-lucide="dollar-sign" class="w-5 h-5 mr-3"></i> Extrato Financeiro
-                    </div>
+                {% set eh_dono = current_user.cargo and current_user.cargo|lower == 'dono' %}
+                
+                {% if current_user.tem_permissao('relatorios_servicos') or current_user.tem_permissao('relatorios_consumo') or current_user.tem_permissao('relatorios_financeiro') or eh_dono %}
+                    {{ nav_header('Análises') }}
+                    {{ nav_link('relatorios.painel', 'bar-chart-2', 'Central de Relatórios', ['relatorios.relatorio_servicos', 'relatorios.relatorio_consumo']) }}
                 {% endif %}
                 
                 {% if current_user.tem_permissao('rh_equipe') %}
