@@ -16,23 +16,43 @@ from src.modulos.financeiro.modelos import Despesa
 # Formulários
 from src.modulos.rh.formularios import FormularioColaborador
 
-# --- LÓGICA AUXILIAR: SINCRONIZAÇÃO FINANCEIRA ---
 def sincronizar_financeiro_rh(colaborador):
     """
-    Gerencia a previsão financeira do colaborador (Salário).
-    ESTRATÉGIA: Limpeza e Recriação (Reset Futuro).
-    
-    1. Remove TODAS as despesas futuras 'pendentes' criadas automaticamente.
-    2. Recria os lançamentos para os próximos 6 meses com as regras atuais.
-    
-    Isso evita duplicidade se o usuário mudar a data de pagamento ou frequência.
+    Sincroniza o financeiro com o status do colaborador.
+    Se inativo: apaga os lançamentos apenas a partir do próximo mês (mantém os do mês atual).
+    Se ativo: apaga os lançamentos futuros e recria as previsões com os dados atualizados.
     """
     try:
         hoje = date.today()
         janela_meses = 6
         
-        # 1. LIMPEZA TOTAL DO FUTURO
-        # Busca tudo que é do RH, está Pendente e vence Hoje ou depois
+        # Descobre o primeiro dia do próximo mês
+        if hoje.month == 12:
+            inicio_proximo_mes = date(hoje.year + 1, 1, 1)
+        else:
+            inicio_proximo_mes = date(hoje.year, hoje.month + 1, 1)
+
+        # ==========================================
+        # 1. SE INATIVO (DESLIGADO)
+        # ==========================================
+        if not colaborador.ativo:
+            # Remove APENAS os lançamentos com vencimento a partir do próximo mês
+            lancamentos_futuros = Despesa.query.filter(
+                Despesa.colaborador_id == colaborador.id,
+                Despesa.origem == 'rh_automatico',
+                Despesa.status == 'pendente',
+                Despesa.data_vencimento >= inicio_proximo_mes
+            ).all()
+
+            for desp in lancamentos_futuros:
+                db.session.delete(desp)
+
+            return "Colaborador inativo. Previsões de salário do próximo mês em diante canceladas."
+
+        # ==========================================
+        # 2. SE ATIVO (GERAÇÃO/ATUALIZAÇÃO NORMAL)
+        # ==========================================
+        # Limpa tudo a partir de hoje para recriar com valores atualizados
         lancamentos_futuros = Despesa.query.filter(
             Despesa.colaborador_id == colaborador.id,
             Despesa.origem == 'rh_automatico',
@@ -40,28 +60,21 @@ def sincronizar_financeiro_rh(colaborador):
             Despesa.data_vencimento >= hoje
         ).all()
 
-        # Remove todos para garantir que não sobrem "fantasmas" de regras antigas
         for desp in lancamentos_futuros:
             db.session.delete(desp)
-
-        # Se o colaborador estiver inativo, paramos por aqui (apenas limpou)
-        if not colaborador.ativo:
-            return "Colaborador inativo. Previsões futuras removidas."
 
         valor_base = float(colaborador.salario_base or 0)
         if valor_base <= 0: return "Salário zerado. Nada gerado."
 
-        # 2. GERAÇÃO DE NOVOS LANÇAMENTOS
         novos_criados = 0
         lista_novos = []
 
-        # Função para garantir datas válidas (ex: dia 30 em Fevereiro vira dia 28)
         def get_data_segura(ano, mes, dia_preferido):
             _, ultimo_dia = calendar.monthrange(ano, mes)
             dia_real = min(dia_preferido, ultimo_dia)
             return date(ano, mes, dia_real)
 
-        # --- LÓGICA MENSAL ---
+        # --- Lógica Mensal ---
         if colaborador.frequencia_pagamento == 'mensal':
             try: dia_venc = int(colaborador.dia_pagamento)
             except: dia_venc = 5
@@ -69,50 +82,37 @@ def sincronizar_financeiro_rh(colaborador):
             for i in range(janela_meses):
                 data_ref = hoje + relativedelta(months=i)
                 vencimento = get_data_segura(data_ref.year, data_ref.month, dia_venc)
-                
-                # Só cria se for no futuro (para não duplicar passado não pago)
                 if vencimento > hoje:
                     lista_novos.append((vencimento, valor_base, "Salário Mensal"))
 
-        # --- LÓGICA QUINZENAL ---
+        # --- Lógica Quinzenal ---
         elif colaborador.frequencia_pagamento == 'quinzenal':
             try:
-                # Ex: "15,30"
                 partes = colaborador.dia_pagamento.split(',')
                 dia1 = int(partes[0])
                 dia2 = int(partes[1]) if len(partes) > 1 else 30
             except: dia1, dia2 = 15, 30
             
-            # Cálculo Proporcional
             perc = colaborador.percentual_adiantamento or 40
             val_adianta = valor_base * (perc / 100)
             val_saldo = valor_base - val_adianta
 
             for i in range(janela_meses):
                 data_ref = hoje + relativedelta(months=i)
-                
                 venc1 = get_data_segura(data_ref.year, data_ref.month, dia1)
                 venc2 = get_data_segura(data_ref.year, data_ref.month, dia2)
                 
-                if venc1 > hoje:
-                    lista_novos.append((venc1, val_adianta, f"Adiantamento ({perc}%)"))
-                
-                if venc2 > hoje:
-                    lista_novos.append((venc2, val_saldo, "Saldo Salário"))
+                if venc1 > hoje: lista_novos.append((venc1, val_adianta, f"Adiantamento ({perc}%)"))
+                if venc2 > hoje: lista_novos.append((venc2, val_saldo, "Saldo Salário"))
 
-        # --- LÓGICA SEMANAL ---
+        # --- Lógica Semanal ---
         elif colaborador.frequencia_pagamento == 'semanal':
-            try: dia_semana = int(colaborador.dia_pagamento) # 0=Seg ... 6=Dom
-            except: dia_semana = 4 # Sexta padrão
+            try: dia_semana = int(colaborador.dia_pagamento)
+            except: dia_semana = 4
+            val_semana = valor_base / 4 
             
-            val_semana = valor_base / 4 # Simplificado (poderia ser /4.33 para precisão)
-            
-            # Encontra o próximo dia da semana correto a partir de hoje
             cursor = hoje
-            while cursor.weekday() != dia_semana: 
-                cursor += timedelta(days=1)
-            
-            # Gera para as próximas 24 semanas (aprox 6 meses)
+            while cursor.weekday() != dia_semana: cursor += timedelta(days=1)
             for _ in range(24):
                 cursor += timedelta(weeks=1)
                 lista_novos.append((cursor, val_semana, "Pagamento Semanal"))
@@ -136,13 +136,12 @@ def sincronizar_financeiro_rh(colaborador):
             db.session.add(nova_despesa)
             novos_criados += 1
 
-        return f"Sincronizado. {novos_criados} novos lançamentos gerados."
+        return f"Sincronizado. {novos_criados} previsões geradas."
 
     except Exception as e:
         print(f"Erro sync RH: {e}")
         return "Erro ao sincronizar financeiro."
 
-# --- ROTAS DE COLABORADORES ---
 
 @bp_rh.route('/', methods=['GET'])
 @login_required
@@ -177,11 +176,8 @@ def novo_colaborador():
                 tipo_contrato=form.tipo_contrato.data,
                 salario_base=form.salario_base.data,
                 ativo=form.ativo.data,
-                
-                # --- NOVO CAMPO ---
                 faz_parte_meta=form.faz_parte_meta.data,
                 
-                # Campos Financeiros
                 chave_pix=form.chave_pix.data,
                 banco=form.banco.data,
                 agencia=form.agencia.data,
@@ -193,10 +189,8 @@ def novo_colaborador():
             db.session.add(novo)
             db.session.flush()
             
-            # Sync Financeiro
-            msg_sync = ""
-            if form.gerar_financeiro.data and form.salario_base.data:
-                msg_sync = sincronizar_financeiro_rh(novo)
+            # AGORA CHAMA DIRETO! A função por si só já sabe o que fazer
+            msg_sync = sincronizar_financeiro_rh(novo)
             
             db.session.commit()
             flash(f'Colaborador cadastrado! {msg_sync}', 'success')
@@ -219,16 +213,15 @@ def editar_colaborador(id):
         if existente:
             flash('Este CPF já pertence a outro colaborador.', 'error')
         else:
-            form.populate_obj(colab)
+            # Não tentamos popular o campo 'gerar_financeiro' no banco pois ele não existe mais lá
+            # Mas o form capturou se a pessoa quer rodar a sync agora.
+            form.populate_obj(colab) 
             
-            # Sync Financeiro - Chama a função corrigida
-            if form.gerar_financeiro.data:
-                msg_sync = sincronizar_financeiro_rh(colab)
-                flash(f'Dados atualizados. {msg_sync}', 'success')
-            else:
-                flash('Dados atualizados.', 'success')
-                
+            # AGORA CHAMA DIRETO! 
+            msg_sync = sincronizar_financeiro_rh(colab)
+            
             db.session.commit()
+            flash(f'Dados atualizados. {msg_sync}', 'success')
             return redirect(url_for('rh.listar_colaboradores'))
 
     return render_template('rh/cadastro_colaborador.html', form=form, titulo="Editar Colaborador", editando=True)

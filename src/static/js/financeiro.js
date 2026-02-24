@@ -130,7 +130,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- 6. FILTROS DO PAINEL ---
     const filtroPeriodo = document.getElementById('filtroPeriodo');
-    // ... (restante dos filtros se houver) ...
+    const filtroTexto = document.getElementById('filtroTexto');
+    
     if (filtroPeriodo) {
         window.aplicarFiltros = function() {
             const valorPeriodo = filtroPeriodo.value; 
@@ -141,24 +142,42 @@ document.addEventListener('DOMContentLoaded', function() {
             params.set('mes', mes);
             params.set('ano', ano);
             
-            // Adiciona outros filtros se existirem na tela
-            ['filtroCat', 'filtroStatus', 'filtroFornecedor', 'filtroPagamento', 'filtroTipo', 'filtroVencimento'].forEach(id => {
+            // LER NOVO FILTRO DE TEXTO E OUTROS
+            ['filtroTexto', 'filtroCat', 'filtroStatus', 'filtroFornecedor', 'filtroPagamento', 'filtroTipo', 'filtroVencimento'].forEach(id => {
                 const el = document.getElementById(id);
-                const paramName = id.replace('filtro', '').toLowerCase(); // ex: filtroCat -> cat (ajuste conforme backend espera, ex: categoria)
+                const paramName = id.replace('filtro', '').toLowerCase(); 
+                
                 if(el && el.value) {
-                    // Mapeamento manual para garantir nomes corretos do backend
                     let key = paramName;
+                    // Mapeamento manual para backend
                     if(key === 'cat') key = 'categoria';
                     if(key === 'tipo') key = 'tipo_custo';
                     if(key === 'pagamento') key = 'forma_pagamento';
+                    if(key === 'texto') key = 'q'; // Mapeia 'filtroTexto' para 'q'
                     
                     params.set(key, el.value);
+                } else if(el && !el.value) {
+                    // Limpa do URL se o usuário apagou o conteúdo
+                    let key = paramName;
+                    if(key === 'texto') key = 'q';
+                    params.delete(key);
                 }
             });
 
             window.location.href = `/financeiro/?${params.toString()}`;
         }
+        
         filtroPeriodo.addEventListener('change', window.aplicarFiltros);
+        
+        // Ativa a busca ao pressionar 'Enter' no campo de texto
+        if (filtroTexto) {
+            filtroTexto.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault(); // Evita recarregar página fora do controle
+                    window.aplicarFiltros();
+                }
+            });
+        }
     }
 });
 

@@ -53,8 +53,7 @@ class FormularioColaborador(FlaskForm):
         validators=[Optional(), NumberRange(min=1, max=99)]
     )
     
-    # Checkbox de automação
-    gerar_financeiro = BooleanField('Gerar contas a pagar automaticamente', default=True)
+    
     
     ativo = BooleanField('Colaborador Ativo na Empresa', default=True)
     

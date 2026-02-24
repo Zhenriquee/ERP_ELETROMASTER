@@ -7,7 +7,27 @@ from src.modulos.estoque.modelos import ProdutoEstoque, MovimentacaoEstoque
 from decimal import Decimal
 from . import bp_operacional
 
-# --- NOVO: ROTA PARA ENVIAR PARA RETRABALHO (ITEM) ---
+# --- FUNÇÃO AUXILIAR PARA ESTORNO GARANTIDO ---
+def estornar_estoque_producao(referencia_id):
+    """Remove a movimentação de saída e devolve a quantidade ao saldo do produto"""
+    movimentacoes = MovimentacaoEstoque.query.filter_by(
+        referencia_id=referencia_id,
+        origem='producao',
+        tipo='saida'
+    ).all()
+    
+    qtd_estornada = 0
+    for mov in movimentacoes:
+        prod = ProdutoEstoque.query.get(mov.produto_id)
+        if prod:
+            prod.quantidade_atual += mov.quantidade
+            db.session.add(prod) # Força a atualização do saldo
+        db.session.delete(mov)   # Exclui o lançamento do histórico
+        qtd_estornada += 1
+        
+    return qtd_estornada
+
+# --- ROTA PARA ENVIAR PARA RETRABALHO (ITEM) ---
 @bp_operacional.route('/item/<int:id>/retrabalho')
 @login_required
 @cargo_exigido('producao_operar')
@@ -19,7 +39,12 @@ def retrabalho_item(id):
     status_anterior = item.status
     item.status = 'retrabalho'
     
-    # Se não tiver data de inicio, define agora (caso raro)
+    # CORREÇÃO: Se estava pronto, significa que já havia debitado estoque. Estorna!
+    if status_anterior == 'pronto':
+        estornar_estoque_producao(item.id)
+        item.data_pronto = None
+        item.usuario_pronto_id = None
+    
     if not item.data_inicio_producao:
         item.data_inicio_producao = agora
     
@@ -33,7 +58,6 @@ def retrabalho_item(id):
     )
     db.session.add(log)
     
-    # Atualiza status do Pai se necessário (se estava pronto, volta para produção)
     if venda_pai.modo == 'multipla':
         if venda_pai.status == 'pronto':
             venda_pai.status = 'producao'
@@ -42,7 +66,7 @@ def retrabalho_item(id):
     flash('Item enviado para Retrabalho.', 'warning')
     return redirect(url_for('operacional.painel'))
 
-# --- NOVO: ROTA PARA ENVIAR PARA RETRABALHO (VENDA SIMPLES) ---
+# --- ROTA PARA ENVIAR PARA RETRABALHO (VENDA SIMPLES) ---
 @bp_operacional.route('/venda/<int:id>/retrabalho')
 @login_required
 @cargo_exigido('producao_operar')
@@ -53,12 +77,16 @@ def retrabalho_venda(id):
     status_anterior = venda.status
     venda.status = 'retrabalho'
     
-    # Atualiza itens filhos
     if venda.itens:
         for item in venda.itens:
+            # CORREÇÃO: Se estava pronto, estorna o estoque antes de voltar
+            if status_anterior == 'pronto' or item.status == 'pronto':
+                estornar_estoque_producao(item.id)
+                item.data_pronto = None
+                item.usuario_pronto_id = None
+                
             item.status = 'retrabalho'
     
-    # Log no primeiro item (para histórico)
     if venda.itens:
         log = ItemVendaHistorico(
             item_id=venda.itens[0].id,
@@ -74,7 +102,7 @@ def retrabalho_venda(id):
     flash('Serviço enviado para Retrabalho.', 'warning')
     return redirect(url_for('operacional.painel'))
 
-# --- ATUALIZAÇÃO: AVANÇAR ITEM (Aceita Produção ou Retrabalho -> Pronto) ---
+# --- AVANÇAR ITEM ---
 @bp_operacional.route('/item/<int:id>/avancar')
 @login_required
 @cargo_exigido('producao_operar')
@@ -92,7 +120,7 @@ def avancar_item(id):
         item.usuario_producao_id = current_user.id
         acao_texto = "Iniciou Produção"
         
-    elif item.status in ['producao', 'retrabalho']: # <--- ALTERADO
+    elif item.status in ['producao', 'retrabalho']:
         item.status = 'pronto'
         item.data_pronto = agora
         item.usuario_pronto_id = current_user.id
@@ -109,7 +137,6 @@ def avancar_item(id):
         )
         db.session.add(log)
 
-    # Verifica status do pai
     todos_itens = ItemVenda.query.filter_by(venda_id=venda_pai.id).all()
     status_set = set(i.status for i in todos_itens)
 
@@ -128,6 +155,7 @@ def avancar_item(id):
     db.session.commit()
     return redirect(url_for('operacional.painel'))
 
+# --- VOLTAR ITEM ---
 @bp_operacional.route('/item/<int:id>/voltar')
 @login_required
 @cargo_exigido('producao_operar')
@@ -138,6 +166,7 @@ def voltar_item(id):
     
     status_anterior = item.status
     acao_texto = ""
+    qtd_estornada = 0
 
     if item.status == 'producao':
         acao_texto = "Retornou para Fila (Desfez Início)"
@@ -151,18 +180,8 @@ def voltar_item(id):
         item.data_pronto = None
         item.usuario_pronto_id = None
         
-        # Estorna baixas automáticas manuais se houver (opcional, mas seguro)
-        movimentacoes = MovimentacaoEstoque.query.filter_by(
-            referencia_id=item.id,
-            origem='producao',
-            tipo='saida'
-        ).all()
-        
-        for mov in movimentacoes:
-            prod = ProdutoEstoque.query.get(mov.produto_id)
-            if prod:
-                prod.quantidade_atual += mov.quantidade
-            db.session.delete(mov)
+        # O ESTORNO GARANTIDO ACONTECE AQUI!
+        qtd_estornada = estornar_estoque_producao(item.id)
 
     if acao_texto:
         log = ItemVendaHistorico(
@@ -175,7 +194,6 @@ def voltar_item(id):
         )
         db.session.add(log)
 
-    # Atualiza Pai
     todos_itens = ItemVenda.query.filter_by(venda_id=venda_pai.id).all()
     status_set = set(i.status for i in todos_itens)
 
@@ -193,9 +211,16 @@ def voltar_item(id):
             venda_pai.status = 'pronto'
     
     db.session.commit()
+    
+    # Feedback visual claro para o usuário
+    if qtd_estornada > 0:
+        flash(f'Item retornado à produção. {qtd_estornada} baixa(s) de estoque revertida(s) com sucesso!', 'success')
+    else:
+        flash('Item retornado à produção.', 'info')
+        
     return redirect(url_for('operacional.painel'))
 
-# --- ATUALIZAÇÃO: AVANÇAR VENDA (Aceita Produção ou Retrabalho -> Pronto) ---
+# --- AVANÇAR VENDA ---
 @bp_operacional.route('/venda/<int:id>/avancar')
 @login_required
 @cargo_exigido('producao_operar')
@@ -213,8 +238,7 @@ def avancar_venda(id):
                 item.data_inicio_producao = agora
                 item.usuario_producao_id = current_user.id
 
-    elif venda.status in ['producao', 'retrabalho']: # <--- ALTERADO
-        # Baixa Automática (Venda Simples)
+    elif venda.status in ['producao', 'retrabalho']:
         if venda.modo == 'simples' and venda.produto_id:
             produto = ProdutoEstoque.query.get(venda.produto_id)
             if produto:
@@ -255,11 +279,13 @@ def avancar_venda(id):
     db.session.commit()
     return redirect(url_for('operacional.painel'))
 
+# --- VOLTAR VENDA ---
 @bp_operacional.route('/venda/<int:id>/voltar')
 @login_required
 @cargo_exigido('producao_operar')
 def voltar_venda(id):
     venda = Venda.query.get_or_404(id)
+    qtd_estornada = 0
     
     if venda.status in ['producao', 'retrabalho']:
         venda.status = 'pendente'
@@ -281,36 +307,29 @@ def voltar_venda(id):
                 item.data_pronto = None
                 item.usuario_pronto_id = None
                 
-                # Estorna baixas
-                movimentacoes = MovimentacaoEstoque.query.filter_by(
-                    referencia_id=item.id,
-                    origem='producao',
-                    tipo='saida'
-                ).all()
-                for mov in movimentacoes:
-                    prod = ProdutoEstoque.query.get(mov.produto_id)
-                    if prod:
-                        prod.quantidade_atual += mov.quantidade
-                    db.session.delete(mov)
+                # ESTORNO GARANTIDO
+                qtd_estornada += estornar_estoque_producao(item.id)
 
     db.session.commit()
+    
+    if qtd_estornada > 0:
+        flash(f'Serviço retornado à produção. {qtd_estornada} baixa(s) de estoque revertida(s) com sucesso.', 'success')
+    else:
+        flash('Serviço retornado para fila/produção.', 'info')
+        
     return redirect(url_for('operacional.painel'))
 
-
+# --- FINALIZAR COM BAIXA (ITEM MULTIPLO) ---
 @bp_operacional.route('/item/<int:id>/finalizar_com_baixa', methods=['POST'])
 @login_required
 def finalizar_com_baixa(id):
     item = ItemVenda.query.get_or_404(id)
-    
-    # Guarda status anterior para o log
     status_anterior = item.status 
     
-    # Atualiza status para pronto
     item.status = 'pronto'
     item.data_pronto = hora_brasilia()
     item.usuario_pronto_id = current_user.id
     
-    # Coleta dados do formulário
     produtos_ids = request.form.getlist('produtos_ids[]')
     quantidades = request.form.getlist('quantidades[]')
     
@@ -320,20 +339,15 @@ def finalizar_com_baixa(id):
     for p_id, qtd_str in zip(produtos_ids, quantidades):
         if p_id and qtd_str:
             try:
-                # Tratamento de número (Brasil -> Python)
                 qtd_str_limpa = qtd_str.replace('.', '').replace(',', '.') if ',' in qtd_str and '.' in qtd_str else qtd_str.replace(',', '.')
                 qtd = Decimal(qtd_str_limpa)
                 
                 if qtd > 0:
                     prod = ProdutoEstoque.query.get(int(p_id))
                     if prod:
-                        # --- CORREÇÃO AQUI ---
-                        # Removemos a divisão por 1000. 
-                        # Agora o sistema respeita exatamente o que foi digitado.
                         qtd_baixa = qtd
                         unidade_log = prod.unidade
                         
-                        # Cria movimentação
                         mov = MovimentacaoEstoque(
                             produto_id=prod.id,
                             tipo='saida',
@@ -343,10 +357,9 @@ def finalizar_com_baixa(id):
                             origem='producao', 
                             referencia_id=item.id, 
                             usuario_id=current_user.id,
-                            observacao=f"Consumo Manual Item #{item.id} ({'Retrabalho' if status_anterior == 'retrabalho' else 'Produção'})"
+                            observacao=f"Consumo Item #{item.id} ({'Retrabalho' if status_anterior == 'retrabalho' else 'Produção'})"
                         )
                         
-                        # Atualiza saldo
                         prod.quantidade_atual -= qtd_baixa
                         db.session.add(mov)
                         
@@ -355,24 +368,27 @@ def finalizar_com_baixa(id):
             except ValueError:
                 continue 
 
-    # Gera Log
     acao_msg = "Finalizou Produção"
     if status_anterior == 'retrabalho':
         acao_msg = "Finalizou Retrabalho"
     
     detalhe_consumo = f"(Baixa: {', '.join(consumo_texto)})" if consumo_texto else "(Sem consumo extra informado)"
     
+    # SEGURANÇA: Truncar a mensagem para não estourar o limite de 255 do banco de dados
+    acao_completa = f"{acao_msg} {detalhe_consumo}"
+    if len(acao_completa) > 250:
+        acao_completa = acao_completa[:247] + "..."
+    
     log = ItemVendaHistorico(
         item_id=item.id,
         usuario_id=current_user.id,
         status_anterior=status_anterior,
         status_novo='pronto',
-        acao=f"{acao_msg} {detalhe_consumo}",
+        acao=acao_completa,
         data_acao=hora_brasilia()
     )
     db.session.add(log)
     
-    # Verifica status do Pai
     venda_pai = Venda.query.get(item.venda_id)
     todos_itens = ItemVenda.query.filter_by(venda_id=venda_pai.id).all()
     

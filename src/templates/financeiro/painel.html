@@ -66,8 +66,8 @@
     {% endif %}
 
     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
-        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div class="w-full md:w-1/3">
+        <div class="flex flex-col md:flex-row items-end justify-between gap-4">
+            <div class="w-full md:w-1/4">
                 <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Competência</label>
                 <select id="filtroPeriodo" class="w-full p-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-navy-900 outline-none font-bold text-navy-900">
                     {% for p in periodos %}
@@ -77,8 +77,17 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="w-full md:w-auto text-right">
-                <button type="button" onclick="document.getElementById('detalhesFiltros').toggleAttribute('open')" class="text-sm text-navy-600 hover:text-navy-800 font-medium flex items-center justify-end gap-1">
+            
+            <div class="w-full md:w-1/2">
+                <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Buscar Despesa</label>
+                <div class="relative">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                    <input type="text" id="filtroTexto" value="{{ filtros.q }}" placeholder="Buscar por ID ou Nome..." class="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-navy-900 outline-none transition-all">
+                </div>
+            </div>
+
+            <div class="w-full md:w-auto text-right pb-1">
+                <button type="button" onclick="document.getElementById('detalhesFiltros').toggleAttribute('open')" class="text-sm text-navy-600 hover:text-navy-800 font-medium flex items-center justify-end gap-1 px-2 py-2">
                     <i data-lucide="filter" class="w-4 h-4"></i> Filtros Avançados
                 </button>
             </div>
@@ -150,8 +159,7 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     {% for d in despesas %}
-                    <tr class="transition-colors hover:bg-gray-50">
-                        <td class="px-6 py-4 font-medium text-gray-800">{{ d.data_vencimento.strftime('%d/%m/%Y') }}</td>
+                    <tr class="transition-colors {% if destaque_id == d.id %}bg-yellow-100 border-l-4 border-yellow-500 shadow-sm{% else %}hover:bg-gray-50{% endif %}" {% if destaque_id == d.id %}id="linha-destaque"{% endif %}>                        <td class="px-6 py-4 font-medium text-gray-800">{{ d.data_vencimento.strftime('%d/%m/%Y') }}</td>
                         <td class="px-6 py-4">
                             <div class="font-medium text-gray-900">{{ d.descricao }}</div>
                             {% if d.fornecedor_rel %}<div class="text-xs text-gray-400">{{ d.fornecedor_rel.nome_fantasia }}</div>{% endif %}
@@ -285,6 +293,7 @@
     }
 
     function abrirModalSalario(nome, cpf, pix, banco, agencia, conta, valor) {
+        // ... (código existente da função se mantém) ...
         document.getElementById('modSalNome').innerText = nome;
         document.getElementById('modSalCpf').innerText = cpf ? 'CPF: ' + cpf : '';
         document.getElementById('modSalPix').innerText = pix || 'Não informada';
@@ -306,5 +315,20 @@
         modal.querySelector('div').classList.add('scale-95');
         setTimeout(() => modal.classList.add('hidden'), 300);
     }
+
+    // --- NOVA LÓGICA DE AUTO-SCROLL PARA CONTA DESTACADA ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const linhaDestaque = document.getElementById('linha-destaque');
+        if (linhaDestaque) {
+            // Rola a tela suavemente até a linha destacada
+            linhaDestaque.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Remove o fundo amarelo após 3 segundos para voltar ao normal
+            setTimeout(() => {
+                linhaDestaque.classList.remove('bg-yellow-100', 'border-l-4', 'border-yellow-500', 'shadow-sm');
+                linhaDestaque.classList.add('hover:bg-gray-50', 'transition-all', 'duration-1000');
+            }, 3000);
+        }
+    });
 </script>
 {% endblock %}

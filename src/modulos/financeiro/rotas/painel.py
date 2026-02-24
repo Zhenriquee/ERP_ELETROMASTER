@@ -7,6 +7,7 @@ from src.modulos.autenticacao.permissoes import cargo_exigido
 from src.extensoes import banco_de_dados as db
 from src.modulos.financeiro.modelos import Despesa, Fornecedor
 from . import bp_financeiro
+from sqlalchemy import extract, desc, and_, or_
 
 @bp_financeiro.route('/', methods=['GET'])
 @login_required
@@ -17,8 +18,6 @@ def painel():
     # ============================================================
     # 1. PREPARAÇÃO DOS FILTROS (PERIODOS E LISTAS)
     # ============================================================
-    
-    # MUDANÇA 1: Busca competências baseadas na DATA DE VENCIMENTO
     competencias_db = db.session.query(
             extract('year', Despesa.data_vencimento).label('ano'),
             extract('month', Despesa.data_vencimento).label('mes')
@@ -50,7 +49,16 @@ def painel():
     mes = request.args.get('mes', mes_padrao, type=int)
     ano = request.args.get('ano', ano_padrao, type=int)
     
+    # --- NOVA LÓGICA: FORÇA O MÊS/ANO DA CONTA DESTACADA ---
+    destaque_id = request.args.get('destaque_id', type=int)
+    if destaque_id:
+        despesa_destaque = Despesa.query.get(destaque_id)
+        if despesa_destaque:
+            mes = despesa_destaque.data_vencimento.month
+            ano = despesa_destaque.data_vencimento.year
+
     # Filtros Avançados
+    f_busca = request.args.get('q', '').strip() 
     f_categoria = request.args.get('categoria', '')
     f_vencimento = request.args.get('vencimento', '')
     f_forma_pagamento = request.args.get('forma_pagamento', '')
@@ -61,13 +69,17 @@ def painel():
     # ============================================================
     # 3. QUERY PRINCIPAL (LISTA)
     # ============================================================
-    
-    # MUDANÇA 2: Filtra pela DATA DE VENCIMENTO
     query = Despesa.query.filter(
         extract('month', Despesa.data_vencimento) == mes,
         extract('year', Despesa.data_vencimento) == ano
     )
     
+    if f_busca:
+        if f_busca.isdigit():
+            query = query.filter(or_(Despesa.id == int(f_busca), Despesa.descricao.ilike(f'%{f_busca}%')))
+        else:
+            query = query.filter(Despesa.descricao.ilike(f'%{f_busca}%'))
+            
     if f_status:
         query = query.filter(Despesa.status == f_status)
     if f_categoria:
@@ -86,16 +98,13 @@ def painel():
     # ============================================================
     # 4. CÁLCULO DE TOTAIS (KPIS)
     # ============================================================
-    
     total_pendente = sum(d.valor for d in despesas if d.status == 'pendente')
     total_pago = sum(d.valor for d in despesas if d.status == 'pago')
     
-    # Total Vencido Geral (Alerta Global) - Mantido pela data de vencimento
     total_vencido_geral = db.session.query(db.func.sum(Despesa.valor))\
         .filter(Despesa.status == 'pendente', Despesa.data_vencimento < hoje)\
         .scalar() or 0
     
-    # --- VERIFICAÇÃO DE PERMISSÃO PARA VER TOTAIS ---
     pode_ver_totais = current_user.tem_permissao('financeiro_ver_totais')
 
     return render_template('financeiro/painel.html', 
@@ -106,8 +115,10 @@ def painel():
                            total_pendente=total_pendente,
                            total_pago=total_pago,
                            total_vencido_geral=total_vencido_geral,
-                           pode_ver_totais=pode_ver_totais, # <--- ENVIAR PARA O HTML AQUI                           
+                           pode_ver_totais=pode_ver_totais,
+                           destaque_id=destaque_id, # <--- ENVIADO PARA O HTML
                            filtros={
+                               'q': f_busca,
                                'categoria': f_categoria,
                                'vencimento': f_vencimento,
                                'forma_pagamento': f_forma_pagamento,

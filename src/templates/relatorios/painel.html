@@ -26,6 +26,24 @@
                 Acessar Relatório <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
             </div>
         </a>
+        
+        <a href="{{ url_for('relatorios.relatorio_consumo') }}" class="block group bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:border-yellow-200 transition-all">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-12 h-12 rounded-lg bg-yellow-50 text-yellow-600 flex items-center justify-center group-hover:bg-yellow-500 group-hover:text-white transition-colors">
+                    <i data-lucide="droplet" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-navy-900 text-lg group-hover:text-yellow-600 transition-colors">Consumo de Materiais</h3>
+                    <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mt-1">Estoque & Produção</p>
+                </div>
+            </div>
+            <p class="text-sm text-gray-600 leading-relaxed">
+                Acompanhe o fluxo de dispensação, quanto de tinta e insumos foram gastos e em quais serviços ou clientes foram aplicados.
+            </p>
+            <div class="mt-4 pt-4 border-t border-gray-100 flex items-center text-yellow-600 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0">
+                Acessar Relatório <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+            </div>
+        </a>
 
         <div class="bg-gray-50 rounded-xl border border-dashed border-gray-300 p-6 flex flex-col items-center justify-center text-center opacity-60">
             <i data-lucide="lock" class="w-8 h-8 text-gray-400 mb-3"></i>

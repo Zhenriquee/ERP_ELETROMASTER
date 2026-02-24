@@ -86,8 +86,9 @@
                     {# Módulo de Acesso: Logins e Senhas #}
                     {{ nav_link('autenticacao.listar_usuarios', 'key', 'Usuários de Acesso', ['autenticacao.novo_usuario', 'autenticacao.editar_usuario']) }}
                     
-                    {# Módulo Corporativo: Cargos e Setores #}
-                    {{ nav_link('corporativo.painel', 'building', 'Cargos & Setores') }}
+                    {% if current_user.cargo and current_user.cargo|lower == 'dono' %}
+                        {{ nav_link('corporativo.painel', 'briefcase', 'Cargos & Setores', ['corporativo.novo_setor', 'corporativo.editar_setor', 'corporativo.novo_cargo', 'corporativo.editar_cargo']) }}
+                    {% endif %}
                 {% endif %}
 
             </nav>
