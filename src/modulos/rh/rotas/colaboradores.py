@@ -197,17 +197,56 @@ def novo_colaborador():
 @cargo_exigido('rh_editar') # APENAS EDITAR
 def editar_colaborador(id):
     colab = Colaborador.query.get_or_404(id)
+    
+    # 1. GUARDA OS VALORES ORIGINAIS (Antes de aplicar os dados do formulário)
+    valor_antigo_ativo = colab.ativo
+    valor_antigo_cargo = colab.cargo_id
+    valor_antigo_salario = colab.salario_base
+    valor_antigo_pix = colab.chave_pix
+    valor_antigo_banco = colab.banco
+    valor_antigo_agencia = colab.agencia
+    valor_antigo_conta = colab.conta
+    valor_antigo_freq = colab.frequencia_pagamento
+    valor_antigo_dia = colab.dia_pagamento
+    valor_antigo_perc = colab.percentual_adiantamento
+
     form = FormularioColaborador(obj=colab)
     
     cargos_db = Cargo.query.order_by(Cargo.nome).all()
     form.cargo_id.choices = [(c.id, f"{c.nome} - {c.setor.nome}") for c in cargos_db]
+
+    # Verifica as permissões de alto nível
+    eh_dono = current_user.cargo and current_user.cargo.lower() == 'dono'
+    pode_status = current_user.tem_permissao('rh_status') or eh_dono
+    pode_salarios = current_user.tem_permissao('rh_salarios') or eh_dono
 
     if form.validate_on_submit():
         existente = Colaborador.query.filter(Colaborador.cpf == form.cpf.data, Colaborador.id != id).first()
         if existente:
             flash('Este CPF já pertence a outro colaborador.', 'error')
         else:
+            # 2. APLICA OS DADOS DA TELA
             form.populate_obj(colab) 
+            
+            # ==========================================
+            # 3. BLINDAGEM DE SEGURANÇA (REVERSÃO)
+            # ==========================================
+            # Se não pode mudar o Status/Cargo, ignoramos a tela e devolvemos o original
+            if not pode_status:
+                colab.ativo = valor_antigo_ativo
+                colab.cargo_id = valor_antigo_cargo
+                
+            # Se não pode gerir salários, ignoramos a tela e devolvemos os dados bancários originais
+            if not pode_salarios:
+                colab.salario_base = valor_antigo_salario
+                colab.chave_pix = valor_antigo_pix
+                colab.banco = valor_antigo_banco
+                colab.agencia = valor_antigo_agencia
+                colab.conta = valor_antigo_conta
+                colab.frequencia_pagamento = valor_antigo_freq
+                colab.dia_pagamento = valor_antigo_dia
+                colab.percentual_adiantamento = valor_antigo_perc
+            
             msg_sync = sincronizar_financeiro_rh(colab)
             db.session.commit()
             flash(f'Dados atualizados. {msg_sync}', 'success')

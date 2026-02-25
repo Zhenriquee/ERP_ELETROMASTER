@@ -87,15 +87,18 @@
                     {{ nav_link('relatorios.painel', 'bar-chart-2', 'Central de Relatórios', ['relatorios.relatorio_servicos', 'relatorios.relatorio_consumo']) }}
                 {% endif %}
                 
-                {% if current_user.tem_permissao('rh_equipe') %}
+                {% if current_user.tem_permissao('rh_acesso') or eh_dono %}
                     {{ nav_header('Administrativo') }}
                     
                     {# Módulo de RH: Gestão de Pessoas #}
-                    {{ nav_link('rh.listar_colaboradores', 'users', 'Colaboradores (RH)', ['rh.novo_colaborador', 'rh.editar_colaborador', 'rh.perfil_colaborador']) }}
+                    {{ nav_link('rh.listar_colaboradores', 'users', 'Colaboradores (RH)', ['rh.novo_colaborador', 'rh.editar_colaborador', 'rh.perfil_colaborador', 'rh.documentos_colaborador']) }}
                     
                     {# Módulo de Acesso: Logins e Senhas #}
-                    {{ nav_link('autenticacao.listar_usuarios', 'key', 'Usuários de Acesso', ['autenticacao.novo_usuario', 'autenticacao.editar_usuario']) }}
+                    {% if current_user.tem_permissao('acesso_ver') or eh_dono %}
+                        {{ nav_link('autenticacao.listar_usuarios', 'key', 'Usuários de Acesso', ['autenticacao.novo_usuario', 'autenticacao.editar_usuario']) }}
+                    {% endif %}
                     
+                    {# Módulo de Corporativo (Visível apenas para o Dono) #}
                     {% if current_user.cargo and current_user.cargo|lower == 'dono' %}
                         {{ nav_link('corporativo.painel', 'briefcase', 'Cargos & Setores', ['corporativo.novo_setor', 'corporativo.editar_setor', 'corporativo.novo_cargo', 'corporativo.editar_cargo']) }}
                     {% endif %}

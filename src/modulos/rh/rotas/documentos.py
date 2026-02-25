@@ -14,7 +14,7 @@ from src.modulos.rh.formularios import FormularioDocumentoRH
 
 @bp_rh.route('/documentos/<int:colaborador_id>', methods=['GET', 'POST'])
 @login_required
-@cargo_exigido('rh_equipe')
+@cargo_exigido('rh_documentos')
 def documentos_colaborador(colaborador_id):
     colab = Colaborador.query.get_or_404(colaborador_id)
     form = FormularioDocumentoRH()
@@ -45,7 +45,7 @@ def documentos_colaborador(colaborador_id):
 def visualizar_documento_rh(doc_id):
     doc = DocumentoColaborador.query.get_or_404(doc_id)
     
-    if not current_user.tem_permissao('rh_equipe'):
+    if not current_user.tem_permissao('rh_documentos'):
         return "Acesso Negado", 403
         
     # Define mimetype correto
@@ -64,7 +64,7 @@ def visualizar_documento_rh(doc_id):
 def baixar_documento_rh(doc_id):
     doc = DocumentoColaborador.query.get_or_404(doc_id)
     
-    if not current_user.tem_permissao('rh_equipe'):
+    if not current_user.tem_permissao('rh_documentos'):
         return "Acesso Negado", 403
         
     return send_file(
@@ -75,7 +75,7 @@ def baixar_documento_rh(doc_id):
 
 @bp_rh.route('/documentos/deletar/<int:doc_id>')
 @login_required
-@cargo_exigido('rh_equipe')
+@cargo_exigido('rh_documentos')
 def deletar_documento_rh(doc_id):
     doc = DocumentoColaborador.query.get_or_404(doc_id)
     colab_id = doc.colaborador_id

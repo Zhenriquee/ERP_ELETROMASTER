@@ -261,17 +261,23 @@ def sincronizar_modulos_oficiais():
         {'codigo': 'metas_configurar', 'nome': 'Metas - Configurar Metas', 'descricao': 'Definir os valores mensais, dias úteis e distribuir metas individuais.'},
         
         # 8. RH
-        {'codigo': 'rh_acesso', 'nome': 'RH - Ver Lista e Perfil', 'descricao': 'Visualizar a lista de funcionários e os dados de contato do perfil.'},
+        {'codigo': 'rh_acesso', 'nome': 'RH - Acesso ao Modulo', 'descricao': 'Visualizar a lista de funcionários e os dados de contato do perfil.'},
         {'codigo': 'rh_criar', 'nome': 'RH - Cadastrar Funcionário', 'descricao': 'Permite adicionar novos colaboradores ao sistema.'},
         {'codigo': 'rh_editar', 'nome': 'RH - Editar Dados Básicos', 'descricao': 'Permite alterar endereço, telefone, cargo e dados gerais.'},
         {'codigo': 'rh_status', 'nome': 'RH - Demitir / Reativar', 'descricao': 'Permite inativar ou reativar o cadastro de um funcionário.'},
         {'codigo': 'rh_salarios', 'nome': 'RH - Ver e Editar Salários', 'descricao': 'Acesso total aos dados bancários, chave Pix e salário base.'},
         {'codigo': 'rh_documentos', 'nome': 'RH - Gestão de Documentos', 'descricao': 'Fazer upload, baixar e excluir documentos e atestados.'},
 
-        # 6. Relatórios
+        # 9. Relatórios
         {'codigo': 'relatorios_servicos', 'nome': 'Relatórios - Serviços Solicitados', 'descricao': 'Gerar e exportar planilhas de serviços e itens.'},
         {'codigo': 'relatorios_consumo', 'nome': 'Relatórios - Consumo de Materiais', 'descricao': 'Gerar e exportar relatórios de consumo de estoque.'},
         #{'codigo': 'relatorios_financeiro', 'nome': 'Relatórios - Financeiro', 'descricao': 'Gerar relatórios de contas a pagar e fluxo de caixa.'}
+
+        # 10. Usuários de Acesso
+        {'codigo': 'acesso_ver', 'nome': 'Usuários de Acesso - Acesso ao Modulo', 'descricao': 'Visualizar a lista de logins de acesso ao sistema.'},
+        {'codigo': 'acesso_criar', 'nome': 'Usuários de Acesso - Criar Acesso', 'descricao': 'Permite vincular um colaborador novo a um login e senha.'},
+        {'codigo': 'acesso_editar', 'nome': 'Usuários de Acesso - Mudar Senha/Login', 'descricao': 'Permite alterar logins e redefinir senhas de usuários.'},
+        {'codigo': 'acesso_status', 'nome': 'Usuários de Acesso - Bloquear/Desbloquear', 'descricao': 'Permite suspender ou liberar o login de um usuário.'},
     ]
     
     codigos_oficiais = [m['codigo'] for m in modulos_oficiais]

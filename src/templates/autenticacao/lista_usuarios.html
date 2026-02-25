@@ -6,10 +6,12 @@
             <h2 class="text-2xl font-bold text-navy-900">Usuários de Acesso</h2>
             <p class="text-sm text-gray-500">Gerencie logins e senhas vinculados aos colaboradores.</p>
         </div>
-        <a href="{{ url_for('autenticacao.novo_usuario') }}" class="w-full sm:w-auto bg-navy-900 hover:bg-navy-800 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors shadow-lg shadow-navy-900/20">
+        {% if current_user.tem_permissao('acesso_criar') or current_user.cargo|lower == 'dono' %}
+        <a href="{{ url_for('autenticacao.novo_usuario') }}" class="...">
             <i data-lucide="key" class="w-4 h-4"></i>
             Novo Acesso de Sistema
         </a>
+        {% endif %}
     </div>
 
     <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
@@ -78,19 +80,18 @@
                         </td>
 
                         <td class="px-6 py-4 text-right">
-                            <a href="{{ url_for('autenticacao.editar_usuario', id=u.id) }}" 
-                               class="text-gray-400 hover:text-electric-500 transition-colors p-1 inline-block" 
-                               title="Editar Acesso">
+                            {% if current_user.tem_permissao('acesso_editar') or current_user.cargo|lower == 'dono' %}
+                            <a href="{{ url_for('autenticacao.editar_usuario', id=u.id) }}" class="..." title="Editar Acesso">
                                 <i data-lucide="key" class="w-4 h-4"></i>
                             </a>
+                            {% endif %}
 
                             {% if current_user.id != u.id %}
-                                <a href="{{ url_for('autenticacao.alternar_status_usuario', id=u.id) }}" 
-                                   class="p-2 transition-colors {{ 'text-red-400 hover:text-red-600 hover:bg-red-50' if u.ativo else 'text-green-500 hover:text-green-700 hover:bg-green-50' }}"
-                                   title="{{ 'Bloquear Acesso' if u.ativo else 'Desbloquear Acesso' }}"
-                                   onclick="return confirm('Tem certeza que deseja {{ 'BLOQUEAR' if u.ativo else 'DESBLOQUEAR' }} o acesso deste usuário?')">
+                                {% if current_user.tem_permissao('acesso_status') or current_user.cargo|lower == 'dono' %}
+                                <a href="{{ url_for('autenticacao.alternar_status_usuario', id=u.id) }}" class="..." onclick="return confirm('...')">
                                     <i data-lucide="{{ 'lock' if u.ativo else 'unlock' }}" class="w-4 h-4"></i>
                                 </a>
+                                {% endif %}
                             {% endif %}
                         </td>
                     </tr>
