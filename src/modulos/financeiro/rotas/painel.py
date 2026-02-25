@@ -105,7 +105,7 @@ def painel():
         .filter(Despesa.status == 'pendente', Despesa.data_vencimento < hoje)\
         .scalar() or 0
     
-    pode_ver_totais = current_user.tem_permissao('financeiro_ver_totais')
+    pode_ver_totais = current_user.tem_permissao('financeiro_cards') or current_user.cargo.lower() == 'dono'
 
     return render_template('financeiro/painel.html', 
                            despesas=despesas, 

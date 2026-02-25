@@ -152,8 +152,55 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // =========================================================================
-    // 4. CÁLCULO DE DISTRIBUIÇÃO
+    // 4. MÁSCARAS E CÁLCULO DE DISTRIBUIÇÃO
     // =========================================================================
+    
+    // Função auxiliar para aplicar máscara de moeda
+    function aplicarMascaraMoeda(input) {
+        input.type = 'text'; // Permite formatação com vírgulas
+        
+        // Formata o valor inicial se a tela for recarregada (modo edição)
+        if (input.value) {
+            let val = input.value.replace(/\./g, '').replace(',', '.');
+            if (!isNaN(parseFloat(val))) {
+                let v = parseFloat(val).toFixed(2);
+                v = v.replace('.', ',');
+                v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+                input.value = v;
+            }
+        }
+
+        // Aplica a máscara em tempo real durante a digitação
+        input.addEventListener('input', function(e) {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v === '') {
+                e.target.value = '';
+                return;
+            }
+            v = (parseFloat(v) / 100).toFixed(2);
+            v = v.replace('.', ',');
+            v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+            e.target.value = v;
+        });
+    }
+
+    // Aplica máscara na Meta Global da Loja (nova_meta.html)
+    const inputValorLoja = document.getElementById('valor_loja');
+    if (inputValorLoja) {
+        aplicarMascaraMoeda(inputValorLoja);
+        
+        // Limpa a máscara no submit para o backend aceitar o número
+        const formMeta = inputValorLoja.closest('form');
+        if (formMeta) {
+            formMeta.addEventListener('submit', function() {
+                if (inputValorLoja.value) {
+                    inputValorLoja.value = inputValorLoja.value.replace(/\./g, '').replace(',', '.');
+                }
+            });
+        }
+    }
+
+    // Aplica máscara e lógica na Distribuição Individual (distribuir.html)
     const inputsMeta = document.querySelectorAll('.input-meta');
     const valorDistribuido = document.getElementById('valorDistribuido');
     const valorTotalLoja = document.getElementById('valorTotalLoja');
@@ -162,7 +209,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (inputsMeta.length > 0 && valorDistribuido) {
         function calcDistribuicao() {
             let total = 0;
-            inputsMeta.forEach(inp => total += parseFloat(inp.value || 0));
+            inputsMeta.forEach(inp => {
+                let valStr = inp.value || '0';
+                valStr = valStr.replace(/\./g, '').replace(',', '.'); // Desmascara para calcular matematicamente
+                total += parseFloat(valStr) || 0;
+            });
             
             valorDistribuido.innerText = 'R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits: 2});
             
@@ -172,14 +223,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if(Math.abs(diff) < 1) {
                 statusDist.innerHTML = '<span class="text-green-600 font-bold flex items-center"><i data-lucide="check" class="w-4 h-4 mr-1"></i> Distribuição Perfeita</span>';
             } else if (diff > 0) {
-                statusDist.innerHTML = `<span class="text-yellow-600 font-bold">Falta distribuir: R$ ${diff.toLocaleString('pt-BR')}</span>`;
+                statusDist.innerHTML = `<span class="text-yellow-600 font-bold">Falta distribuir: R$ ${diff.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>`;
             } else {
-                statusDist.innerHTML = `<span class="text-red-600 font-bold">Excedeu: R$ ${Math.abs(diff).toLocaleString('pt-BR')}</span>`;
+                statusDist.innerHTML = `<span class="text-red-600 font-bold">Excedeu: R$ ${Math.abs(diff).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>`;
             }
             if(typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        inputsMeta.forEach(inp => inp.addEventListener('input', calcDistribuicao));
+        inputsMeta.forEach(inp => {
+            aplicarMascaraMoeda(inp);
+            inp.addEventListener('input', calcDistribuicao);
+        });
         calcDistribuicao();
     }
 

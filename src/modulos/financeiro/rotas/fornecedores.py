@@ -1,6 +1,6 @@
 from flask import render_template, redirect, url_for, flash
 from flask_login import login_required
-
+from src.modulos.autenticacao.permissoes import cargo_exigido
 from src.extensoes import banco_de_dados as db
 from src.modulos.financeiro.modelos import Fornecedor
 from src.modulos.financeiro.formularios import FormularioFornecedor
@@ -8,6 +8,7 @@ from . import bp_financeiro
 
 @bp_financeiro.route('/fornecedores', methods=['GET', 'POST'])
 @login_required
+@cargo_exigido('financeiro_fornecedores')
 def fornecedores():
     form = FormularioFornecedor()
     

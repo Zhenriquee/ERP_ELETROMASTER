@@ -1,3 +1,5 @@
+// src/static/js/vendas.js
+
 document.addEventListener('DOMContentLoaded', function() {
     if(typeof lucide !== 'undefined') lucide.createIcons();
     setupEventListeners();
@@ -7,7 +9,74 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(atualizarUnidadeECalcular, 100);
 });
 
+// --- FUNÇÃO GLOBAL DE MÁSCARA MONETÁRIA ---
+window.aplicarMascaraMoeda = function(input) {
+    if(!input) return;
+    input.type = 'text'; // Permite formatação com vírgulas
+    
+    if (input.value) {
+        let val = input.value.replace(/\./g, '').replace(',', '.');
+        if (!isNaN(parseFloat(val))) {
+            let v = parseFloat(val).toFixed(2);
+            v = v.replace('.', ',');
+            v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+            input.value = v;
+        }
+    }
+
+    input.addEventListener('input', function(e) {
+        let v = e.target.value.replace(/\D/g, '');
+        if (v === '') {
+            e.target.value = '';
+            return;
+        }
+        v = (parseFloat(v) / 100).toFixed(2);
+        v = v.replace('.', ',');
+        v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+        e.target.value = v;
+    });
+}
+
+// --- FUNÇÕES DE LEITURA (Reverte máscara para cálculo matemático) ---
+window.lerValorMonetario = function(id) {
+    const el = document.getElementById(id);
+    if (!el || !el.value) return 0;
+    let valStr = el.value.replace(/\./g, '').replace(',', '.');
+    return parseFloat(valStr) || 0;
+}
+
+window.lerDecimalGenerico = function(id) {
+    const el = document.getElementById(id);
+    if (!el || !el.value) return 0;
+    return parseFloat(el.value.replace(',', '.')) || 0;
+}
+
 function setupEventListeners() {
+    // 1. Aplicar máscaras
+    const inputsMonetarios = ['valor_acrescimo', 'valor_desconto_aplicado'];
+    inputsMonetarios.forEach(id => {
+        aplicarMascaraMoeda(document.getElementById(id));
+    });
+
+    // 2. Limpar formatação no Submit (Para o Backend não quebrar)
+    const formVenda = document.getElementById('formVenda');
+    if (formVenda) {
+        formVenda.addEventListener('submit', function() {
+            inputsMonetarios.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value) {
+                    el.value = el.value.replace(/\./g, '').replace(',', '.');
+                }
+            });
+            ['dimensao_1', 'dimensao_2', 'dimensao_3', 'quantidade_pecas'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value) {
+                    el.value = el.value.replace(',', '.');
+                }
+            });
+        });
+    }
+
     // Tipo de Cliente
     const radiosTipo = document.querySelectorAll('input[name="tipo_cliente"]');
     radiosTipo.forEach(radio => radio.addEventListener('change', toggleCliente));
@@ -22,7 +91,6 @@ function setupEventListeners() {
     });
 
     // Selects (Produto e Medida)
-    // CORREÇÃO AQUI: Agora buscamos pelo ID 'select-produto'
     const selectProduto = document.getElementById('select-produto');
     if (selectProduto) selectProduto.addEventListener('change', atualizarUnidadeECalcular);
 
@@ -37,13 +105,10 @@ function setupEventListeners() {
 }
 
 // --- LÓGICA DE UNIDADE E BLOQUEIO ---
-
 function atualizarUnidadeECalcular() {
-    // CORREÇÃO AQUI: Busca pelo novo ID
     const selectProduto = document.getElementById('select-produto');
     const selectMedida = document.getElementById('select-medida');
     
-    // Cria aviso de erro dinamicamente se não existir
     let avisoErro = document.getElementById('aviso-sem-preco');
     if (!avisoErro && selectMedida) {
         avisoErro = document.createElement('div');
@@ -56,64 +121,49 @@ function atualizarUnidadeECalcular() {
     if (selectProduto && selectProduto.selectedIndex >= 0 && selectMedida) {
         const option = selectProduto.options[selectProduto.selectedIndex];
         
-        // Pega os preços vindos do Estoque (data attributes)
         const precoM2 = parseFloat(option.getAttribute('data-m2')) || 0;
         const precoM3 = parseFloat(option.getAttribute('data-m3')) || 0;
         
         const optionM2 = selectMedida.querySelector('option[value="m2"]');
         const optionM3 = selectMedida.querySelector('option[value="m3"]');
 
-        // 1. LIMPEZA (Reseta para estado padrão habilitado)
         selectMedida.style.pointerEvents = 'auto'; 
         selectMedida.classList.remove('bg-gray-100', 'text-gray-400', 'border-red-500', 'bg-red-50'); 
         if(avisoErro) avisoErro.classList.add('hidden');
         if(optionM2) optionM2.disabled = false;
         if(optionM3) optionM3.disabled = false;
 
-        // 2. REGRAS DE BLOQUEIO BASEADAS NOS PREÇOS DISPONÍVEIS
         if (precoM2 > 0 && precoM3 > 0) {
-            // CASO A: Tem os dois -> Usuário escolhe livremente
-            
+            // Escolhe livremente
         } else if (precoM2 > 0) {
-            // CASO B: Só tem M2 -> Força M2 e desabilita M3 na lista
             selectMedida.value = 'm2';
             if(optionM3) optionM3.disabled = true; 
-            
         } else if (precoM3 > 0) {
-            // CASO C: Só tem M3 -> Força M3 e desabilita M2 na lista
             selectMedida.value = 'm3';
             if(optionM2) optionM2.disabled = true;
-
         } else {
-            // CASO D: Nenhum preço (ex: Produto recém criado sem valor) -> BLOQUEIA TUDO
-            selectMedida.value = 'm2'; // Valor padrão dummy
-            selectMedida.style.pointerEvents = 'none'; // Impede clique
+            selectMedida.value = 'm2';
+            selectMedida.style.pointerEvents = 'none';
             selectMedida.classList.add('bg-red-50', 'text-gray-400', 'border-red-500');
             if(avisoErro) avisoErro.classList.remove('hidden');
         }
     }
-    
-    // Recalcula os valores após ajustar a unidade
     calculateAll();
 }
 
 function calculateAll() {
-    // 1. Pega valores dos inputs
-    const d1 = parseFloat(document.getElementById('dimensao_1')?.value) || 0;
-    const d2 = parseFloat(document.getElementById('dimensao_2')?.value) || 0;
-    const d3 = parseFloat(document.getElementById('dimensao_3')?.value) || 0;
-    const qtd = parseFloat(document.getElementById('quantidade_pecas')?.value) || 1;
+    const d1 = lerDecimalGenerico('dimensao_1');
+    const d2 = lerDecimalGenerico('dimensao_2');
+    const d3 = lerDecimalGenerico('dimensao_3');
+    const qtd = lerDecimalGenerico('quantidade_pecas') || 1;
     
     const selectMedida = document.getElementById('select-medida');
     const tipoMedida = selectMedida ? selectMedida.value : 'm2';
     
-    // Controle de visibilidade da Profundidade (Campo M3)
     const divDim3 = document.getElementById('div-dim-3');
     const displayUnidade = document.getElementById('display-unidade');
 
-    // 2. Define Preço Unitário
     let precoUnitario = 0;
-    // CORREÇÃO AQUI: Busca pelo novo ID
     const selectProduto = document.getElementById('select-produto');
     
     if (selectProduto && selectProduto.selectedIndex >= 0) {
@@ -123,29 +173,22 @@ function calculateAll() {
         
         if (tipoMedida === 'm3') {
             precoUnitario = pM3;
-            // Se é M3, precisa mostrar campo de profundidade
             if(divDim3) divDim3.classList.remove('hidden-force');
             if(displayUnidade) displayUnidade.innerText = 'm³';
         } else {
             precoUnitario = pM2;
-            // Se é M2, esconde profundidade
             if(divDim3) divDim3.classList.add('hidden-force');
             if(displayUnidade) displayUnidade.innerText = 'm²';
         }
     }
 
-    // 3. Calcula Metragem Total
     let metragem = 0;
     if (tipoMedida === 'm3') {
-        // Cúbico: Altura * Largura * Profundidade * Qtd
-        // Assumindo que d3 é obrigatório para M3. Se for 0, resultado é 0.
         metragem = d1 * d2 * (d3 > 0 ? d3 : 0) * qtd;
     } else {
-        // Quadrado: Altura * Largura * Qtd
         metragem = d1 * d2 * qtd;
     }
 
-    // 4. Atualiza visualização da Metragem
     const elDisplayMet = document.getElementById('display-metragem');
     const elInputMet = document.getElementById('metragem_total'); 
     
@@ -155,7 +198,6 @@ function calculateAll() {
     if(elDisplayMet) elDisplayMet.innerText = metragemFmt;
     if(elInputMet) elInputMet.value = metragemFmt;
 
-    // 5. Calcula Financeiro
     const valorBase = metragem * precoUnitario;
     
     const elValorBase = document.getElementById('valor_base');
@@ -164,14 +206,13 @@ function calculateAll() {
     if(elValorBase) elValorBase.value = valorBase.toFixed(2).replace('.', ',');
     if(elResumoBase) elResumoBase.innerText = valorBase.toFixed(2).replace('.', ',');
 
-    // Acréscimos e Descontos
-    const acrescimo = parseFloat(document.getElementById('valor_acrescimo')?.value) || 0;
-    const valorInputDesc = parseFloat(document.getElementById('valor_desconto_aplicado')?.value) || 0;
+    // Acréscimos e Descontos (Utilizando a leitura sem máscara)
+    const acrescimo = lerValorMonetario('valor_acrescimo');
+    const valorInputDesc = lerValorMonetario('valor_desconto_aplicado');
     
     const tipoDescRadio = document.querySelector('input[name="tipo_desconto"]:checked');
     const tipoDesc = tipoDescRadio ? tipoDescRadio.value : 'real';
     
-    // Ícone do desconto
     const prefixoDesc = document.getElementById('prefixo-desconto');
     if(prefixoDesc) prefixoDesc.innerText = (tipoDesc === 'perc') ? '%' : 'R$';
 
@@ -194,8 +235,7 @@ function calculateAll() {
     if(elInputFinal) elInputFinal.value = final.toFixed(2).replace('.', ',');
 }
 
-// --- UTILITÁRIOS ---
-
+// --- UTILITÁRIOS CLIENTE ---
 function toggleCliente() {
     const radioPf = document.querySelector('input[name="tipo_cliente"][value="PF"]');
     const isPf = radioPf ? radioPf.checked : true;

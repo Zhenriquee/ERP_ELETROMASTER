@@ -11,7 +11,7 @@ from io import BytesIO
 
 @bp_autenticacao.route('/usuarios', methods=['GET'])
 @login_required
-@cargo_exigido('rh_equipe')
+@cargo_exigido('acesso_ver')
 def listar_usuarios():
     # Lista apenas quem TEM usuário criado
     usuarios = Usuario.query.join(Colaborador).order_by(Colaborador.nome_completo).all()
@@ -19,7 +19,7 @@ def listar_usuarios():
 
 @bp_autenticacao.route('/usuarios/novo', methods=['GET', 'POST'])
 @login_required
-@cargo_exigido('rh_equipe')
+@cargo_exigido('acesso_criar')
 def novo_usuario():
     form = FormularioCriarAcesso()
     
@@ -66,7 +66,14 @@ def editar_usuario(id):
         check_user = Usuario.query.filter(Usuario.usuario == form.usuario.data, Usuario.id != id).first()
         if check_user:
             flash(f'O login "{form.usuario.data}" já está em uso.', 'error')
-            return render_template('autenticacao/cadastro_usuario.html', form=form, titulo="Editar Acesso", usuario_alvo=usuario, editando=True)
+            return render_template(
+                'autenticacao/cadastro_usuario.html',
+                form=form,
+                titulo="Editar Acesso",
+                usuario_alvo=usuario,
+                u=usuario,
+                editando=True,
+            )
 
         usuario.usuario = form.usuario.data
         # Altere a linha abaixo:
@@ -90,12 +97,18 @@ def editar_usuario(id):
         else:
             flash('Dados de acesso atualizados.', 'success')
             return redirect(url_for('autenticacao.listar_usuarios'))
-
-    return render_template('autenticacao/cadastro_usuario.html', form=form, titulo="Editar Acesso", usuario_alvo=usuario, editando=True)
+    return render_template(
+        'autenticacao/cadastro_usuario.html',
+        form=form,
+        titulo="Editar Acesso",
+        usuario_alvo=usuario,
+        u=usuario,
+        editando=True,
+    )    
 
 @bp_autenticacao.route('/usuarios/status/<int:id>')
 @login_required
-@cargo_exigido('rh_equipe')
+@cargo_exigido('acesso_status')
 def alternar_status_usuario(id):
     usuario = Usuario.query.get_or_404(id)
     if usuario.id == current_user.id:

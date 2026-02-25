@@ -3,7 +3,7 @@
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 import calendar
-
+from src.modulos.autenticacao.permissoes import cargo_exigido
 from src.extensoes import banco_de_dados as db
 from src.modulos.metas.modelos import MetaMensal, MetaVendedor
 from src.modulos.metas.formularios import FormularioMetaLoja
@@ -37,6 +37,7 @@ def calcular_dias_uteis(ano, mes, dias_semana_str, feriados_str):
 
 @bp_metas.route('/nova', methods=['GET', 'POST'])
 @login_required
+@cargo_exigido('metas_configurar')
 def nova_meta():
     form = FormularioMetaLoja()
     
@@ -78,6 +79,7 @@ def nova_meta():
 # ROTA: EDITAR META
 @bp_metas.route('/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
+@cargo_exigido('metas_configurar')
 def editar_meta(id):
     meta = MetaMensal.query.get_or_404(id)
     form = FormularioMetaLoja(obj=meta)
@@ -110,6 +112,7 @@ def editar_meta(id):
 
 @bp_metas.route('/distribuir/<int:id>', methods=['GET', 'POST'])
 @login_required
+@cargo_exigido('metas_configurar')
 def distribuir_meta(id):
     meta_mensal = MetaMensal.query.get_or_404(id)
     

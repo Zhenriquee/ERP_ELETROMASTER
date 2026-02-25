@@ -21,7 +21,7 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-8">
-        {% if current_user.tem_permissao('vendas_ver_valores') %}
+        {% if current_user.tem_permissao('gestao_ind_financeiro') or current_user.cargo|lower == 'dono' %}
         <div class="lg:col-span-2 grid grid-cols-2 gap-4">
             <div class="bg-navy-900 text-white p-5 rounded-2xl shadow-lg relative overflow-hidden group">
                 <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:scale-110 transition-transform"><i data-lucide="dollar-sign" class="w-16 h-16"></i></div>
@@ -36,7 +36,7 @@
         </div>
         {% endif %}
 
-        {% if current_user.tem_permissao('vendas_ver_metricas') %}
+        {% if current_user.tem_permissao('gestao_ind_operacional') or current_user.cargo|lower == 'dono' %}
         <div class="lg:col-span-2 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm grid grid-cols-4 gap-1">
             <div class="flex flex-col items-center justify-center p-2 rounded-xl bg-gray-50">
                 <span class="text-2xl font-bold text-gray-700">{{ qtd_pendente }}</span>
@@ -149,7 +149,7 @@
                         </td>
 
                         <td class="px-6 py-4 align-top text-right pr-12">
-                            {% if current_user.tem_permissao('vendas_ver_valores') %}
+                            {% if current_user.tem_permissao('gestao_financeiro') or current_user.cargo|lower == 'dono' %}
                                 <p class="font-bold text-navy-900 format-money" data-value="{{ s.valor_final }}">--</p>
                                 
                                 {% if s.valor_restante > 0.01 %}
@@ -179,6 +179,7 @@
                                 'motivo_cancelamento': s.motivo_cancelamento
                             } %}
                             
+                            {% if current_user.tem_permissao('gestao_gerenciar') or current_user.cargo|lower == 'dono' %}
                             <button class="btn-abrir-modal group relative inline-flex items-center justify-center p-2 rounded-lg bg-white border border-gray-200 hover:bg-navy-900 hover:border-navy-900 hover:text-white transition-all shadow-sm"
                                 data-id="{{ s.id }}"
                                 data-cliente="{{ s.cliente_nome }}"
@@ -187,6 +188,9 @@
                                 data-restante="{{ s.valor_restante }}"
                                 data-status="{{ s.status }}"
                                 data-modo="{{ s.modo }}"
+                                data-pode-status="{{ 'true' if current_user.tem_permissao('gestao_status') or current_user.cargo|lower == 'dono' else 'false' }}"
+                                data-pode-fotos="{{ 'true' if current_user.tem_permissao('gestao_fotos') or current_user.cargo|lower == 'dono' else 'false' }}"
+                                data-pode-cancelar="{{ 'true' if current_user.tem_permissao('gestao_cancelar') or current_user.cargo|lower == 'dono' else 'false' }}"
                                 data-historico="{{ historico|tojson|forceescape }}">
                                 
                                 <span class="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-all duration-300 ease-out group-hover:max-w-[80px] group-hover:opacity-100 group-hover:mr-2 text-xs font-bold">
@@ -194,6 +198,11 @@
                                 </span>
                                 <i data-lucide="settings-2" class="w-4 h-4"></i>
                             </button>
+                            {% else %}
+                            <div class="p-2 rounded-lg bg-gray-50 border border-gray-100 text-gray-300 cursor-not-allowed flex items-center justify-center" title="Sem acesso a gerenciar">
+                                <i data-lucide="lock" class="w-4 h-4"></i>
+                            </div>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -237,7 +246,7 @@
                     <i data-lucide="layers" class="w-4 h-4 mr-2 text-electric-500"></i>
                     Detalhes & Produção
                 </button>
-                {% if current_user.tem_permissao('vendas_ver_valores') %}
+                {% if current_user.tem_permissao('gestao_financeiro') or current_user.cargo|lower == 'dono' %}
                 <button class="tab-btn px-6 py-4 text-sm font-medium text-gray-500 hover:text-navy-700 transition-colors flex items-center hover:bg-gray-100 border-b-2 border-transparent hover:border-gray-300" data-target="tab-financeiro">
                     <i data-lucide="dollar-sign" class="w-4 h-4 mr-2"></i>
                     Financeiro & Baixa
@@ -269,7 +278,7 @@
                     <div id="divStatusActions" class="pt-4 border-t border-gray-100">
                         <div id="botoesStatus" class="flex flex-col gap-3"></div>
                         <div class="mt-6 text-center">
-                            <button id="btnShowCancelar" class="text-xs text-red-400 hover:text-red-600 font-medium hover:underline flex items-center justify-center w-full transition-colors"><i data-lucide="x-circle" class="w-3 h-3 mr-1"></i> Cancelar e Estornar Serviço</button>
+                            <button id="btnShowCancelar" class="hidden text-xs text-red-400 hover:text-red-600 font-medium hover:underline flex items-center justify-center w-full transition-colors"><i data-lucide="x-circle" class="w-3 h-3 mr-1"></i> Cancelar e Estornar Serviço</button>
                         </div>
                     </div>
                     <div id="areaCancelamento" class="hidden bg-red-50 p-5 rounded-xl border border-red-200 animate-fade-in">
@@ -285,7 +294,7 @@
                     </div>
                 </div>
                 
-                {% if current_user.tem_permissao('vendas_ver_valores') %}
+                {% if current_user.tem_permissao('gestao_financeiro') or current_user.cargo|lower == 'dono' %}
                 <div id="tab-financeiro" class="tab-content h-full overflow-y-auto custom-scrollbar p-6 hidden space-y-6">
                     <div class="text-center mb-6">
                         <p class="text-sm text-gray-500 font-medium">Valor Restante a Pagar</p>

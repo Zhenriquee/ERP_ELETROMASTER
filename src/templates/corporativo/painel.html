@@ -100,18 +100,21 @@
                                 <i data-lucide="lock" class="w-4 h-4 mr-1"></i> Definição de Acessos
                             </label>
                             
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-80 overflow-y-auto custom-scrollbar pr-2">
+                            <div class="grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                                 {% for grupo, modulos in grupos_permissoes.items() %}
                                 <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-                                    <div class="px-3 py-2 bg-gray-100 border-b border-gray-200 font-bold text-xs text-navy-800 uppercase">
-                                        {{ grupo }}
+                                    <div class="px-4 py-3 bg-gray-100 border-b border-gray-200 font-bold text-sm text-navy-800 uppercase flex items-center">
+                                        <i data-lucide="folder" class="w-4 h-4 mr-2"></i> {{ grupo }}
                                     </div>
-                                    <div class="p-3 space-y-2">
+                                    <div class="p-2 space-y-1">
                                         {% for mod in modulos %}
-                                        <label class="flex items-start cursor-pointer hover:opacity-80">
+                                        <label class="flex items-start cursor-pointer hover:bg-gray-200/50 p-2 rounded-lg transition-colors group">
                                             <input type="checkbox" name="permissoes" value="{{ mod.id }}" 
-                                                   class="chk-permissao w-4 h-4 text-navy-900 border-gray-300 rounded focus:ring-navy-900 mt-0.5">
-                                            <span class="ml-2 text-xs text-gray-600 leading-tight">{{ mod.nome.split('-')[-1] }}</span>
+                                                   class="chk-permissao w-4 h-4 text-navy-900 border-gray-300 rounded focus:ring-navy-900 mt-1 shrink-0">
+                                            <div class="ml-3 flex flex-col">
+                                                <span class="text-sm font-bold text-navy-900 leading-tight group-hover:text-blue-600 transition-colors">{{ mod.nome.split('-')[-1].strip() }}</span>
+                                                <span class="text-[11px] text-gray-500 leading-snug mt-1">{{ mod.descricao }}</span>
+                                            </div>
                                         </label>
                                         {% endfor %}
                                     </div>
@@ -134,7 +137,8 @@
                 <div class="divide-y divide-gray-100 max-h-[400px] overflow-y-auto custom-scrollbar">
                     {% for c in cargos %}
                     <div class="p-4 hover:bg-gray-50 flex justify-between items-center group transition-colors">
-                        <div>
+                        
+                        <div class="flex-1">
                             <div class="flex items-center gap-2 mb-1">
                                 <p class="font-bold text-navy-900">{{ c.nome }}</p>
                                 <span class="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 uppercase font-bold">Nível {{ c.nivel_hierarquico }}</span>
@@ -147,19 +151,33 @@
                                     <i data-lucide="check-square" class="w-3 h-3 mr-1"></i> {{ c.permissoes|length }} acessos
                                 </span>
                             </div>
+                            {% if c.descricao %}
+                                <p class="text-xs text-gray-400 mt-2 italic line-clamp-1">{{ c.descricao }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-4">
+                            
+                            <button onclick="editarCargo(
+                                '{{ c.id }}', 
+                                '{{ c.nome }}', 
+                                '{{ c.setor_id }}', 
+                                '{{ c.nivel_hierarquico }}', 
+                                '{{ c.descricao or '' }}',
+                                [{% for p in c.permissoes %}{{ p.id }},{% endfor %}]
+                            )" 
+                            class="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 transition-colors" title="Editar">
+                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                            </button>
+                            
+                            <a href="{{ url_for('corporativo.excluir_cargo', id=c.id) }}" 
+                               onclick="return confirm('ATENÇÃO: Tem certeza que deseja excluir permanentemente o cargo {{ c.nome }}?')" 
+                               class="p-1.5 text-red-500 bg-red-50 hover:bg-red-100 rounded border border-red-200 transition-colors" title="Excluir">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </a>
+                            
                         </div>
                         
-                        <button onclick="editarCargo(
-                            '{{ c.id }}', 
-                            '{{ c.nome }}', 
-                            '{{ c.setor_id }}', 
-                            '{{ c.nivel_hierarquico }}', 
-                            '{{ c.descricao or '' }}',
-                            [{% for p in c.permissoes %}{{ p.id }},{% endfor %}]
-                        )" 
-                        class="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors opacity-0 group-hover:opacity-100 border border-blue-200">
-                            <i data-lucide="edit-2" class="w-4 h-4"></i>
-                        </button>
                     </div>
                     {% else %}
                     <p class="p-4 text-center text-gray-400 text-sm">Nenhum cargo cadastrado.</p>

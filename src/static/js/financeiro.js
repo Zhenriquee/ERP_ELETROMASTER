@@ -113,6 +113,45 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleTipo.addEventListener('change', atualizarInterfaceTipo);
         atualizarInterfaceTipo(); // Init
         
+        // --- 7. MÁSCARA DE MOEDA (NOVA DESPESA) ---
+    const inputValorDespesa = document.getElementById('valor');
+    if (inputValorDespesa) {
+        inputValorDespesa.type = 'text';
+
+        // Formata valor inicial se a tela estiver no modo Edição
+        if (inputValorDespesa.value) {
+            let val = inputValorDespesa.value.replace(/\./g, '').replace(',', '.');
+            if (!isNaN(parseFloat(val))) {
+                let v = parseFloat(val).toFixed(2);
+                v = v.replace('.', ',');
+                v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+                inputValorDespesa.value = v;
+            }
+        }
+
+        // Intercepta a digitação
+        inputValorDespesa.addEventListener('input', function(e) {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v === '') {
+                e.target.value = '';
+                return;
+            }
+            v = (parseFloat(v) / 100).toFixed(2);
+            v = v.replace('.', ',');
+            v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+            e.target.value = v;
+        });
+
+        // Limpa a máscara antes de enviar o form para o Python (WTForms) não recusar
+        const formDespesa = inputValorDespesa.closest('form');
+        if (formDespesa) {
+            formDespesa.addEventListener('submit', function() {
+                if (inputValorDespesa.value) {
+                    inputValorDespesa.value = inputValorDespesa.value.replace(/\./g, '').replace(',', '.');
+                }
+            });
+        }
+    }
         // Adiciona a primeira linha de produto se a tabela estiver vazia E o modo for estoque
         const tbody = document.getElementById('listaProdutos');
         if (toggleTipo.checked && tbody && tbody.children.length === 0) {

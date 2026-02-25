@@ -46,7 +46,7 @@ def salvar_fotos_item(item_id, arquivos):
 
 @bp_vendas.route('/nova', methods=['GET', 'POST'])
 @login_required
-@cargo_exigido('vendas_operar')
+@cargo_exigido('venda_criar')
 def nova_venda():
     form = FormularioVendaWizard()
     produtos_ativos = ProdutoEstoque.query.filter_by(ativo=True).order_by(ProdutoEstoque.nome).all()
@@ -123,7 +123,12 @@ def nova_venda():
             
             db.session.commit()
             flash('Venda registrada com sucesso!', 'success')
-            return redirect(url_for('vendas.listar_vendas'))
+            
+            # --- REDIRECIONAMENTO INTELIGENTE ---
+            if current_user.tem_permissao('gestao_acesso'):
+                return redirect(url_for('vendas.listar_vendas'))
+            else:
+                return redirect(url_for('dashboard.painel'))
 
         except Exception as e:
             db.session.rollback()
@@ -143,7 +148,7 @@ def nova_venda():
 # ... (Rota nova_venda_multipla mantida igual) ...
 @bp_vendas.route('/nova-multipla', methods=['GET'])
 @login_required
-@cargo_exigido('vendas_operar')
+@cargo_exigido('venda_criar')
 def nova_venda_multipla():
     produtos_ativos = ProdutoEstoque.query.filter_by(ativo=True).order_by(ProdutoEstoque.nome).all()
     produtos_json = [{
@@ -157,7 +162,7 @@ def nova_venda_multipla():
 
 @bp_vendas.route('/salvar-multipla', methods=['POST'])
 @login_required
-@cargo_exigido('vendas_operar')
+@cargo_exigido('venda_criar')
 def salvar_venda_multipla():
     try:
         # ... (Lógica Cliente igual) ...
@@ -283,7 +288,12 @@ def salvar_venda_multipla():
 
         db.session.commit()
         flash(f'Venda Múltipla #{nova_venda.id} criada com sucesso!', 'success')
-        return redirect(url_for('vendas.listar_vendas'))
+        
+        # --- REDIRECIONAMENTO INTELIGENTE ---
+        if current_user.tem_permissao('gestao_acesso'):
+            return redirect(url_for('vendas.listar_vendas'))
+        else:
+            return redirect(url_for('dashboard.painel'))
 
     except Exception as e:
         db.session.rollback()

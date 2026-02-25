@@ -1,3 +1,5 @@
+{% set pode_desconto = current_user.tem_permissao('venda_desconto') or (current_user.cargo and 'dono' in current_user.cargo|string|lower) %}
+
 <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
         <div class="bg-green-100 p-2 rounded-lg text-green-600">
@@ -20,27 +22,48 @@
                 {% endif %}
             </div>
 
-            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 relative">
+                
+                {% if not pode_desconto %}
+                <div class="absolute inset-0 z-20 bg-gray-50/70 backdrop-blur-[1px] flex items-center justify-center rounded-lg border border-red-200" style="cursor: not-allowed;">
+                    <span class="bg-white text-red-600 px-4 py-1.5 rounded-full shadow-sm text-xs font-bold border border-red-100 flex items-center">
+                        <i data-lucide="lock" class="w-3 h-3 mr-1.5"></i> Acesso Restrito a Descontos
+                    </span>
+                </div>
+                
+                <input type="hidden" name="tipo_desconto" value="sem">
+                <input type="hidden" name="valor_desconto" id="inputDesconto" value="0">
+                {% endif %}
+
                 <label class="label-padrao mb-3">Aplicar Desconto</label>
                 <div class="flex gap-4 mb-3">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="tipo_desconto" value="sem" checked onchange="toggleDesconto()" class="text-navy-900 focus:ring-navy-900">
+                    <label class="flex items-center gap-2 {{ 'opacity-50' if not pode_desconto else 'cursor-pointer' }}">
+                        <input type="radio" name="{{ 'tipo_desconto_visual' if not pode_desconto else 'tipo_desconto' }}" value="sem" checked onchange="toggleDesconto()" class="text-navy-900 focus:ring-navy-900" {{ 'disabled' if not pode_desconto else '' }}>
                         <span class="text-sm font-medium text-gray-700">Sem Desconto</span>
                     </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="tipo_desconto" value="perc" onchange="toggleDesconto()" class="text-navy-900 focus:ring-navy-900">
+                    <label class="flex items-center gap-2 {{ 'opacity-50' if not pode_desconto else 'cursor-pointer' }}">
+                        <input type="radio" name="{{ 'tipo_desconto_visual' if not pode_desconto else 'tipo_desconto' }}" value="perc" onchange="toggleDesconto()" class="text-navy-900 focus:ring-navy-900" {{ 'disabled' if not pode_desconto else '' }}>
                         <span class="text-sm font-medium text-gray-700">% Percentual</span>
                     </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="tipo_desconto" value="real" onchange="toggleDesconto()" class="text-navy-900 focus:ring-navy-900">
+                    <label class="flex items-center gap-2 {{ 'opacity-50' if not pode_desconto else 'cursor-pointer' }}">
+                        <input type="radio" name="{{ 'tipo_desconto_visual' if not pode_desconto else 'tipo_desconto' }}" value="real" onchange="toggleDesconto()" class="text-navy-900 focus:ring-navy-900" {{ 'disabled' if not pode_desconto else '' }}>
                         <span class="text-sm font-medium text-gray-700">R$ Reais</span>
                     </label>
                 </div>
                 
                 {% if form %}
-                    {{ form.valor_desconto_aplicado(class="input-navy text-right font-mono disabled:bg-gray-100 disabled:text-gray-400 transition-colors", placeholder="0.00", disabled=True, oninput="calcularTotal()") }}
+                    {% if not pode_desconto %}
+                        <input type="number" class="input-navy text-right font-mono bg-gray-100 text-gray-400" placeholder="0.00" disabled>
+                        <div class="hidden">{{ form.valor_desconto_aplicado(value="0") }}</div>
+                    {% else %}
+                        {{ form.valor_desconto_aplicado(id="inputDesconto", class="input-navy text-right font-mono disabled:bg-gray-100 disabled:text-gray-400 transition-colors", placeholder="0.00", disabled=True, oninput="calcularTotal()") }}
+                    {% endif %}
                 {% else %}
-                    <input type="number" name="valor_desconto" id="inputDesconto" class="input-navy text-right font-mono disabled:bg-gray-100 disabled:text-gray-400 transition-colors" placeholder="0.00" step="0.01" disabled oninput="calcularTotal()">
+                    {% if not pode_desconto %}
+                        <input type="number" class="input-navy text-right font-mono bg-gray-100 text-gray-400" placeholder="0.00" disabled>
+                    {% else %}
+                        <input type="number" name="valor_desconto" id="inputDesconto" class="input-navy text-right font-mono disabled:bg-gray-100 disabled:text-gray-400 transition-colors" placeholder="0.00" step="0.01" disabled oninput="calcularTotal()">
+                    {% endif %}
                 {% endif %}
             </div>
             

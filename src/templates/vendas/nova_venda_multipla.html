@@ -77,16 +77,24 @@
         {% include "vendas/componentes/form_financeiro.html" %}
 
         <div class="flex justify-end gap-4 pb-10 mt-8">
-            <a href="{{ url_for('vendas.listar_vendas') }}" class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">
-                Cancelar
-            </a>
+            {% if current_user.tem_permissao('gestao_acesso') or current_user.cargo|lower == 'dono' %}
+                <a href="{{ url_for('vendas.listar_vendas') }}" class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">
+                    Cancelar
+                </a>
+            {% else %}
+                <a href="{{ url_for('dashboard.painel') }}" class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">
+                    Cancelar
+                </a>
+            {% endif %}
             
+            {% if current_user.tem_permissao('venda_imprimir') or (current_user.cargo and current_user.cargo|lower == 'dono') %}
             <button type="button" 
                     data-logo="{{ url_for('static', filename='img/logo_1.png', _external=True) }}"
                     onclick="gerarOrcamentoMultiplo('{{ current_user.nome }}', this.dataset.logo)" 
                     class="px-6 py-3 bg-white border-2 border-navy-900 text-navy-900 font-bold rounded-lg hover:bg-navy-50 transition-colors flex items-center shadow-sm">
                 <i data-lucide="printer" class="w-5 h-5 mr-2"></i> Imprimir Orçamento
             </button>
+            {% endif %}
 
             <button type="submit" class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 flex items-center">
                 <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Finalizar Venda
