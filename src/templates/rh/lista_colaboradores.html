@@ -7,9 +7,11 @@
             <h2 class="text-2xl font-bold text-navy-900">Quadro de Colaboradores</h2>
             <p class="text-sm text-gray-500">Gestão de RH, contratos e documentação.</p>
         </div>
-        <a href="{{ url_for('rh.novo_colaborador') }}" class="bg-navy-900 hover:bg-navy-800 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold shadow-lg transition-colors">
-            <i data-lucide="user-plus" class="w-4 h-4"></i> Novo Colaborador
-        </a>
+        {% if current_user.tem_permissao('rh_criar') or current_user.cargo|lower == 'dono' %}
+            <a href="{{ url_for('rh.novo_colaborador') }}" class="px-4 py-2 bg-navy-900 text-white font-bold rounded-lg hover:bg-navy-800 transition-colors text-sm flex items-center shadow-lg">
+                <i data-lucide="user-plus" class="w-4 h-4 mr-2"></i> Cadastrar
+            </a>
+            {% endif %}
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -56,20 +58,32 @@
                         {% endif %}
                     </td>
                     <td class="px-6 py-4 text-right flex justify-end gap-2">
-                        <a href="{{ url_for('rh.documentos_colaborador', colaborador_id=c.id) }}" 
-                           class="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors" 
-                           title="Gerenciar Documentos">
-                            <i data-lucide="folder" class="w-4 h-4"></i>
-                        </a>
+                            
+                            <a href="{{ url_for('rh.perfil_colaborador', id=c.id) }}" class="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Ver Perfil">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                            </a>
+                            
+                            {% if current_user.tem_permissao('rh_editar') or current_user.cargo|lower == 'dono' %}
+                            <a href="{{ url_for('rh.editar_colaborador', id=c.id) }}" class="p-2 text-navy-600 bg-navy-50 hover:bg-navy-100 rounded-lg transition-colors" title="Editar">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </a>
+                            {% endif %}
 
-                        <a href="{{ url_for('rh.perfil_colaborador', id=c.id) }}" class="p-2 text-gray-500 hover:text-navy-900 hover:bg-gray-100 rounded-lg transition-colors" title="Ver Perfil">
-                            <i data-lucide="file-text" class="w-4 h-4"></i>
-                        </a>
-                        
-                        <a href="{{ url_for('rh.editar_colaborador', id=c.id) }}" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
-                            <i data-lucide="edit-2" class="w-4 h-4"></i>
-                        </a>
-                    </td>
+                            {% if current_user.tem_permissao('rh_status') or current_user.cargo|lower == 'dono' %}
+                            <form action="{{ url_for('rh.alternar_status_colaborador', id=c.id) }}" method="POST" class="inline">
+                                <button type="submit" onclick="return confirm('Deseja mudar o status deste colaborador?')" 
+                                        class="p-2 rounded-lg transition-colors {{ 'text-red-600 bg-red-50 hover:bg-red-100' if c.ativo else 'text-green-600 bg-green-50 hover:bg-green-100' }}" 
+                                        title="{{ 'Inativar' if c.ativo else 'Ativar' }}">
+                                    <i data-lucide="{{ 'user-minus' if c.ativo else 'user-check' }}" class="w-4 h-4"></i>
+                                </button>
+                            </form>
+                            {% else %}
+                            <div class="p-2 rounded-lg bg-gray-50 border border-gray-100 text-gray-300 cursor-not-allowed" title="Sem permissão de status">
+                                <i data-lucide="lock" class="w-4 h-4"></i>
+                            </div>
+                            {% endif %}
+                            
+                        </td>
                 </tr>
                 {% else %}
                 <tr>

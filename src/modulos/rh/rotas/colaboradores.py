@@ -36,7 +36,6 @@ def sincronizar_financeiro_rh(colaborador):
         # 1. SE INATIVO (DESLIGADO)
         # ==========================================
         if not colaborador.ativo:
-            # Remove APENAS os lançamentos com vencimento a partir do próximo mês
             lancamentos_futuros = Despesa.query.filter(
                 Despesa.colaborador_id == colaborador.id,
                 Despesa.origem == 'rh_automatico',
@@ -52,7 +51,6 @@ def sincronizar_financeiro_rh(colaborador):
         # ==========================================
         # 2. SE ATIVO (GERAÇÃO/ATUALIZAÇÃO NORMAL)
         # ==========================================
-        # Limpa tudo a partir de hoje para recriar com valores atualizados
         lancamentos_futuros = Despesa.query.filter(
             Despesa.colaborador_id == colaborador.id,
             Despesa.origem == 'rh_automatico',
@@ -74,18 +72,15 @@ def sincronizar_financeiro_rh(colaborador):
             dia_real = min(dia_preferido, ultimo_dia)
             return date(ano, mes, dia_real)
 
-        # --- Lógica Mensal ---
         if colaborador.frequencia_pagamento == 'mensal':
             try: dia_venc = int(colaborador.dia_pagamento)
             except: dia_venc = 5
-
             for i in range(janela_meses):
                 data_ref = hoje + relativedelta(months=i)
                 vencimento = get_data_segura(data_ref.year, data_ref.month, dia_venc)
                 if vencimento > hoje:
                     lista_novos.append((vencimento, valor_base, "Salário Mensal"))
 
-        # --- Lógica Quinzenal ---
         elif colaborador.frequencia_pagamento == 'quinzenal':
             try:
                 partes = colaborador.dia_pagamento.split(',')
@@ -101,23 +96,19 @@ def sincronizar_financeiro_rh(colaborador):
                 data_ref = hoje + relativedelta(months=i)
                 venc1 = get_data_segura(data_ref.year, data_ref.month, dia1)
                 venc2 = get_data_segura(data_ref.year, data_ref.month, dia2)
-                
                 if venc1 > hoje: lista_novos.append((venc1, val_adianta, f"Adiantamento ({perc}%)"))
                 if venc2 > hoje: lista_novos.append((venc2, val_saldo, "Saldo Salário"))
 
-        # --- Lógica Semanal ---
         elif colaborador.frequencia_pagamento == 'semanal':
             try: dia_semana = int(colaborador.dia_pagamento)
             except: dia_semana = 4
             val_semana = valor_base / 4 
-            
             cursor = hoje
             while cursor.weekday() != dia_semana: cursor += timedelta(days=1)
             for _ in range(24):
                 cursor += timedelta(weeks=1)
                 lista_novos.append((cursor, val_semana, "Pagamento Semanal"))
 
-        # 3. GRAVAR NO BANCO
         for dt_venc, valor, sulfixo in lista_novos:
             nova_despesa = Despesa(
                 descricao=f"{sulfixo} - {colaborador.nome_completo}",
@@ -143,16 +134,21 @@ def sincronizar_financeiro_rh(colaborador):
         return "Erro ao sincronizar financeiro."
 
 
+# ==============================================================
+# ROTAS COM PERMISSÕES CIRÚRGICAS APLICADAS
+# ==============================================================
+
 @bp_rh.route('/', methods=['GET'])
 @login_required
-@cargo_exigido('rh_equipe')
+@cargo_exigido('rh_acesso') # APENAS VER A LISTA
 def listar_colaboradores():
     colaboradores = Colaborador.query.order_by(Colaborador.ativo.desc(), Colaborador.nome_completo).all()
     return render_template('rh/lista_colaboradores.html', colaboradores=colaboradores)
 
+
 @bp_rh.route('/novo', methods=['GET', 'POST'])
 @login_required
-@cargo_exigido('rh_equipe')
+@cargo_exigido('rh_criar') # APENAS CRIAR
 def novo_colaborador():
     form = FormularioColaborador()
     cargos_db = Cargo.query.filter_by(ativo=True).order_by(Cargo.nome).all()
@@ -177,7 +173,6 @@ def novo_colaborador():
                 salario_base=form.salario_base.data,
                 ativo=form.ativo.data,
                 faz_parte_meta=form.faz_parte_meta.data,
-                
                 chave_pix=form.chave_pix.data,
                 banco=form.banco.data,
                 agencia=form.agencia.data,
@@ -189,18 +184,17 @@ def novo_colaborador():
             db.session.add(novo)
             db.session.flush()
             
-            # AGORA CHAMA DIRETO! A função por si só já sabe o que fazer
             msg_sync = sincronizar_financeiro_rh(novo)
-            
             db.session.commit()
             flash(f'Colaborador cadastrado! {msg_sync}', 'success')
             return redirect(url_for('rh.listar_colaboradores'))
 
     return render_template('rh/cadastro_colaborador.html', form=form, titulo="Novo Colaborador")
 
+
 @bp_rh.route('/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
-@cargo_exigido('rh_equipe')
+@cargo_exigido('rh_editar') # APENAS EDITAR
 def editar_colaborador(id):
     colab = Colaborador.query.get_or_404(id)
     form = FormularioColaborador(obj=colab)
@@ -213,22 +207,39 @@ def editar_colaborador(id):
         if existente:
             flash('Este CPF já pertence a outro colaborador.', 'error')
         else:
-            # Não tentamos popular o campo 'gerar_financeiro' no banco pois ele não existe mais lá
-            # Mas o form capturou se a pessoa quer rodar a sync agora.
             form.populate_obj(colab) 
-            
-            # AGORA CHAMA DIRETO! 
             msg_sync = sincronizar_financeiro_rh(colab)
-            
             db.session.commit()
             flash(f'Dados atualizados. {msg_sync}', 'success')
             return redirect(url_for('rh.listar_colaboradores'))
 
     return render_template('rh/cadastro_colaborador.html', form=form, titulo="Editar Colaborador", editando=True)
 
+
 @bp_rh.route('/perfil/<int:id>')
 @login_required
-@cargo_exigido('rh_equipe')
+@cargo_exigido('rh_acesso') # ACESSO BÁSICO DE VISUALIZAÇÃO
 def perfil_colaborador(id):
     colab = Colaborador.query.get_or_404(id)
     return render_template('rh/perfil_colaborador.html', colab=colab)
+
+
+# NOVA ROTA: SEPARADA PARA GARANTIR A PERMISSÃO DE STATUS
+@bp_rh.route('/status/<int:id>', methods=['POST'])
+@login_required
+@cargo_exigido('rh_status') # APENAS MUDAR STATUS
+def alternar_status_colaborador(id):
+    colab = Colaborador.query.get_or_404(id)
+    
+    # Inverte o status atual
+    colab.ativo = not colab.ativo
+    
+    # Chama o financeiro para apagar as contas se inativado
+    msg_sync = sincronizar_financeiro_rh(colab)
+    
+    db.session.commit()
+    
+    status_texto = "Reativado" if colab.ativo else "Inativado (Demitido)"
+    flash(f'Colaborador {status_texto} com sucesso! {msg_sync}', 'success')
+    
+    return redirect(url_for('rh.listar_colaboradores'))
