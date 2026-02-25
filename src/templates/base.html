@@ -46,20 +46,21 @@
             <nav class="flex-1 overflow-y-auto py-4 custom-scrollbar">
                 
                 {{ nav_link('dashboard.painel', 'layout-dashboard', 'Visão Geral') }}
-
-                {{ nav_header('Operacional') }}
                 
                 {% set eh_dono = current_user.cargo and current_user.cargo|lower == 'dono' %}
 
+                
+                {{ nav_header('Operacional') }}
+
                 {% if current_user.tem_permissao('venda_criar') or eh_dono %}
-                    {{ nav_header('Ponto de Venda') }}
                     {{ nav_link('vendas.nova_venda', 'shopping-cart', 'Nova Venda', ['vendas.nova_venda_multipla']) }}
                 {% endif %}
 
                 {% if current_user.tem_permissao('gestao_acesso') or eh_dono %}
-                    {{ nav_header('Operacional') }}
                     {{ nav_link('vendas.listar_vendas', 'clipboard-list', 'Gestão de Serviços') }}
                 {% endif %}
+
+                
 
                 {% if current_user.tem_permissao('producao_operar') %}
                     {{ nav_link('operacional.painel', 'hammer', 'Linha de Produção') }}

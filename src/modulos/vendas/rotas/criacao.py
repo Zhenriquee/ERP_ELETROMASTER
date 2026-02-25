@@ -123,7 +123,12 @@ def nova_venda():
             
             db.session.commit()
             flash('Venda registrada com sucesso!', 'success')
-            return redirect(url_for('vendas.listar_vendas'))
+            
+            # --- REDIRECIONAMENTO INTELIGENTE ---
+            if current_user.tem_permissao('gestao_acesso'):
+                return redirect(url_for('vendas.listar_vendas'))
+            else:
+                return redirect(url_for('dashboard.painel'))
 
         except Exception as e:
             db.session.rollback()
@@ -283,7 +288,12 @@ def salvar_venda_multipla():
 
         db.session.commit()
         flash(f'Venda Múltipla #{nova_venda.id} criada com sucesso!', 'success')
-        return redirect(url_for('vendas.listar_vendas'))
+        
+        # --- REDIRECIONAMENTO INTELIGENTE ---
+        if current_user.tem_permissao('gestao_acesso'):
+            return redirect(url_for('vendas.listar_vendas'))
+        else:
+            return redirect(url_for('dashboard.painel'))
 
     except Exception as e:
         db.session.rollback()
