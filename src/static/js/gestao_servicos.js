@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             const d = this.dataset;
-            const vendaId = d.id; // ID da venda para usar nas fotos
+            const vendaId = d.id; 
             
             // Preenche dados básicos
             document.getElementById('modalTitulo').innerText = `Serviço #${d.id} - ${d.cliente}`;
@@ -123,8 +123,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 montarTimeline(hist);
             } catch(e) { console.error('Erro historico', e); }
 
-            // Botões de Ação (Status)
-            gerarBotoesStatus(d.id, d.status);
+            // Botões de Ação (Status) - AGORA RECEBE A PERMISSÃO
+            gerarBotoesStatus(d.id, d.status, d.podeStatus === 'true');
 
             // Aba Financeira
             if(document.getElementById('modalRestanteDisplay')) {
@@ -149,25 +149,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
+            // Ação de Cancelar
             if(formCancelar) formCancelar.action = `/vendas/servicos/${d.id}/cancelar`;
+            const btnShowCancelar = document.getElementById('btnShowCancelar');
+            if (btnShowCancelar) {
+                if (d.podeCancelar === 'true' && d.status !== 'cancelado' && d.status !== 'entregue') {
+                    btnShowCancelar.classList.remove('hidden');
+                } else {
+                    btnShowCancelar.classList.add('hidden');
+                }
+            }
             
-            // --- NOVO: Carregar Detalhes Técnicos e Fotos ---
+            // Carregar Detalhes Técnicos e Fotos
             if(typeof carregarDetalhesTecnicos === 'function') {
                 carregarDetalhesTecnicos(vendaId);
-            }
-
-            // --- NOVO: Configurar Input de Upload ---
-            const inputFoto = document.getElementById('inputNovaFoto');
-            if(inputFoto) {
-                // Clona o input para remover listeners antigos e evitar duplicação de eventos
-                const novoInput = inputFoto.cloneNode(true);
-                inputFoto.parentNode.replaceChild(novoInput, inputFoto);
-                
-                novoInput.addEventListener('change', function() {
-                    if (this.files && this.files[0]) {
-                        uploadFoto(vendaId, this.files[0]);
-                    }
-                });
             }
 
             // Reseta para a primeira aba e mostra modal
@@ -216,10 +211,19 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>`;
     }
 
-    function gerarBotoesStatus(id, status) {
+    // AGORA RECEBE A PERMISSÃO E TRAVA SE NECESSÁRIO
+    function gerarBotoesStatus(id, status, podeStatus) {
         let html = '';
         const btnBase = "w-full py-3 rounded-lg font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center";
         
+        // Bloqueio Visual se não tiver permissão para mudar status
+        if (!podeStatus && status !== 'cancelado' && status !== 'entregue') {
+            html = `<div class="p-3 bg-gray-100 text-gray-500 rounded text-center text-sm font-bold uppercase border border-gray-200"><i data-lucide="lock" class="w-4 h-4 inline mr-2"></i> Status Atual: ${status}</div>`;
+            botoesStatus.innerHTML = html;
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+            return;
+        }
+
         if(status === 'pendente') {
             html = `<div class="p-3 bg-gray-100 text-gray-500 rounded text-center text-sm">Aguardando início na Produção</div>`;
         } else if (status === 'producao') {
@@ -279,10 +283,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // =========================================================================
-// FUNÇÕES GLOBAIS (FORA DO DOMContentLoaded PARA SEREM ACESSÍVEIS)
+// FUNÇÕES GLOBAIS DE FOTOS E DETALHES TÉCNICOS
 // =========================================================================
 
-// Função para carregar e desenhar a tela separada por itens
 window.carregarDetalhesTecnicos = async function(vendaId) {
     const container = document.getElementById('containerItensTecnicos');
     if (!container) return;
@@ -296,7 +299,6 @@ window.carregarDetalhesTecnicos = async function(vendaId) {
         
         container.innerHTML = ''; // Limpa loading
 
-        // Se não tiver itens (erro de dados), avisa
         if (!data.itens || data.itens.length === 0) {
             container.innerHTML = '<p class="text-center text-gray-400">Nenhum item encontrado.</p>';
             return;
@@ -305,26 +307,40 @@ window.carregarDetalhesTecnicos = async function(vendaId) {
         // GERA UMA SEÇÃO PARA CADA ITEM
         data.itens.forEach((item, index) => {
             
+            // Resgata o botão que foi clicado lá na tabela para saber se ESTE usuário tem permissão de fotos
+            const btnAtivo = document.querySelector(`.btn-abrir-modal[data-id="${vendaId}"]`);
+            const podeFotos = btnAtivo && btnAtivo.dataset.podeFotos === 'true';
+            
             // 1. HTML das Fotos
             let htmlFotos = '';
             if (item.fotos && item.fotos.length > 0) {
                 item.fotos.forEach(f => {
+                    // Lixeira só aparece se tiver permissão
+                    let btnExcluir = podeFotos ? `
+                        <button onclick="deletarFoto('${f.id}', '${vendaId}')" class="absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-sm" title="Excluir Imagem">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>` : '';
+
                     htmlFotos += `
                         <div class="relative group rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-50">
                             <img src="${f.url}" class="w-full h-full object-cover cursor-pointer transition-transform hover:scale-110" onclick="window.open('${f.url}', '_blank')">
-                            
-                            <button onclick="deletarFoto('${f.id}', '${vendaId}')" class="absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-sm" title="Excluir Imagem">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
+                            ${btnExcluir}
                         </div>`;
                 });
             } else {
                 htmlFotos = `<div class="col-span-full py-4 text-center text-gray-400 text-xs italic border border-dashed border-gray-200 rounded-lg">Sem fotos para este item.</div>`;
             }
 
+            // Botão de Add Foto só aparece se tiver permissão
+            let btnAddFoto = podeFotos ? `
+                <label class="cursor-pointer bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center transition-colors border border-blue-200">
+                    <i data-lucide="upload" class="w-3 h-3 mr-1.5"></i> Add Foto
+                    <input type="file" class="hidden" accept="image/*" onchange="uploadFotoItem('${item.id}', '${vendaId}', this)">
+                </label>` : '';
+
             // 2. Monta o Card do Item Completo
             const itemHtml = `
-                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm mb-4">
                     <div class="flex justify-between items-start mb-4 border-b border-gray-100 pb-3">
                         <div>
                             <h4 class="font-bold text-navy-900 text-lg flex items-center">
@@ -341,13 +357,8 @@ window.carregarDetalhesTecnicos = async function(vendaId) {
                     <div>
                         <div class="flex justify-between items-center mb-3">
                             <p class="text-xs font-bold text-gray-400 uppercase">Arquivos & Imagens</p>
-                            
-                            <label class="cursor-pointer bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center transition-colors border border-blue-200">
-                                <i data-lucide="upload" class="w-3 h-3 mr-1.5"></i> Add Foto
-                                <input type="file" class="hidden" accept="image/*" onchange="uploadFotoItem('${item.id}', '${vendaId}', this)">
-                            </label>
+                            ${btnAddFoto}
                         </div>
-
                         <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                             ${htmlFotos}
                         </div>
@@ -366,7 +377,6 @@ window.carregarDetalhesTecnicos = async function(vendaId) {
     }
 };
 
-// Nova Função de Upload (Recebe o ID do Item)
 window.uploadFotoItem = async function(itemId, vendaId, input) {
     if (!input.files || !input.files[0]) return;
     
@@ -374,14 +384,12 @@ window.uploadFotoItem = async function(itemId, vendaId, input) {
     const formData = new FormData();
     formData.append('foto', file);
     
-    // Feedback visual simples (muda opacidade do label pai)
     const labelBtn = input.parentElement;
     const textoOriginal = labelBtn.innerHTML;
     labelBtn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 mr-1 animate-spin"></i> Enviando...';
     if(typeof lucide !== 'undefined') lucide.createIcons();
     
     try {
-        // Chama a NOVA rota específica de item
         const res = await fetch(`/vendas/itens/${itemId}/upload-foto`, {
             method: 'POST',
             body: formData
@@ -389,11 +397,10 @@ window.uploadFotoItem = async function(itemId, vendaId, input) {
         const data = await res.json();
         
         if (data.sucesso) {
-            // Recarrega toda a lista para atualizar a foto no lugar certo
             carregarDetalhesTecnicos(vendaId);
         } else {
             alert('Erro: ' + data.erro);
-            labelBtn.innerHTML = textoOriginal; // Restaura se der erro
+            labelBtn.innerHTML = textoOriginal; 
             if(typeof lucide !== 'undefined') lucide.createIcons();
         }
     } catch (e) {
@@ -403,7 +410,6 @@ window.uploadFotoItem = async function(itemId, vendaId, input) {
     }
 };
 
-// Deletar Foto (Mantido, mas certifique-se que está global)
 window.deletarFoto = async function(fotoId, vendaId) {
     if(!confirm('Excluir esta imagem permanentemente?')) return;
     try {

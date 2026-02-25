@@ -1,7 +1,7 @@
 from flask import redirect, url_for, flash
 from flask_login import login_required
 from datetime import date
-
+from src.modulos.autenticacao.permissoes import cargo_exigido
 from src.extensoes import banco_de_dados as db
 from src.modulos.financeiro.modelos import Despesa
 from src.modulos.estoque.modelos import MovimentacaoEstoque, ProdutoEstoque
@@ -9,6 +9,7 @@ from . import bp_financeiro
 
 @bp_financeiro.route('/pagar/<int:id>')
 @login_required
+@cargo_exigido('financeiro_pagar')
 def marcar_pago(id):
     despesa = Despesa.query.get_or_404(id)
     
@@ -22,6 +23,7 @@ def marcar_pago(id):
 
 @bp_financeiro.route('/excluir/<int:id>')
 @login_required
+@cargo_exigido('financeiro_excluir')
 def excluir_despesa(id):
     despesa = Despesa.query.get_or_404(id)
     

@@ -1,19 +1,65 @@
+// src/static/js/vendas_multipla.js
+
 document.addEventListener('DOMContentLoaded', function() {
     
-    // Recupera produtos do atributo data-produtos do formulário
+    // --- FUNÇÕES DE MÁSCARA MONETÁRIA GLOBAIS ---
+    window.aplicarMascaraMoeda = function(input) {
+        if(!input) return;
+        input.type = 'text'; // Altera o tipo para aceitar vírgula e pontos
+        
+        if (input.value) {
+            let val = input.value.replace(/\./g, '').replace(',', '.');
+            if (!isNaN(parseFloat(val))) {
+                let v = parseFloat(val).toFixed(2);
+                v = v.replace('.', ',');
+                v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+                input.value = v;
+            }
+        }
+
+        input.addEventListener('input', function(e) {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v === '') {
+                e.target.value = '';
+                return;
+            }
+            v = (parseFloat(v) / 100).toFixed(2);
+            v = v.replace('.', ',');
+            v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+            e.target.value = v;
+        });
+    }
+
+    window.lerValorLocal = function(el) {
+        if (!el || !el.value) return 0;
+        let v = el.value.replace(/\./g, '').replace(',', '.');
+        return parseFloat(v) || 0;
+    }
+
+    window.formatarNoElemento = function(el, valor) {
+        if (!el) return;
+        let v = parseFloat(valor).toFixed(2);
+        v = v.replace('.', ',');
+        v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+        el.value = v;
+    }
+
+    // Aplica nos campos financeiros fixos
+    ['inputAcrescimo', 'inputDesconto', 'valor_desconto_aplicado'].forEach(id => {
+        aplicarMascaraMoeda(document.getElementById(id));
+    });
+
     let PRODUTOS_DISPONIVEIS = [];
     const form = document.getElementById('formMultiplo');
     if(form && form.dataset.produtos) {
-        try {
-            PRODUTOS_DISPONIVEIS = JSON.parse(form.dataset.produtos);
-        } catch(e) { console.error("Erro JSON produtos:", e); }
+        try { PRODUTOS_DISPONIVEIS = JSON.parse(form.dataset.produtos); } catch(e) {}
     }
 
     let contadorLinhas = 0;
     const tbody = document.getElementById('listaItens');
     const emptyState = document.getElementById('emptyStateItens');
 
-    // --- FUNÇÃO ADICIONAR LINHA ---
+    // --- FUNÇÃO ADICIONAR LINHA DINÂMICA ---
     window.adicionarLinha = function() {
         if(emptyState) emptyState.classList.add('hidden');
         
@@ -28,7 +74,6 @@ document.addEventListener('DOMContentLoaded', function() {
         row.className = 'hover:bg-gray-50 transition-colors group';
         row.id = `linha-${index}`;
         
-        // AQUI ESTÁ A MUDANÇA: Inclusão da coluna de Fotos
         row.innerHTML = `
             <td class="p-2 align-top">
                 <input type="text" name="itens[${index}][descricao]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-navy-900 outline-none" placeholder="Ex: Grade Janela" required>
@@ -38,7 +83,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${optionsProd}
                 </select>
             </td>
-            
             <td class="p-2 align-top text-center">
                 <label class="inline-flex flex-col items-center justify-center p-2 border border-dashed border-gray-400 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-500 transition-all text-gray-500 hover:text-blue-600 w-full h-full">
                     <i data-lucide="camera" class="w-4 h-4 mb-1"></i>
@@ -46,21 +90,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     <input type="file" name="itens[${index}][fotos]" multiple accept="image/*" class="hidden" onchange="atualizarLabelFoto(this, ${index})">
                 </label>
             </td>
-
             <td class="p-2 align-top">
                 <input type="number" name="itens[${index}][qtd]" id="qtd-${index}" value="1" min="0.1" step="0.1" 
                        class="w-full px-2 py-2 border border-gray-300 rounded-lg text-center text-sm font-bold focus:ring-2 focus:ring-navy-900 outline-none" 
                        oninput="calcLinha(${index}, 'qtd')" required>
             </td>
             <td class="p-2 align-top">
-                <input type="number" name="itens[${index}][unit]" id="unit-${index}" min="0.01" step="0.01" 
+                <input type="text" name="itens[${index}][unit]" id="unit-${index}" 
                        class="w-full px-2 py-2 border border-gray-300 rounded-lg text-right text-sm focus:ring-2 focus:ring-navy-900 outline-none" 
-                       placeholder="0.00" oninput="calcLinha(${index}, 'unit')" required>
+                       placeholder="0,00" oninput="calcLinha(${index}, 'unit')" required>
             </td>
             <td class="p-2 align-top">
-                <input type="number" name="itens[${index}][total]" id="total-${index}" min="0.01" step="0.01" 
+                <input type="text" name="itens[${index}][total]" id="total-${index}" 
                        class="w-full px-2 py-2 border border-gray-300 rounded-lg bg-gray-100 text-right text-sm font-bold text-navy-900 focus:ring-2 focus:ring-navy-900 outline-none" 
-                       placeholder="0.00" oninput="calcLinha(${index}, 'total')" required>
+                       placeholder="0,00" oninput="calcLinha(${index}, 'total')" required>
             </td>
             <td class="p-2 text-center align-top pt-3">
                 <button type="button" onclick="removerLinha(${index})" class="text-gray-400 hover:text-red-600 transition-colors p-1 rounded-full hover:bg-red-50">
@@ -69,11 +112,14 @@ document.addEventListener('DOMContentLoaded', function() {
             </td>
         `;
         tbody.appendChild(row);
+
+        // Ativa a máscara nas linhas recém criadas!
+        aplicarMascaraMoeda(document.getElementById(`unit-${index}`));
+        aplicarMascaraMoeda(document.getElementById(`total-${index}`));
         
         if(typeof lucide !== 'undefined') lucide.createIcons();
     };
 
-    // --- FUNÇÃO PARA ATUALIZAR CONTADOR DE FOTOS ---
     window.atualizarLabelFoto = function(input, index) {
         const label = document.getElementById(`label-foto-${index}`);
         if(input.files && input.files.length > 0) {
@@ -86,52 +132,50 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // --- REMOVER LINHA ---
     window.removerLinha = function(index) {
         const linha = document.getElementById(`linha-${index}`);
         if(linha) linha.remove();
-        if(tbody.children.length === 0) {
-            if(emptyState) emptyState.classList.remove('hidden');
-        }
+        if(tbody.children.length === 0 && emptyState) emptyState.classList.remove('hidden');
         calcularFinal();
     };
 
-    // --- CÁLCULO DE LINHA (BIDIRECIONAL) ---
+    // --- CÁLCULO DA LINHA (Lendo sem as máscaras visualmente) ---
     window.calcLinha = function(idx, origem) {
         const qtdEl = document.getElementById(`qtd-${idx}`);
         const unitEl = document.getElementById(`unit-${idx}`);
         const totalEl = document.getElementById(`total-${idx}`);
 
-        let qtd = parseFloat(qtdEl.value) || 0;
-        let unit = parseFloat(unitEl.value) || 0;
-        let total = parseFloat(totalEl.value) || 0;
+        let qtd = 0;
+        if(qtdEl && qtdEl.value) {
+            qtd = parseFloat(qtdEl.value.replace(',', '.')) || 0;
+        }
+        
+        let unit = lerValorLocal(unitEl);
+        let total = lerValorLocal(totalEl);
         
         if (origem === 'qtd') {
-            if (unit > 0) totalEl.value = (qtd * unit).toFixed(2);
-            else if (total > 0 && qtd > 0) unitEl.value = (total / qtd).toFixed(2);
+            if (unit > 0) formatarNoElemento(totalEl, qtd * unit);
+            else if (total > 0 && qtd > 0) formatarNoElemento(unitEl, total / qtd);
         } 
         else if (origem === 'unit') {
-            totalEl.value = (qtd * unit).toFixed(2);
+            formatarNoElemento(totalEl, qtd * unit);
         } 
         else if (origem === 'total') {
-            if (qtd > 0) unitEl.value = (total / qtd).toFixed(2);
+            if (qtd > 0) formatarNoElemento(unitEl, total / qtd);
         }
         
         calcularFinal();
     };
 
-    // --- CÁLCULO FINAL ---
     window.calcularTotal = function() {
         let subtotal = 0;
         const inputsTotal = document.querySelectorAll('input[name*="[total]"]');
-        inputsTotal.forEach(inp => { subtotal += parseFloat(inp.value) || 0; });
+        inputsTotal.forEach(inp => { subtotal += lerValorLocal(inp); });
         
-        // Atualiza Subtotal
         const displaySub = document.getElementById('displaySubtotal');
-        if(displaySub) displaySub.innerText = subtotal.toFixed(2);
+        if(displaySub) displaySub.innerText = subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2});
 
-        // Pega valores do componente Financeiro
-        const acrescimo = parseFloat(document.getElementById('inputAcrescimo').value) || 0;
+        const acrescimo = lerValorLocal(document.getElementById('inputAcrescimo'));
         
         let descValor = 0;
         let descTipo = 'sem';
@@ -139,8 +183,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const inputDescFlask = document.getElementById('valor_desconto_aplicado');
         const inputDescManual = document.getElementById('inputDesconto');
         
-        if(inputDescFlask) descValor = parseFloat(inputDescFlask.value) || 0;
-        else if(inputDescManual) descValor = parseFloat(inputDescManual.value) || 0;
+        if(inputDescFlask) descValor = lerValorLocal(inputDescFlask);
+        else if(inputDescManual) descValor = lerValorLocal(inputDescManual);
 
         const radiosTipo = document.getElementsByName('tipo_desconto');
         for(let r of radiosTipo) {
@@ -162,10 +206,10 @@ document.addEventListener('DOMContentLoaded', function() {
         let final = baseCalculo - descontoReais;
         if (final < 0) final = 0;
 
-        document.getElementById('displayBase').innerText = `R$ ${subtotal.toFixed(2)}`;
-        document.getElementById('displayAcrescimo').innerText = `+ R$ ${acrescimo.toFixed(2)}`;
-        document.getElementById('displayDesconto').innerText = `- R$ ${descontoReais.toFixed(2)}`;
-        document.getElementById('displayTotal').innerText = `R$ ${final.toFixed(2)}`;
+        document.getElementById('displayBase').innerText = `R$ ${subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+        document.getElementById('displayAcrescimo').innerText = `+ R$ ${acrescimo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+        document.getElementById('displayDesconto').innerText = `- R$ ${descontoReais.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+        document.getElementById('displayTotal').innerText = `R$ ${final.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
         
         const hiddenTotal = document.getElementById('hiddenTotalFinal'); 
         if(hiddenTotal) hiddenTotal.value = final.toFixed(2);
@@ -183,7 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if(inputManual) {
             if(tipo === 'sem') {
                 inputManual.disabled = true;
-                inputManual.value = '0.00';
+                inputManual.value = '';
             } else {
                 inputManual.disabled = false;
             }
@@ -209,37 +253,16 @@ document.addEventListener('DOMContentLoaded', function() {
             areaPj.querySelectorAll('input').forEach(i => { if(i.name !== 'pj_cnpj') i.required = true; });
         }
     };
-    
-    window.toggleTipoCliente = function() {
-        const select = document.getElementById('tipo_cliente');
-        if(select && select.tagName === 'SELECT') alternarTipoCliente(select.value);
-    }
 
-    window.mascaraCpf = function(i){
-        let v = i.value.replace(/\D/g,"");
-        v=v.replace(/(\d{3})(\d)/,"$1.$2");
-        v=v.replace(/(\d{3})(\d)/,"$1.$2");
-        v=v.replace(/(\d{3})(\d{1,2})$/,"$1-$2");
-        i.value = v.substring(0, 14);
-    }
-    window.mascaraCnpj = function(i){
-        let v = i.value.replace(/\D/g,"");
-        v=v.replace(/^(\d{2})(\d)/,"$1.$2");
-        v=v.replace(/^(\d{2})\.(\d{3})(\d)/,"$1.$2.$3");
-        v=v.replace(/\.(\d{3})(\d)/,".$1/$2");
-        v=v.replace(/(\d{4})(\d)/,"$1-$2");
-        i.value = v.substring(0, 18);
-    }
-
+    // --- BLOQUEADOR DE SUBMIT E LIMPEZA DE MÁSCARA ---
     const formSubmit = document.getElementById('formMultiplo');
     if(formSubmit) {
         formSubmit.addEventListener('submit', function(e) {
-            let temErro = false;
             
-            // 1. Validação de Tamanho de Arquivos (NOVO)
+            // 1. Limite de Tamanho das Fotos
             const inputsArquivo = document.querySelectorAll('input[type="file"]');
             let tamanhoTotal = 0;
-            const LIMITE_MB = 64; // Deve ser igual ou menor que o do servidor
+            const LIMITE_MB = 64; 
             const LIMITE_BYTES = LIMITE_MB * 1024 * 1024;
 
             inputsArquivo.forEach(input => {
@@ -257,22 +280,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // 2. Validação de Itens (EXISTENTE)
+            // 2. Validação de Itens
             const inputsUnit = document.querySelectorAll('input[name*="[unit]"]');
-            
             if (inputsUnit.length === 0) {
                 e.preventDefault();
                 alert("Adicione pelo menos um item à venda.");
                 return;
             }
             
-            // Recalcula final antes de enviar para garantir
-            calcularTotal();
+            // 3. LIMPEZA ESTRUTURAL DAS MÁSCARAS ANTES DE CHEGAR NO SERVIDOR!
+            const inputsMonetarios = document.querySelectorAll('input[name*="[unit]"], input[name*="[total]"], #inputAcrescimo, #inputDesconto, #valor_desconto_aplicado');
+            inputsMonetarios.forEach(el => {
+                if (el && el.value) {
+                    el.value = el.value.replace(/\./g, '').replace(',', '.');
+                }
+            });
+
+            const inputsQtd = document.querySelectorAll('input[name*="[qtd]"]');
+            inputsQtd.forEach(el => {
+                if (el && el.value) el.value = el.value.replace(',', '.');
+            });
         });
     }
 
+    // Inicialização
     if(typeof lucide !== 'undefined') lucide.createIcons();
-    
     if(document.querySelector('input[name="tipo_cliente"]:checked')) {
         alternarTipoCliente(document.querySelector('input[name="tipo_cliente"]:checked').value);
     } else {

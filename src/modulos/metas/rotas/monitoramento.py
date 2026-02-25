@@ -2,6 +2,7 @@
 
 from flask import render_template, request, jsonify
 from flask_login import login_required
+from src.modulos.autenticacao.permissoes import cargo_exigido
 from datetime import date
 from sqlalchemy import func, extract
 import calendar
@@ -18,6 +19,7 @@ def fmt_moeda(valor):
 
 @bp_metas.route('/', methods=['GET'])
 @login_required
+@cargo_exigido('metas_acesso')
 def painel():
     hoje = date.today()
     

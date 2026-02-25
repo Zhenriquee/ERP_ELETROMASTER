@@ -68,7 +68,7 @@
 
                 {{ nav_header('Gestão') }}
 
-                {% if current_user.tem_permissao('financeiro_acesso') %}
+                {% if current_user.tem_permissao('financeiro_acesso') or eh_dono %}
                     {{ nav_link('financeiro.painel', 'dollar-sign', 'Financeiro', ['financeiro.nova_despesa', 'financeiro.fornecedores']) }}
                 {% endif %}
 
@@ -76,7 +76,7 @@
                     {{ nav_link('estoque.painel', 'package', 'Controle de Estoque') }}
                 {% endif %}
 
-                {% if current_user.tem_permissao('metas_equipe') %}
+                {% if current_user.tem_permissao('metas_acesso') or eh_dono %}
                     {{ nav_link('metas.painel', 'target', 'Metas & Objetivos', ['metas.nova_meta']) }}
                 {% endif %}
 

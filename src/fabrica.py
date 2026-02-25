@@ -226,32 +226,52 @@ def sincronizar_modulos_oficiais():
         {'codigo': 'dash_ind_producao', 'nome': 'Dashboard - Fila de Produção', 'descricao': 'Visualizar os contadores de itens na Fila, Produção, Retrabalho, Prontos e Finalizados.'},
         
         # 2. Ponto de Venda (Criação)
-        {'codigo': 'venda_criar', 'nome': 'Vendas - Realizar Venda', 'descricao': 'Acesso às telas de Nova Venda Simples e Múltipla.'},
-        {'codigo': 'venda_desconto', 'nome': 'Vendas - Aplicar Desconto', 'descricao': 'Permite aplicar descontos em Reais ou Porcentagem na criação da venda.'},
-        {'codigo': 'venda_imprimir', 'nome': 'Vendas - Imprimir Orçamento', 'descricao': 'Permite gerar o PDF do orçamento antes de finalizar a venda.'},
+        {'codigo': 'venda_criar', 'nome': 'Nova Venda - Acesso ao Modulo', 'descricao': 'Acesso às telas de Nova Venda Simples e Múltipla.'},
+        {'codigo': 'venda_desconto', 'nome': 'Nova Venda - Aplicar Desconto', 'descricao': 'Permite aplicar descontos em Reais ou Porcentagem na criação da venda.'},
+        {'codigo': 'venda_imprimir', 'nome': 'Nova Venda - Imprimir Orçamento', 'descricao': 'Permite gerar o PDF do orçamento antes de finalizar a venda.'},
         
         # 3. Gestão de Serviços (Acompanhamento)
-        {'codigo': 'gestao_acesso', 'nome': 'Gestão - Ver Lista', 'descricao': 'Visualizar a tabela principal de serviços em andamento.'},
-        {'codigo': 'gestao_editar', 'nome': 'Gestão - Mudar Status', 'descricao': 'Permite alterar o andamento do serviço e adicionar fotos técnicas.'},
-        {'codigo': 'gestao_cancelar', 'nome': 'Gestão - Cancelar Serviço', 'descricao': 'Permite cancelar pedidos da lista e estornar estoque.'},
-        {'codigo': 'gestao_financeiro', 'nome': 'Gestão - Financeiro da Venda', 'descricao': 'Ver valores na lista, registrar pagamentos e acessar a aba de cobrança.'},
-        {'codigo': 'gestao_metricas', 'nome': 'Gestão - Indicadores de Fila', 'descricao': 'Visualizar os cards de contagem (Fila, Produção, Pronto) no topo da tela.'},
+        {'codigo': 'gestao_acesso', 'nome': 'Gestão de Serviços - Acesso ao Modulo', 'descricao': 'Visualizar a tabela principal de serviços em andamento.'},
+        {'codigo': 'gestao_ind_financeiro', 'nome': 'Gestão de Serviços - Cards Financeiros', 'descricao': 'Visualizar o Faturamento e Ticket Médio no topo da tela.'},
+        {'codigo': 'gestao_ind_operacional', 'nome': 'Gestão de Serviços - Cards Operacionais', 'descricao': 'Visualizar a contagem de itens na Fila e Produção no topo.'},
+        {'codigo': 'gestao_gerenciar', 'nome': 'Gestão de Serviços - Ver Detalhes (Modal)', 'descricao': 'Permite clicar no botão "Gerenciar" para ver a timeline e os itens.'},
+        {'codigo': 'gestao_status', 'nome': 'Gestão de Serviços - Mudar Status', 'descricao': 'Permite avançar ou retroceder a etapa de um serviço.'},
+        {'codigo': 'gestao_fotos', 'nome': 'Gestão de Serviços - Anexar Fotos', 'descricao': 'Permite enviar e excluir fotos técnicas do serviço e dos itens.'},
+        {'codigo': 'gestao_financeiro', 'nome': 'Gestão de Serviços - Aba Financeira', 'descricao': 'Visualizar saldos e registrar pagamentos dentro do modal.'},
+        {'codigo': 'gestao_cancelar', 'nome': 'Gestão de Serviços - Cancelar Serviço', 'descricao': 'Permite cancelar o serviço.'},
+    
+        # 4. Linha de Produção (NOVO - MÓDULO INDEPENDENTE, SERÁ REFORMULADO DEPOIS)
+        {'codigo': 'producao_operar', 'nome': 'Linha de Produção - Acesso ao Modulo', 'descricao': 'Acesso à tela da linha de produção (Kanban/Listas).'},
 
-        # 4. Módulos de Gestão (Serão refatorados depois)
-        {'codigo': 'financeiro_acesso', 'nome': 'Financeiro - Acesso Completo', 'descricao': 'Acesso total à criação, edição e baixa de despesas.'},
-        {'codigo': 'financeiro_ver_totais', 'nome': 'Financeiro - Ver Totais (Cards)', 'descricao': 'Visualizar os cards somatórios no topo da tela do financeiro.'},
-        {'codigo': 'producao_operar', 'nome': 'Produção - Painel Operacional', 'descricao': 'Acesso à tela da linha de produção (Kanban/Listas).'},
-        {'codigo': 'estoque_gerir', 'nome': 'Estoque - Gestão de Produtos', 'descricao': 'Criar produtos, editar preços e movimentar estoque manualmente.'},
-        {'codigo': 'metas_equipe', 'nome': 'Metas - Acesso ao Painel', 'descricao': 'Visualizar e configurar metas mensais da loja e equipe.'},
+        # 5. Financeiro
+        {'codigo': 'financeiro_acesso', 'nome': 'Financeiro - Acesso ao Modulo', 'descricao': 'Acesso à tela principal e visualização das contas a pagar/pagas.'},
+        {'codigo': 'financeiro_cards', 'nome': 'Financeiro - Cards de Resumo', 'descricao': 'Visualizar os cards de totalizadores no topo da tela.'},
+        {'codigo': 'financeiro_criar', 'nome': 'Financeiro - Lançar Despesa', 'descricao': 'Permite criar novas contas e despesas manuais.'},
+        {'codigo': 'financeiro_editar', 'nome': 'Financeiro - Editar Lançamento', 'descricao': 'Permite editar valores, datas e descrições de contas existentes.'},
+        {'codigo': 'financeiro_pagar', 'nome': 'Financeiro - Dar Baixa (Pagar)', 'descricao': 'Permite clicar no botão de "Confirmar Pagamento" de uma conta.'},
+        {'codigo': 'financeiro_excluir', 'nome': 'Financeiro - Excluir Lançamento', 'descricao': 'Permite excluir definitivamente uma conta do sistema.'},
+        {'codigo': 'financeiro_fornecedores', 'nome': 'Financeiro - Fornecedores', 'descricao': 'Acesso ao cadastro e gestão de fornecedores.'},
+
+        # 6. Estoque
+        {'codigo': 'estoque_gerir', 'nome': 'Controle de Estoque - Acesso ao Modulo', 'descricao': 'Criar produtos, editar preços e movimentar estoque manualmente.'},
+
         
-        # 5. RH (Serão refatorados depois)
-        {'codigo': 'rh_equipe', 'nome': 'RH - Gestão de Usuários', 'descricao': 'Cadastrar colaboradores, gerenciar acessos e editar perfis.'},
-        {'codigo': 'rh_salarios', 'nome': 'RH - Ver Salários', 'descricao': 'Permissão para visualizar o valor do salário base no cadastro do RH.'},
+        # 7. Metas
+        {'codigo': 'metas_acesso', 'nome': 'Metas - Acesso ao Modulo', 'descricao': 'Visualizar o atingimento da loja, calendário e ranking da equipe.'},
+        {'codigo': 'metas_configurar', 'nome': 'Metas - Configurar Metas', 'descricao': 'Definir os valores mensais, dias úteis e distribuir metas individuais.'},
+        
+        # 8. RH
+        {'codigo': 'rh_acesso', 'nome': 'RH - Ver Lista e Perfil', 'descricao': 'Visualizar a lista de funcionários e os dados de contato do perfil.'},
+        {'codigo': 'rh_criar', 'nome': 'RH - Cadastrar Funcionário', 'descricao': 'Permite adicionar novos colaboradores ao sistema.'},
+        {'codigo': 'rh_editar', 'nome': 'RH - Editar Dados Básicos', 'descricao': 'Permite alterar endereço, telefone, cargo e dados gerais.'},
+        {'codigo': 'rh_status', 'nome': 'RH - Demitir / Reativar', 'descricao': 'Permite inativar ou reativar o cadastro de um funcionário.'},
+        {'codigo': 'rh_salarios', 'nome': 'RH - Ver e Editar Salários', 'descricao': 'Acesso total aos dados bancários, chave Pix e salário base.'},
+        {'codigo': 'rh_documentos', 'nome': 'RH - Gestão de Documentos', 'descricao': 'Fazer upload, baixar e excluir documentos e atestados.'},
 
         # 6. Relatórios
         {'codigo': 'relatorios_servicos', 'nome': 'Relatórios - Serviços Solicitados', 'descricao': 'Gerar e exportar planilhas de serviços e itens.'},
         {'codigo': 'relatorios_consumo', 'nome': 'Relatórios - Consumo de Materiais', 'descricao': 'Gerar e exportar relatórios de consumo de estoque.'},
-        {'codigo': 'relatorios_financeiro', 'nome': 'Relatórios - Financeiro', 'descricao': 'Gerar relatórios de contas a pagar e fluxo de caixa.'}
+        #{'codigo': 'relatorios_financeiro', 'nome': 'Relatórios - Financeiro', 'descricao': 'Gerar relatórios de contas a pagar e fluxo de caixa.'}
     ]
     
     codigos_oficiais = [m['codigo'] for m in modulos_oficiais]

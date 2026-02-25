@@ -14,11 +14,17 @@
         <br>Defina os objetivos da loja e da equipe para começar a monitorar os resultados.
     </p>
 
+    {% if current_user.tem_permissao('metas_configurar') or current_user.cargo|lower == 'dono' %}
     <a href="{{ url_for('metas.nova_meta') }}" 
        class="px-8 py-4 bg-navy-900 text-white rounded-xl hover:bg-navy-800 shadow-lg shadow-blue-900/20 font-bold text-lg flex items-center transition-all hover:-translate-y-1">
         <i data-lucide="plus-circle" class="w-6 h-6 mr-3"></i>
         Configurar Meta Agora
     </a>
+    {% else %}
+    <div class="px-6 py-4 bg-gray-100 text-gray-500 rounded-xl font-bold flex items-center mt-4 border border-gray-200 shadow-sm">
+        <i data-lucide="lock" class="w-5 h-5 mr-3 text-gray-400"></i> Aguardando a gerência configurar a meta do mês.
+    </div>
+    {% endif %}
 
 </div>
 {% endblock %}
