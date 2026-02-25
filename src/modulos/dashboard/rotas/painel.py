@@ -23,9 +23,7 @@ def painel():
     mes_atual = hoje.month
     ano_atual = hoje.year
 
-    # =================================================================
-    # --- INICIALIZAÇÃO SEGURA DE VARIÁVEIS (Evita erro 500) ---
-    # =================================================================
+    # Inicialização segura de todas as variáveis
     recebido_mes = 0
     a_receber = 0
     vendas_hoje = 0
@@ -48,18 +46,21 @@ def painel():
     doughnut_labels = []
     doughnut_data = []
 
-    # Inicializada FORA do IF para garantir que a tela não quebre!
-    pode_ver_totais_despesas = current_user.tem_permissao('financeiro_ver_totais')
-    
-    # Se o usuário for dono ou tiver ALGUMA permissão do dashboard, carrega os dados
-    eh_dono = current_user.cargo and current_user.cargo.lower() == 'dono'
+    # Verifica permissões individuais
+    pode_ver_fluxo = current_user.tem_permissao('dash_graf_fluxo')
+    pode_ver_custos = current_user.tem_permissao('dash_graf_custos')
+    pode_ver_top_produtos = current_user.tem_permissao('dash_top_produtos')
+
     pode_ver_dados_financeiros = (
-        eh_dono or
-        current_user.tem_permissao('dash_financeiro') or 
-        current_user.tem_permissao('dash_despesas') or 
-        current_user.tem_permissao('dash_performance') or 
-        current_user.tem_permissao('financeiro_acesso')
+        current_user.tem_permissao('dash_ind_receita') or 
+        current_user.tem_permissao('dash_ind_vendas') or 
+        current_user.tem_permissao('dash_ind_pagar') or 
+        current_user.tem_permissao('dash_ind_alertas') or 
+        pode_ver_fluxo or 
+        pode_ver_custos
     )
+
+    #pode_ver_graficos = current_user.tem_permissao('dash_graficos')
 
     if pode_ver_dados_financeiros:
         recebido_mes = db.session.query(func.sum(Pagamento.valor))\
@@ -110,42 +111,39 @@ def painel():
         ticket_medio = (float(faturamento_mes) / qtd_vendas_mes) if qtd_vendas_mes > 0 else 0
         perc_meta_mes = (float(faturamento_mes) / meta_valor_mes) * 100
 
-        for i in range(5, -1, -1):
-            data_ref = hoje - relativedelta(months=i)
-            mes_iter = data_ref.month
-            ano_iter = data_ref.year
-            nome_mes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][mes_iter-1]
-            chart_labels.append(nome_mes)
+        # Processa os gráficos apenas se tiver a permissão dash_graficos
+        # Processa Gráfico de Linhas (Fluxo)
+        if pode_ver_fluxo:
+            for i in range(5, -1, -1):
+                data_ref = hoje - relativedelta(months=i)
+                mes_iter = data_ref.month
+                ano_iter = data_ref.year
+                nome_mes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][mes_iter-1]
+                chart_labels.append(nome_mes)
 
-            soma_v = db.session.query(func.sum(Pagamento.valor))\
-                .filter(
-                    extract('month', Pagamento.data_pagamento) == mes_iter, 
-                    extract('year', Pagamento.data_pagamento) == ano_iter
-                ).scalar() or 0
-            chart_data_vendas.append(float(soma_v))
+                soma_v = db.session.query(func.sum(Pagamento.valor))\
+                    .filter(
+                        extract('month', Pagamento.data_pagamento) == mes_iter, 
+                        extract('year', Pagamento.data_pagamento) == ano_iter
+                    ).scalar() or 0
+                chart_data_vendas.append(float(soma_v))
 
-            soma_d = db.session.query(func.sum(Despesa.valor))\
-                .filter(extract('month', Despesa.data_vencimento) == mes_iter, 
-                        extract('year', Despesa.data_vencimento) == ano_iter).scalar() or 0
-            
-            if pode_ver_totais_despesas:
+                soma_d = db.session.query(func.sum(Despesa.valor))\
+                    .filter(extract('month', Despesa.data_vencimento) == mes_iter, 
+                            extract('year', Despesa.data_vencimento) == ano_iter).scalar() or 0
                 chart_data_despesas.append(float(soma_d))
-            else:
-                chart_data_despesas.append(0.0)
 
-        if pode_ver_totais_despesas:
+        # Processa Gráfico de Rosca (Custos)
+        if pode_ver_custos:
             cats_db = db.session.query(Despesa.categoria, func.sum(Despesa.valor))\
                 .filter(extract('month', Despesa.data_vencimento) == mes_atual,
                         extract('year', Despesa.data_vencimento) == ano_atual)\
                 .group_by(Despesa.categoria).all()
             doughnut_labels = [c[0].title() for c in cats_db]
             doughnut_data = [float(c[1]) for c in cats_db]
-        else:
-            doughnut_labels = []
-            doughnut_data = []
 
     # =================================================================
-    # --- INDICADORES OPERACIONAIS (OTIMIZADOS) ---
+    # --- INDICADORES OPERACIONAIS ---
     # =================================================================
     
     def formatar_tarefa(obj, tipo):
@@ -217,19 +215,18 @@ def painel():
 
     data_limite_30_dias = hoje - timedelta(days=30)
     
-    top_produtos = db.session.query(ProdutoEstoque.nome, func.sum(ItemVenda.quantidade).label('total_qtd'))\
-        .join(ItemVenda, ItemVenda.produto_id == ProdutoEstoque.id)\
-        .join(Venda, ItemVenda.venda_id == Venda.id)\
-        .filter(Venda.criado_em >= data_limite_30_dias,
-                Venda.status != 'cancelado')\
-        .group_by(ProdutoEstoque.nome)\
-        .order_by(desc('total_qtd'))\
-        .limit(5).all()
+    top_produtos = []
+    if pode_ver_top_produtos:
+        top_produtos = db.session.query(ProdutoEstoque.nome, func.sum(ItemVenda.quantidade).label('total_qtd'))\
+            .join(ItemVenda, ItemVenda.produto_id == ProdutoEstoque.id)\
+            .join(Venda, ItemVenda.venda_id == Venda.id)\
+            .filter(Venda.criado_em >= data_limite_30_dias,
+                    Venda.status != 'cancelado')\
+            .group_by(ProdutoEstoque.nome)\
+            .order_by(desc('total_qtd'))\
+            .limit(5).all()
 
     return render_template('dashboard/painel.html',
-                           exibir_financeiro=pode_ver_dados_financeiros,
-                           pode_ver_totais_despesas=pode_ver_totais_despesas,
-                           
                            kpi_recebido=fmt_moeda(recebido_mes),
                            kpi_receber=fmt_moeda(a_receber),
                            vendas_hoje=fmt_moeda(recebido_hoje), 

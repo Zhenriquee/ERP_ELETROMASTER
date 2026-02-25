@@ -213,63 +213,64 @@ def sincronizar_modulos_oficiais():
     """
     from src.modulos.autenticacao.modelos import Modulo
     
-    # LISTA OFICIAL DE PERMISSÕES (A ÚNICA VERDADE)
+    # LISTA OFICIAL DE PERMISSÕES 
     modulos_oficiais = [
-        # 1. Dashboard
-        {'codigo': 'dash_financeiro',   'nome': 'Dashboard - Ver Financeiro (Caixa/Recebimentos)'},
-        {'codigo': 'dash_despesas',     'nome': 'Dashboard - Ver Contas a Pagar/Alertas'},
-        {'codigo': 'dash_performance',  'nome': 'Dashboard - Ver Performance (Metas/Ticket Médio)'},
-        {'codigo': 'dash_operacional',  'nome': 'Dashboard - Ver Operacional (Produção/Fila)'},
-
-        # 2. Vendas & Serviços
-        {'codigo': 'vendas_operar',       'nome': 'Vendas - Criar/Editar Vendas'},
-        {'codigo': 'vendas_ver_lista',    'nome': 'Vendas - Ver Lista de Serviços'},
-        {'codigo': 'vendas_ver_valores',  'nome': 'Vendas - Ver Valores Financeiros'},
-        {'codigo': 'vendas_ver_metricas', 'nome': 'Vendas - Ver Métricas de Produção'},
-
-        # 3. Módulos de Gestão
-        {'codigo': 'financeiro_acesso', 'nome': 'Financeiro - Acesso Completo'},
-        {'codigo': 'financeiro_ver_totais', 'nome': 'Financeiro - Ver Totais (Cards)'}, # <--- NOVA PERMISSÃO AQUI
-        {'codigo': 'producao_operar',   'nome': 'Produção - Painel Operacional'},
-        {'codigo': 'estoque_gerir',     'nome': 'Estoque - Gestão de Produtos'},
-        {'codigo': 'metas_equipe',      'nome': 'Metas - Acesso ao Painel'},
+        # 1. Dashboard (NOVO - ULTRA GRANULAR)
+        {'codigo': 'dash_ind_receita', 'nome': 'Dashboard - Caixa & Recebíveis', 'descricao': 'Visualizar os cards de valores Recebidos no Mês e A Receber Geral.'},
+        {'codigo': 'dash_ind_vendas', 'nome': 'Dashboard - Performance de Vendas', 'descricao': 'Visualizar a meta do mês, atingimento e os cards de vendas/recebimentos de hoje.'},
+        {'codigo': 'dash_ind_pagar', 'nome': 'Dashboard - Contas a Pagar', 'descricao': 'Visualizar o card resumido de saídas financeiras do mês selecionado.'},
+        {'codigo': 'dash_ind_alertas', 'nome': 'Dashboard - Alertas de Contas', 'descricao': 'Visualizar os alertas de despesas vencidas e as que vencem nos próximos 5 dias.'},
+# --- AS 3 NOVAS PERMISSÕES DE GRÁFICOS ---
+        {'codigo': 'dash_graf_fluxo', 'nome': 'Dashboard - Gráfico de Fluxo', 'descricao': 'Visualizar o gráfico de linhas de receitas e despesas (Semestral).'},
+        {'codigo': 'dash_graf_custos', 'nome': 'Dashboard - Gráfico de Custos', 'descricao': 'Visualizar o gráfico de rosca com a divisão de despesas por categoria.'},
+        {'codigo': 'dash_top_produtos', 'nome': 'Dashboard - Top Produtos', 'descricao': 'Visualizar o ranking dos 5 produtos mais vendidos nos últimos 30 dias.'},
+        {'codigo': 'dash_ind_producao', 'nome': 'Dashboard - Fila de Produção', 'descricao': 'Visualizar os contadores de itens na Fila, Produção, Retrabalho, Prontos e Finalizados.'},
         
-        # 4. RH
-        {'codigo': 'rh_equipe',         'nome': 'RH - Gestão de Usuários'},
-        {'codigo': 'rh_salarios',       'nome': 'RH - Ver Salários'},
+        # 2. Vendas & Serviços (Serão refatorados depois)
+        {'codigo': 'vendas_operar', 'nome': 'Vendas - Criar/Editar Vendas', 'descricao': 'Criar, editar e gerenciar orçamentos e serviços.'},
+        {'codigo': 'vendas_ver_lista', 'nome': 'Vendas - Ver Lista de Serviços', 'descricao': 'Visualizar a tabela principal de gestão de serviços.'},
+        {'codigo': 'vendas_ver_valores', 'nome': 'Vendas - Ver Valores Financeiros', 'descricao': 'Acesso aos valores, recebimentos e extratos das vendas.'},
+        {'codigo': 'vendas_ver_metricas', 'nome': 'Vendas - Ver Métricas de Produção', 'descricao': 'Visualizar contadores de itens na tela de gestão de serviços.'},
 
-        # 5. NOVO: Relatórios
-        {'codigo': 'relatorios_servicos',   'nome': 'Relatórios - Serviços Solicitados'},
-        {'codigo': 'relatorios_consumo',    'nome': 'Relatórios - Consumo de Materiais'},
-        {'codigo': 'relatorios_financeiro', 'nome': 'Relatórios - Financeiro'}  
+        # 3. Módulos de Gestão (Serão refatorados depois)
+        {'codigo': 'financeiro_acesso', 'nome': 'Financeiro - Acesso Completo', 'descricao': 'Acesso total à criação, edição e baixa de despesas.'},
+        {'codigo': 'financeiro_ver_totais', 'nome': 'Financeiro - Ver Totais (Cards)', 'descricao': 'Visualizar os cards somatórios no topo da tela do financeiro.'},
+        {'codigo': 'producao_operar', 'nome': 'Produção - Painel Operacional', 'descricao': 'Acesso à tela da linha de produção (Kanban/Listas).'},
+        {'codigo': 'estoque_gerir', 'nome': 'Estoque - Gestão de Produtos', 'descricao': 'Criar produtos, editar preços e movimentar estoque manualmente.'},
+        {'codigo': 'metas_equipe', 'nome': 'Metas - Acesso ao Painel', 'descricao': 'Visualizar e configurar metas mensais da loja e equipe.'},
+        
+        # 4. RH (Serão refatorados depois)
+        {'codigo': 'rh_equipe', 'nome': 'RH - Gestão de Usuários', 'descricao': 'Cadastrar colaboradores, gerenciar acessos e editar perfis.'},
+        {'codigo': 'rh_salarios', 'nome': 'RH - Ver Salários', 'descricao': 'Permissão para visualizar o valor do salário base no cadastro do RH.'},
+
+        # 5. Relatórios
+        {'codigo': 'relatorios_servicos', 'nome': 'Relatórios - Serviços Solicitados', 'descricao': 'Gerar e exportar planilhas de serviços e itens.'},
+        {'codigo': 'relatorios_consumo', 'nome': 'Relatórios - Consumo de Materiais', 'descricao': 'Gerar e exportar relatórios de consumo de estoque.'},
+        {'codigo': 'relatorios_financeiro', 'nome': 'Relatórios - Financeiro', 'descricao': 'Gerar relatórios de contas a pagar e fluxo de caixa.'}
     ]
     
     codigos_oficiais = [m['codigo'] for m in modulos_oficiais]
     alteracoes = False
 
-    # 1. Cria ou Atualiza Novos
     for m_data in modulos_oficiais:
         mod_db = Modulo.query.filter_by(codigo=m_data['codigo']).first()
         if not mod_db:
-            print(f"[Sistema] Criando novo módulo: {m_data['nome']}")
-            novo = Modulo(nome=m_data['nome'], codigo=m_data['codigo'])
+            novo = Modulo(nome=m_data['nome'], codigo=m_data['codigo'], descricao=m_data.get('descricao', ''))
             banco_de_dados.session.add(novo)
             alteracoes = True
-        elif mod_db.nome != m_data['nome']:
-            mod_db.nome = m_data['nome']
-            alteracoes = True
+        else:
+            # Atualiza nome e descrição se tiverem mudado
+            if mod_db.nome != m_data['nome'] or mod_db.descricao != m_data.get('descricao', ''):
+                mod_db.nome = m_data['nome']
+                mod_db.descricao = m_data.get('descricao', '')
+                alteracoes = True
     
-    # 2. LIMPEZA: Remove permissões que não estão na lista oficial
-    # Isso vai apagar "Catálogo", "Vendas - Gestão/Preços" e qualquer outra coisa antiga.
     todos_db = Modulo.query.all()
     for m in todos_db:
         if m.codigo not in codigos_oficiais:
-            print(f"[Sistema] Removendo módulo obsoleto: {m.nome} ({m.codigo})")
-            # Remove associações com usuários primeiro (se o banco não tiver cascade)
             m.usuarios = [] 
             banco_de_dados.session.delete(m)
             alteracoes = True
 
     if alteracoes:
         banco_de_dados.session.commit()
-        print("[Sistema] Permissões sincronizadas e limpas com sucesso.")

@@ -8,12 +8,10 @@
     <div class="flex justify-between items-center mb-6">
         <div>
             <h2 class="text-2xl font-bold text-navy-900">Visão Geral</h2>
-            <p class="text-sm text-gray-500">
-                {% if exibir_financeiro %}Resumo gerencial e financeiro.{% else %}Painel Operacional.{% endif %}
-            </p>
+            <p class="text-sm text-gray-500">Resumo gerencial e operacional.</p>
         </div>
         
-        {% if current_user.tem_permissao('dash_performance') %}
+        {% if current_user.tem_permissao('dash_ind_vendas') %}
         <div class="text-right">
             <p class="text-xs font-bold text-gray-400 uppercase">Meta do Mês</p>
             <div class="flex items-center gap-2">
@@ -28,7 +26,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         
-        {% if current_user.tem_permissao('dash_financeiro') %}
+        {% if current_user.tem_permissao('dash_ind_receita') %}
         <div onclick="abrirModal('modalFluxo')" class="kpi-card cursor-pointer group bg-white rounded-xl shadow-sm p-5 border-l-4 border-electric-500">
             <div class="flex justify-between items-start mb-2">
                 <div>
@@ -45,7 +43,7 @@
         </div>
         {% endif %}
 
-        {% if current_user.tem_permissao('dash_performance') %}
+        {% if current_user.tem_permissao('dash_ind_vendas') %}
         <div onclick="abrirModal('modalPerformance')" class="kpi-card cursor-pointer group bg-white rounded-xl shadow-sm p-5 border-l-4 {{ 'border-green-500' if atingimento_dia_perc >= 100 else 'border-orange-500' }}">
             <div class="flex justify-between items-start mb-2">
                 <div>
@@ -68,9 +66,7 @@
         </div>
         {% endif %}
 
-        {% if current_user.tem_permissao('dash_despesas') %}
-        
-        {% if pode_ver_totais_despesas %}
+        {% if current_user.tem_permissao('dash_ind_pagar') %}
         <div onclick="abrirModal('modalSaidas')" class="kpi-card cursor-pointer group bg-white rounded-xl shadow-sm p-5 border-l-4 border-red-500">
             <div class="flex justify-between items-start mb-2">
                 <div>
@@ -87,6 +83,7 @@
         </div>
         {% endif %}
 
+        {% if current_user.tem_permissao('dash_ind_alertas') %}
         <div onclick="abrirModal('modalAlertas')" class="kpi-card cursor-pointer group bg-white rounded-xl shadow-sm p-5 border-l-4 border-navy-600">
             <div class="flex justify-between items-start mb-2">
                 <div>
@@ -106,8 +103,10 @@
         {% endif %}
     </div>
 
-    {% if current_user.tem_permissao('dash_financeiro') %}
+    {% if current_user.tem_permissao('dash_graf_fluxo') or current_user.tem_permissao('dash_graf_custos') or current_user.tem_permissao('dash_top_produtos') %}
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+        
+        {% if current_user.tem_permissao('dash_graf_fluxo') %}
         <div class="bg-white p-6 rounded-xl shadow-sm lg:col-span-2 border border-gray-100">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="font-bold text-lg text-navy-900">Fluxo Financeiro</h3>
@@ -115,7 +114,9 @@
             </div>
             <div class="relative h-72 w-full"><canvas id="financeiroChart"></canvas></div>
         </div>
+        {% endif %}
 
+        {% if current_user.tem_permissao('dash_graf_custos') %}
         <div class="bg-white p-6 rounded-xl shadow-sm lg:col-span-1 border border-gray-100 flex flex-col">
             <h3 class="font-bold text-lg text-navy-900 mb-4">Custos</h3>
             <div class="relative flex-1 flex items-center justify-center">
@@ -123,7 +124,9 @@
             </div>
             <p class="text-xs text-center text-gray-400 mt-4">Por Categoria</p>
         </div>
+        {% endif %}
 
+        {% if current_user.tem_permissao('dash_top_produtos') %}
         <div class="bg-white p-6 rounded-xl shadow-sm lg:col-span-1 border border-gray-100">
             <h3 class="font-bold text-lg text-navy-900 mb-4">Top Produtos (30 Dias)</h3>
             <div class="space-y-4">
@@ -142,10 +145,13 @@
                 {% endif %}
             </div>
         </div>
+        {% endif %}
+
     </div>
     {% endif %}
+    
 
-    {% if current_user.tem_permissao('dash_operacional') %}
+    {% if current_user.tem_permissao('dash_ind_producao') %}
     <h3 class="text-lg font-bold text-navy-900 mb-4 flex items-center gap-2 border-t pt-6 border-gray-200">
         <i data-lucide="hammer" class="w-5 h-5 text-gray-400"></i> Produção & Operacional
     </h3>
@@ -282,9 +288,7 @@
             </div>
             <div class="p-4 bg-red-50 rounded-lg text-center">
                 <p class="text-sm text-red-500">Total a Pagar (Mês Atual)</p>
-                <p class="text-3xl font-bold text-red-700 mt-2">
-                    {% if pode_ver_totais_despesas %}R$ {{ kpi_pagar }}{% else %}R$ ***{% endif %}
-                </p>
+                <p class="text-3xl font-bold text-red-700 mt-2">R$ {{ kpi_pagar }}</p>
                 <p class="text-xs text-red-400 mt-2">Valores com status 'pendente'.</p>
             </div>
             <div class="mt-4 text-center">
@@ -365,7 +369,8 @@
 
     {{ modal_lista('modalOpFila', 'Itens na Fila', op_fila, 'Nenhum item na fila.') }}
     {{ modal_lista('modalOpExec', 'Em Execução', op_execucao, 'Nenhum item em produção.') }}
-    {{ modal_lista('modalOpRetrabalho', 'Em Retrabalho', op_retrabalho, 'Nenhum item em retrabalho.') }} {{ modal_lista('modalOpProntos', 'Itens Prontos', op_prontos, 'Nenhum item aguardando entrega.') }}
+    {{ modal_lista('modalOpRetrabalho', 'Em Retrabalho', op_retrabalho, 'Nenhum item em retrabalho.') }} 
+    {{ modal_lista('modalOpProntos', 'Itens Prontos', op_prontos, 'Nenhum item aguardando entrega.') }}
     {{ modal_lista('modalOpAtrasados', 'Itens Atrasados', op_atrasados, 'Nenhum item atrasado.') }}
     {{ modal_lista('modalOpFinal', 'Entregues no Mês', op_finalizados, 'Nenhum item entregue este mês.') }}
 

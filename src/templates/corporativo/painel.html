@@ -100,18 +100,21 @@
                                 <i data-lucide="lock" class="w-4 h-4 mr-1"></i> Definição de Acessos
                             </label>
                             
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-80 overflow-y-auto custom-scrollbar pr-2">
+                            <div class="grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                                 {% for grupo, modulos in grupos_permissoes.items() %}
                                 <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-                                    <div class="px-3 py-2 bg-gray-100 border-b border-gray-200 font-bold text-xs text-navy-800 uppercase">
-                                        {{ grupo }}
+                                    <div class="px-4 py-3 bg-gray-100 border-b border-gray-200 font-bold text-sm text-navy-800 uppercase flex items-center">
+                                        <i data-lucide="folder" class="w-4 h-4 mr-2"></i> {{ grupo }}
                                     </div>
-                                    <div class="p-3 space-y-2">
+                                    <div class="p-2 space-y-1">
                                         {% for mod in modulos %}
-                                        <label class="flex items-start cursor-pointer hover:opacity-80">
+                                        <label class="flex items-start cursor-pointer hover:bg-gray-200/50 p-2 rounded-lg transition-colors group">
                                             <input type="checkbox" name="permissoes" value="{{ mod.id }}" 
-                                                   class="chk-permissao w-4 h-4 text-navy-900 border-gray-300 rounded focus:ring-navy-900 mt-0.5">
-                                            <span class="ml-2 text-xs text-gray-600 leading-tight">{{ mod.nome.split('-')[-1] }}</span>
+                                                   class="chk-permissao w-4 h-4 text-navy-900 border-gray-300 rounded focus:ring-navy-900 mt-1 shrink-0">
+                                            <div class="ml-3 flex flex-col">
+                                                <span class="text-sm font-bold text-navy-900 leading-tight group-hover:text-blue-600 transition-colors">{{ mod.nome.split('-')[-1].strip() }}</span>
+                                                <span class="text-[11px] text-gray-500 leading-snug mt-1">{{ mod.descricao }}</span>
+                                            </div>
                                         </label>
                                         {% endfor %}
                                     </div>
