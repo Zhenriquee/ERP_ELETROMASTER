@@ -220,30 +220,35 @@ def sincronizar_modulos_oficiais():
         {'codigo': 'dash_ind_vendas', 'nome': 'Dashboard - Performance de Vendas', 'descricao': 'Visualizar a meta do mês, atingimento e os cards de vendas/recebimentos de hoje.'},
         {'codigo': 'dash_ind_pagar', 'nome': 'Dashboard - Contas a Pagar', 'descricao': 'Visualizar o card resumido de saídas financeiras do mês selecionado.'},
         {'codigo': 'dash_ind_alertas', 'nome': 'Dashboard - Alertas de Contas', 'descricao': 'Visualizar os alertas de despesas vencidas e as que vencem nos próximos 5 dias.'},
-# --- AS 3 NOVAS PERMISSÕES DE GRÁFICOS ---
         {'codigo': 'dash_graf_fluxo', 'nome': 'Dashboard - Gráfico de Fluxo', 'descricao': 'Visualizar o gráfico de linhas de receitas e despesas (Semestral).'},
         {'codigo': 'dash_graf_custos', 'nome': 'Dashboard - Gráfico de Custos', 'descricao': 'Visualizar o gráfico de rosca com a divisão de despesas por categoria.'},
         {'codigo': 'dash_top_produtos', 'nome': 'Dashboard - Top Produtos', 'descricao': 'Visualizar o ranking dos 5 produtos mais vendidos nos últimos 30 dias.'},
         {'codigo': 'dash_ind_producao', 'nome': 'Dashboard - Fila de Produção', 'descricao': 'Visualizar os contadores de itens na Fila, Produção, Retrabalho, Prontos e Finalizados.'},
         
-        # 2. Vendas & Serviços (Serão refatorados depois)
-        {'codigo': 'vendas_operar', 'nome': 'Vendas - Criar/Editar Vendas', 'descricao': 'Criar, editar e gerenciar orçamentos e serviços.'},
-        {'codigo': 'vendas_ver_lista', 'nome': 'Vendas - Ver Lista de Serviços', 'descricao': 'Visualizar a tabela principal de gestão de serviços.'},
-        {'codigo': 'vendas_ver_valores', 'nome': 'Vendas - Ver Valores Financeiros', 'descricao': 'Acesso aos valores, recebimentos e extratos das vendas.'},
-        {'codigo': 'vendas_ver_metricas', 'nome': 'Vendas - Ver Métricas de Produção', 'descricao': 'Visualizar contadores de itens na tela de gestão de serviços.'},
+        # 2. Ponto de Venda (Criação)
+        {'codigo': 'venda_criar', 'nome': 'Vendas - Realizar Venda', 'descricao': 'Acesso às telas de Nova Venda Simples e Múltipla.'},
+        {'codigo': 'venda_desconto', 'nome': 'Vendas - Aplicar Desconto', 'descricao': 'Permite aplicar descontos em Reais ou Porcentagem na criação da venda.'},
+        {'codigo': 'venda_imprimir', 'nome': 'Vendas - Imprimir Orçamento', 'descricao': 'Permite gerar o PDF do orçamento antes de finalizar a venda.'},
+        
+        # 3. Gestão de Serviços (Acompanhamento)
+        {'codigo': 'gestao_acesso', 'nome': 'Gestão - Ver Lista', 'descricao': 'Visualizar a tabela principal de serviços em andamento.'},
+        {'codigo': 'gestao_editar', 'nome': 'Gestão - Mudar Status', 'descricao': 'Permite alterar o andamento do serviço e adicionar fotos técnicas.'},
+        {'codigo': 'gestao_cancelar', 'nome': 'Gestão - Cancelar Serviço', 'descricao': 'Permite cancelar pedidos da lista e estornar estoque.'},
+        {'codigo': 'gestao_financeiro', 'nome': 'Gestão - Financeiro da Venda', 'descricao': 'Ver valores na lista, registrar pagamentos e acessar a aba de cobrança.'},
+        {'codigo': 'gestao_metricas', 'nome': 'Gestão - Indicadores de Fila', 'descricao': 'Visualizar os cards de contagem (Fila, Produção, Pronto) no topo da tela.'},
 
-        # 3. Módulos de Gestão (Serão refatorados depois)
+        # 4. Módulos de Gestão (Serão refatorados depois)
         {'codigo': 'financeiro_acesso', 'nome': 'Financeiro - Acesso Completo', 'descricao': 'Acesso total à criação, edição e baixa de despesas.'},
         {'codigo': 'financeiro_ver_totais', 'nome': 'Financeiro - Ver Totais (Cards)', 'descricao': 'Visualizar os cards somatórios no topo da tela do financeiro.'},
         {'codigo': 'producao_operar', 'nome': 'Produção - Painel Operacional', 'descricao': 'Acesso à tela da linha de produção (Kanban/Listas).'},
         {'codigo': 'estoque_gerir', 'nome': 'Estoque - Gestão de Produtos', 'descricao': 'Criar produtos, editar preços e movimentar estoque manualmente.'},
         {'codigo': 'metas_equipe', 'nome': 'Metas - Acesso ao Painel', 'descricao': 'Visualizar e configurar metas mensais da loja e equipe.'},
         
-        # 4. RH (Serão refatorados depois)
+        # 5. RH (Serão refatorados depois)
         {'codigo': 'rh_equipe', 'nome': 'RH - Gestão de Usuários', 'descricao': 'Cadastrar colaboradores, gerenciar acessos e editar perfis.'},
         {'codigo': 'rh_salarios', 'nome': 'RH - Ver Salários', 'descricao': 'Permissão para visualizar o valor do salário base no cadastro do RH.'},
 
-        # 5. Relatórios
+        # 6. Relatórios
         {'codigo': 'relatorios_servicos', 'nome': 'Relatórios - Serviços Solicitados', 'descricao': 'Gerar e exportar planilhas de serviços e itens.'},
         {'codigo': 'relatorios_consumo', 'nome': 'Relatórios - Consumo de Materiais', 'descricao': 'Gerar e exportar relatórios de consumo de estoque.'},
         {'codigo': 'relatorios_financeiro', 'nome': 'Relatórios - Financeiro', 'descricao': 'Gerar relatórios de contas a pagar e fluxo de caixa.'}

@@ -11,7 +11,7 @@ from . import bp_vendas
 
 @bp_vendas.route('/servicos/<int:id>/pagamento', methods=['POST'])
 @login_required
-@cargo_exigido('vendas_operar')  # <--- PROTEÇÃO APLICADA
+@cargo_exigido('gestao_financeiro')  # <--- PROTEÇÃO APLICADA
 def registrar_pagamento(id):
     venda = Venda.query.get_or_404(id)
     form = FormularioPagamento()

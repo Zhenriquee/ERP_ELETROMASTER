@@ -105,7 +105,7 @@ def mudar_status_item(id, novo_status):
 
 @bp_vendas.route('/servicos/<int:id>/cancelar', methods=['POST'])
 @login_required
-@cargo_exigido('vendas_operar')  # <--- PROTEÇÃO APLICADA
+@cargo_exigido('gestao_cancelar')  # <--- PROTEÇÃO APLICADA
 def cancelar_venda(id):
     venda = Venda.query.get_or_404(id)
     if venda.status == 'entregue' and venda.valor_restante <= 0.01:
@@ -145,7 +145,7 @@ def imagem_db(foto_id):
 # --- UPLOAD DE FOTO (MODAL) ---
 @bp_vendas.route('/servicos/<int:id>/upload-foto', methods=['POST'])
 @login_required
-@cargo_exigido('vendas_operar')
+@cargo_exigido('gestao_editar')
 def upload_foto_servico(id):
     venda = Venda.query.get_or_404(id)
     arquivo = request.files.get('foto')
@@ -186,7 +186,7 @@ def upload_foto_servico(id):
 # --- DELETAR FOTO ---
 @bp_vendas.route('/fotos/<int:foto_id>/deletar', methods=['POST'])
 @login_required
-@cargo_exigido('vendas_operar')
+@cargo_exigido('gestao_editar')
 def deletar_foto(foto_id):
     foto = FotoItemVenda.query.get_or_404(foto_id)
     try:
@@ -198,7 +198,7 @@ def deletar_foto(foto_id):
     
 @bp_vendas.route('/itens/<int:item_id>/upload-foto', methods=['POST'])
 @login_required
-@cargo_exigido('vendas_operar')
+@cargo_exigido('gestao_editar')
 def upload_foto_item_especifico(item_id):
     item = ItemVenda.query.get_or_404(item_id)
     arquivo = request.files.get('foto')

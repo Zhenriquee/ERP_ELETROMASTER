@@ -244,12 +244,14 @@
                                     <i data-lucide="check" class="w-5 h-5"></i>
                                 </button>
 
+                                {% if current_user.tem_permissao('venda_imprimir') or current_user.cargo|lower == 'dono' %}
                                 <button type="button" 
-                                        onclick="gerarOrcamentoSimples('{{ current_user.nome }}', '{{ url_for('static', filename='img/logo_1.png', _external=True) }}')" 
-                                        class="w-full py-3 bg-white border-2 border-navy-900 text-navy-900 hover:bg-navy-50 rounded-xl font-bold flex items-center justify-center transition-all">
-                                    <i data-lucide="printer" class="w-5 h-5 mr-2"></i>
-                                    IMPRIMIR ORÇAMENTO
+                                        data-logo="{{ url_for('static', filename='img/logo_1.png', _external=True) }}"
+                                        onclick="gerarOrcamentoMultiplo('{{ current_user.nome }}', this.dataset.logo)" 
+                                        class="px-6 py-3 bg-white border-2 border-navy-900 text-navy-900 font-bold rounded-lg hover:bg-navy-50 transition-colors flex items-center shadow-sm">
+                                    <i data-lucide="printer" class="w-5 h-5 mr-2"></i> Imprimir Orçamento
                                 </button>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

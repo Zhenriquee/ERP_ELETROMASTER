@@ -20,8 +20,12 @@
                 {% endif %}
             </div>
 
+            {% set eh_dono = current_user.cargo and current_user.cargo|lower == 'dono' %}
+            
             <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <label class="label-padrao mb-3">Aplicar Desconto</label>
+                
+                {% if current_user.tem_permissao('venda_desconto') or eh_dono %}
                 <div class="flex gap-4 mb-3">
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="radio" name="tipo_desconto" value="sem" checked onchange="toggleDesconto()" class="text-navy-900 focus:ring-navy-900">
@@ -41,6 +45,18 @@
                     {{ form.valor_desconto_aplicado(class="input-navy text-right font-mono disabled:bg-gray-100 disabled:text-gray-400 transition-colors", placeholder="0.00", disabled=True, oninput="calcularTotal()") }}
                 {% else %}
                     <input type="number" name="valor_desconto" id="inputDesconto" class="input-navy text-right font-mono disabled:bg-gray-100 disabled:text-gray-400 transition-colors" placeholder="0.00" step="0.01" disabled oninput="calcularTotal()">
+                {% endif %}
+                
+                {% else %}
+                <div class="p-3 bg-red-50 text-red-600 text-xs rounded-lg border border-red-100 font-medium">
+                    <i data-lucide="lock" class="w-3 h-3 inline mr-1"></i> Acesso restrito para aplicar descontos.
+                </div>
+                <input type="hidden" name="tipo_desconto" value="sem">
+                {% if form %}
+                    {{ form.valor_desconto_aplicado(class="hidden", value="0") }}
+                {% else %}
+                    <input type="hidden" name="valor_desconto" value="0">
+                {% endif %}
                 {% endif %}
             </div>
             

@@ -1,5 +1,6 @@
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required
+from sqlalchemy import func # <--- IMPORTANTE: Usado para checar maiúsculas/minúsculas
 from src.extensoes import banco_de_dados as db
 from src.modulos.autenticacao.permissoes import cargo_exigido
 from src.modulos.corporativo.modelos import Setor, Cargo
@@ -32,7 +33,7 @@ def painel():
         'Estoque': [],
         'Operacional': [],
         'Metas': [],
-        'Relatórios': [], # <--- NOVA CATEGORIA ADICIONADA AQUI
+        'Relatórios': [],
         'Administrativo': []
     }
 
@@ -44,7 +45,7 @@ def painel():
         elif cod.startswith('estoque_'): grupos_permissoes['Estoque'].append(m)
         elif cod.startswith('producao_'): grupos_permissoes['Operacional'].append(m)
         elif cod.startswith('metas_'): grupos_permissoes['Metas'].append(m)
-        elif cod.startswith('relatorios_'): grupos_permissoes['Relatórios'].append(m) # <--- CAPTURA O NOVO MÓDULO
+        elif cod.startswith('relatorios_'): grupos_permissoes['Relatórios'].append(m) 
         elif cod.startswith('rh_'): grupos_permissoes['Administrativo'].append(m)
         else: grupos_permissoes['Administrativo'].append(m)
     
@@ -53,16 +54,30 @@ def painel():
 
     # --- SALVAR NOVO SETOR ---
     if 'submit_setor' in request.form and form_setor.validate_on_submit():
-        novo_setor = Setor(nome=form_setor.nome.data, descricao=form_setor.descricao.data)
-        db.session.add(novo_setor)
-        db.session.commit()
-        flash('Setor criado com sucesso!', 'success')
+        nome_setor = form_setor.nome.data.strip()
+        
+        # Validação: Verifica se o Setor já existe (Ignora maiúsculas/minúsculas)
+        if Setor.query.filter(func.lower(Setor.nome) == func.lower(nome_setor)).first():
+            flash(f'O setor "{nome_setor}" já está cadastrado no sistema.', 'error')
+        else:
+            novo_setor = Setor(nome=nome_setor, descricao=form_setor.descricao.data)
+            db.session.add(novo_setor)
+            db.session.commit()
+            flash('Setor criado com sucesso!', 'success')
+            
         return redirect(url_for('corporativo.painel'))
 
     # --- SALVAR NOVO CARGO ---
     if 'submit_cargo' in request.form and form_cargo.validate_on_submit():
+        nome_cargo = form_cargo.nome.data.strip()
+        
+        # Validação: Verifica se o Cargo já existe (Ignora maiúsculas/minúsculas)
+        if Cargo.query.filter(func.lower(Cargo.nome) == func.lower(nome_cargo)).first():
+            flash(f'O cargo "{nome_cargo}" já está cadastrado no sistema.', 'error')
+            return redirect(url_for('corporativo.painel'))
+
         novo_cargo = Cargo(
-            nome=form_cargo.nome.data,
+            nome=nome_cargo,
             setor_id=form_cargo.setor_id.data,
             nivel_hierarquico=form_cargo.nivel_hierarquico.data,
             descricao=form_cargo.descricao.data
@@ -86,7 +101,7 @@ def painel():
                            form_cargo=form_cargo,
                            setores=setores,
                            cargos=cargos,
-                           grupos_permissoes=grupos_permissoes) # Passamos os grupos
+                           grupos_permissoes=grupos_permissoes)
 
 # --- NOVA ROTA DE EDIÇÃO ---
 @bp_corporativo.route('/cargo/editar/<int:id>', methods=['POST'])
@@ -101,7 +116,16 @@ def editar_cargo(id):
     form.permissoes.choices = [(m.id, m.nome) for m in Modulo.query.all()]
 
     if form.validate_on_submit():
-        cargo.nome = form.nome.data
+        nome_cargo = form.nome.data.strip()
+        
+        # Validação: Verifica se JÁ EXISTE OUTRO cargo com este nome (ignorando o próprio cargo editado)
+        existente = Cargo.query.filter(func.lower(Cargo.nome) == func.lower(nome_cargo), Cargo.id != id).first()
+        
+        if existente:
+            flash(f'Já existe outro cargo com o nome "{nome_cargo}".', 'error')
+            return redirect(url_for('corporativo.painel'))
+            
+        cargo.nome = nome_cargo
         cargo.setor_id = form.setor_id.data
         cargo.nivel_hierarquico = form.nivel_hierarquico.data
         cargo.descricao = form.descricao.data

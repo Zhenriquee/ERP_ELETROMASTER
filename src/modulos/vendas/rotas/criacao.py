@@ -46,7 +46,7 @@ def salvar_fotos_item(item_id, arquivos):
 
 @bp_vendas.route('/nova', methods=['GET', 'POST'])
 @login_required
-@cargo_exigido('vendas_operar')
+@cargo_exigido('venda_criar')
 def nova_venda():
     form = FormularioVendaWizard()
     produtos_ativos = ProdutoEstoque.query.filter_by(ativo=True).order_by(ProdutoEstoque.nome).all()
@@ -143,7 +143,7 @@ def nova_venda():
 # ... (Rota nova_venda_multipla mantida igual) ...
 @bp_vendas.route('/nova-multipla', methods=['GET'])
 @login_required
-@cargo_exigido('vendas_operar')
+@cargo_exigido('venda_criar')
 def nova_venda_multipla():
     produtos_ativos = ProdutoEstoque.query.filter_by(ativo=True).order_by(ProdutoEstoque.nome).all()
     produtos_json = [{
@@ -157,7 +157,7 @@ def nova_venda_multipla():
 
 @bp_vendas.route('/salvar-multipla', methods=['POST'])
 @login_required
-@cargo_exigido('vendas_operar')
+@cargo_exigido('venda_criar')
 def salvar_venda_multipla():
     try:
         # ... (Lógica Cliente igual) ...
