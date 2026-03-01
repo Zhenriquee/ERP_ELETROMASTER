@@ -73,12 +73,25 @@
                 {{ form.conta(class="input-navy") }}
             </div>
 
-            <div class="md:col-span-3 border-t border-gray-100 my-2"></div>
+            <div class="grid grid-cols-1 gap-4 {{ 'opacity-30 pointer-events-none' if not pode_salario }}">
+                
+                <div>
+                    <label class="label-padrao">Salário Bruto (R$)</label>
+                    <input type="text" name="salario_base" 
+                           value="{{ '%.2f'|format(form.salario_base.data or 0)|replace('.', ',') if form.salario_base.data else '' }}" 
+                           class="input-navy money-mask" 
+                           placeholder="R$ 0,00" autocomplete="off">
+                </div>
+                
+                <div>
+                    <label class="label-padrao text-red-600">Desconto Fixo no Mês (%)</label>
+                    <input type="text" name="percentual_desconto" id="inputPercDesc"
+                           value="{{ form.percentual_desconto.data or '' }}" 
+                           class="input-navy text-red-600 font-bold" 
+                           placeholder="Ex: 7,5" autocomplete="off">
+                </div>
 
-            <div>
-                <label class="block text-sm font-bold text-navy-900 mb-1">Salário Base (R$)</label>
-                {{ form.salario_base(class="input-navy font-bold text-green-700", placeholder="0.00") }}
-            </div>
+                </div>
 
             <div>
                 <label class="block text-sm font-bold text-navy-900 mb-1">Frequência</label>

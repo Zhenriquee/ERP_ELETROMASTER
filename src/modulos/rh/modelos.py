@@ -39,6 +39,7 @@ class Colaborador(db.Model):
     dia_pagamento = db.Column(db.String(20)) # Ex: "5" ou "15,30" ou "4" (Sexta)
     
     percentual_adiantamento = db.Column(db.Integer, default=40)
+    percentual_desconto = db.Column(db.Numeric(5, 2), default=0.00) # NOVO CAMPO
     # -------------------------
     
     ativo = db.Column(db.Boolean, default=True)

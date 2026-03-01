@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (filtroPeriodo) {
         window.aplicarFiltros = function() {
-            const valorPeriodo = filtroPeriodo.value; 
+            const valorPeriodo = document.getElementById('filtroPeriodo').value; 
             if(!valorPeriodo) return;
             const [mes, ano] = valorPeriodo.split('-');
             
@@ -181,23 +181,24 @@ document.addEventListener('DOMContentLoaded', function() {
             params.set('mes', mes);
             params.set('ano', ano);
             
-            // LER NOVO FILTRO DE TEXTO E OUTROS
+            // Certifique-se de que 'filtroTipo' está neste array abaixo
             ['filtroTexto', 'filtroCat', 'filtroStatus', 'filtroFornecedor', 'filtroPagamento', 'filtroTipo', 'filtroVencimento'].forEach(id => {
                 const el = document.getElementById(id);
                 const paramName = id.replace('filtro', '').toLowerCase(); 
                 
                 if(el && el.value) {
                     let key = paramName;
-                    // Mapeamento manual para backend
+                    
+                    // Mapeamentos para os nomes esperados no Python
                     if(key === 'cat') key = 'categoria';
-                    if(key === 'tipo') key = 'tipo_custo';
+                    if(key === 'tipo') key = 'tipo_custo'; // <-- GARANTA QUE ESTA LINHA EXISTA
                     if(key === 'pagamento') key = 'forma_pagamento';
-                    if(key === 'texto') key = 'q'; // Mapeia 'filtroTexto' para 'q'
+                    if(key === 'texto') key = 'q';
                     
                     params.set(key, el.value);
                 } else if(el && !el.value) {
-                    // Limpa do URL se o usuário apagou o conteúdo
                     let key = paramName;
+                    if(key === 'tipo') key = 'tipo_custo';
                     if(key === 'texto') key = 'q';
                     params.delete(key);
                 }

@@ -84,20 +84,33 @@ def sincronizar_financeiro_rh(colaborador):
         elif colaborador.frequencia_pagamento == 'quinzenal':
             try:
                 partes = colaborador.dia_pagamento.split(',')
-                dia1 = int(partes[0])
-                dia2 = int(partes[1]) if len(partes) > 1 else 30
-            except: dia1, dia2 = 15, 30
+                dia_adianta = int(partes[0])
+                dia_saldo = int(partes[1]) if len(partes) > 1 else 30
+            except: dia_adianta, dia_saldo = 15, 30
             
-            perc = colaborador.percentual_adiantamento or 40
-            val_adianta = valor_base * (perc / 100)
-            val_saldo = valor_base - val_adianta
+            # Pega os valores do banco
+            valor_bruto = float(colaborador.salario_base or 0)
+            perc_adianta = float(colaborador.percentual_adiantamento or 40) / 100.0
+            perc_desc = float(colaborador.percentual_desconto or 0) / 100.0
+            
+            # 1️⃣ Valor da Quinzena (Adiantamento do Bruto sem desconto)
+            val_adiantamento = valor_bruto * perc_adianta
+            
+            # 2️⃣ Desconto Total (Aplicado sobre o bruto)
+            val_desconto_total = valor_bruto * perc_desc
+            
+            # 3️⃣ Saldo Final (Bruto menos adiantamento menos desconto)
+            val_fechamento = valor_bruto - val_adiantamento - val_desconto_total
 
             for i in range(janela_meses):
                 data_ref = hoje + relativedelta(months=i)
-                venc1 = get_data_segura(data_ref.year, data_ref.month, dia1)
-                venc2 = get_data_segura(data_ref.year, data_ref.month, dia2)
-                if venc1 > hoje: lista_novos.append((venc1, val_adianta, f"Adiantamento ({perc}%)"))
-                if venc2 > hoje: lista_novos.append((venc2, val_saldo, "Saldo Salário"))
+                venc1 = get_data_segura(data_ref.year, data_ref.month, dia_adianta)
+                venc2 = get_data_segura(data_ref.year, data_ref.month, dia_saldo)
+                
+                if venc1 > hoje: 
+                    lista_novos.append((venc1, val_adiantamento, "Adiantamento Salarial"))
+                if venc2 > hoje: 
+                    lista_novos.append((venc2, val_fechamento, "Saldo Salário"))
 
         elif colaborador.frequencia_pagamento == 'semanal':
             try: dia_semana = int(colaborador.dia_pagamento)

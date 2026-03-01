@@ -52,6 +52,7 @@ class FormularioColaborador(FlaskForm):
         default=40,
         validators=[Optional(), NumberRange(min=1, max=99)]
     )
+    percentual_desconto = DecimalField('Desconto Fixo (%)', places=2, default=0.00, validators=[Optional()]) # NOVO CAMPO
     
     
     
