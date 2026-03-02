@@ -68,3 +68,17 @@ class Despesa(db.Model):
         if hoje > self.data_vencimento:
             return (hoje - self.data_vencimento).days
         return 0
+    
+    @property
+    def parcelamento_info(self):
+        """Calcula dinamicamente ' - Parc. 1/3' lendo do banco de dados na hora de exibir"""
+        if self.grupo_parcelamento:
+            parcelas = Despesa.query.filter_by(grupo_parcelamento=self.grupo_parcelamento).order_by(Despesa.data_vencimento.asc(), Despesa.id.asc()).all()
+            total = len(parcelas)
+            if total > 1:
+                try:
+                    indice = parcelas.index(self) + 1
+                    return f" - Parc. {indice}/{total}"
+                except ValueError:
+                    return ""
+        return ""

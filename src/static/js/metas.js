@@ -161,9 +161,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Formata o valor inicial se a tela for recarregada (modo edição)
         if (input.value) {
-            let val = input.value.replace(/\./g, '').replace(',', '.');
-            if (!isNaN(parseFloat(val))) {
-                let v = parseFloat(val).toFixed(2);
+            let strValor = input.value;
+            if (strValor.includes(',')) {
+                strValor = strValor.replace(/\./g, '').replace(',', '.');
+            }
+            let val = parseFloat(strValor);
+            if (!isNaN(val)) {
+                let v = val.toFixed(2);
                 v = v.replace('.', ',');
                 v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
                 input.value = v;

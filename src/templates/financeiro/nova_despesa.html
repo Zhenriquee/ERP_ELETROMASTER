@@ -233,4 +233,41 @@
 
 {% block scripts %}
     <script src="{{ url_for('static', filename='js/financeiro.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if itens_salvos and itens_salvos|length > 0 %}
+            // Se houver itens salvos no banco, recriamos na interface após um pequeno delay
+            setTimeout(() => {
+                const itensSalvos = {{ itens_salvos|tojson }};
+                const container = document.getElementById('listaProdutos');
+                
+                if (container && typeof adicionarLinhaProduto === 'function') {
+                    container.innerHTML = ''; // Limpa a tabela
+                    
+                    itensSalvos.forEach((item, index) => {
+                        // Cria a linha dinamicamente usando a função do financeiro.js
+                        adicionarLinhaProduto(); 
+                        
+                        // Aguarda a linha ser desenhada e preenche os valores
+                        setTimeout(() => {
+                            const linhas = container.querySelectorAll('tr');
+                            const linhaAtual = linhas[index];
+                            if (linhaAtual) {
+                                const select = linhaAtual.querySelector('select');
+                                const inputQtd = linhaAtual.querySelector('input[type="number"]');
+                                
+                                if (select) {
+                                    select.value = item.produto_id;
+                                    // Força a atualização do texto KG / L / UN ao lado do input
+                                    select.dispatchEvent(new Event('change'));
+                                }
+                                if (inputQtd) inputQtd.value = item.quantidade;
+                            }
+                        }, 50); // Delay curto para processamento do DOM
+                    });
+                }
+            }, 300); // 300ms garante que o financeiro.js inicial foi totalmente carregado
+            {% endif %}
+        });
+    </script>
 {% endblock %}

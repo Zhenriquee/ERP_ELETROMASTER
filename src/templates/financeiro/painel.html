@@ -191,7 +191,9 @@
                     {% for d in despesas %}
                     <tr class="transition-colors {% if destaque_id == d.id %}bg-yellow-100 border-l-4 border-yellow-500 shadow-sm{% else %}hover:bg-gray-50{% endif %}" {% if destaque_id == d.id %}id="linha-destaque"{% endif %}>                        <td class="px-6 py-4 font-medium text-gray-800">{{ d.data_vencimento.strftime('%d/%m/%Y') }}</td>
                         <td class="px-6 py-4">
-                            <div class="font-medium text-gray-900">{{ d.descricao }}</div>
+                            <div class="font-medium text-gray-900">
+                                {{ d.descricao }}<span class="text-gray-500 font-normal ml-1">{{ d.parcelamento_info }}</span>
+                            </div>
                             {% if d.fornecedor_rel %}<div class="text-xs text-gray-400">{{ d.fornecedor_rel.nome_fantasia }}</div>{% endif %}
                         </td>
                         <td class="px-6 py-4">

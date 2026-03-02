@@ -113,23 +113,31 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleTipo.addEventListener('change', atualizarInterfaceTipo);
         atualizarInterfaceTipo(); // Init
         
-        // --- 7. MÁSCARA DE MOEDA (NOVA DESPESA) ---
+    // --- 7. MÁSCARA DE MOEDA (NOVA DESPESA) ---
     const inputValorDespesa = document.getElementById('valor');
     if (inputValorDespesa) {
         inputValorDespesa.type = 'text';
 
         // Formata valor inicial se a tela estiver no modo Edição
         if (inputValorDespesa.value) {
-            let val = inputValorDespesa.value.replace(/\./g, '').replace(',', '.');
-            if (!isNaN(parseFloat(val))) {
-                let v = parseFloat(val).toFixed(2);
+            let strValor = inputValorDespesa.value;
+            
+            // CORREÇÃO: Se o valor tem vírgula, já foi formatado no Brasil.
+            // Se NÃO tem vírgula, veio direto do Banco de Dados (ex: 500.00), logo o ponto não pode ser removido!
+            if (strValor.includes(',')) {
+                strValor = strValor.replace(/\./g, '').replace(',', '.');
+            }
+
+            let val = parseFloat(strValor);
+            if (!isNaN(val)) {
+                let v = val.toFixed(2);
                 v = v.replace('.', ',');
                 v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
                 inputValorDespesa.value = v;
             }
         }
 
-        // Intercepta a digitação
+        // Intercepta a digitação humana
         inputValorDespesa.addEventListener('input', function(e) {
             let v = e.target.value.replace(/\D/g, '');
             if (v === '') {
