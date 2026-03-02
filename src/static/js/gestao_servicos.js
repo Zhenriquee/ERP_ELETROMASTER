@@ -263,6 +263,33 @@ document.addEventListener('DOMContentLoaded', function() {
     const divValor = document.getElementById('divValorInput');
     const inputValor = document.querySelector('input[name="valor"]');
 
+    // --- NOVA LÓGICA DE MÁSCARA MONETÁRIA NO PAGAMENTO ---
+    if (inputValor) {
+        inputValor.type = 'text'; // Transforma em texto para aceitar pontos e vírgulas
+        
+        inputValor.addEventListener('input', function(e) {
+            let v = e.target.value.replace(/\D/g, ''); // Remove tudo que não for número
+            if (v === '') {
+                e.target.value = '';
+                return;
+            }
+            // Formata matematicamente para Reais
+            v = (parseFloat(v) / 100).toFixed(2);
+            v = v.replace('.', ',');
+            v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+            e.target.value = v;
+        });
+
+        // Limpa os pontos antes de enviar para o servidor
+        if (formPagamento) {
+            formPagamento.addEventListener('submit', function() {
+                if (inputValor && inputValor.value) {
+                    inputValor.value = inputValor.value.replace(/\./g, '').replace(',', '.');
+                }
+            });
+        }
+    }
+
     function toggleInputValor() {
         if(!divValor || !inputValor) return;
         const tipo = document.querySelector('input[name="tipo_recebimento"]:checked').value;
@@ -281,7 +308,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if(btnFechar) btnFechar.addEventListener('click', fechar);
     if(overlay) overlay.addEventListener('click', fechar);
 });
-
 // =========================================================================
 // FUNÇÕES GLOBAIS DE FOTOS E DETALHES TÉCNICOS
 // =========================================================================

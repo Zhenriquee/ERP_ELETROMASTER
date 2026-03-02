@@ -28,7 +28,8 @@
     </div>
 
     {% if pode_ver_totais %}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        
         <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500 kpi-card relative overflow-hidden">
             <div class="flex justify-between items-start z-10 relative">
                 <div>
@@ -44,10 +45,22 @@
             {% endif %}
         </div>
 
+        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-500 kpi-card">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Vencidas (Mês)</p>
+                    <h3 class="text-2xl font-bold text-orange-600 mt-1">R$ {{ "%.2f"|format(total_vencido_mes)|replace('.', ',') }}</h3>
+                </div>
+                <div class="p-2 bg-orange-50 rounded-lg text-orange-600">
+                    <i data-lucide="calendar-x" class="w-6 h-6"></i>
+                </div>
+            </div>
+        </div>
+
         <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-yellow-400 kpi-card">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">A Pagar (Mês Selecionado)</p>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">A Pagar (Mês)</p>
                     <h3 class="text-2xl font-bold text-gray-800 mt-1">R$ {{ "%.2f"|format(total_pendente)|replace('.', ',') }}</h3>
                 </div>
                 <div class="p-2 bg-yellow-50 rounded-lg text-yellow-600">
@@ -59,7 +72,7 @@
         <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500 kpi-card">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Pago (Mês Selecionado)</p>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Pago (Mês)</p>
                     <h3 class="text-2xl font-bold text-gray-800 mt-1">R$ {{ "%.2f"|format(total_pago)|replace('.', ',') }}</h3>
                 </div>
                 <div class="p-2 bg-green-50 rounded-lg text-green-600">
@@ -67,6 +80,7 @@
                 </div>
             </div>
         </div>
+        
     </div>
     {% endif %}
 
@@ -111,7 +125,7 @@
                         <option value="variavel" {{ 'selected' if filtros.tipo_custo == 'variavel' }}>Variável</option>
                     </select>
                 </div>
-                
+
                 <div>
                     <label class="block text-xs font-medium text-gray-500 mb-1">Categoria</label>
                     <select id="filtroCat" class="w-full p-2 border border-gray-300 rounded text-xs bg-white focus:ring-1 focus:ring-navy-900">
@@ -133,6 +147,7 @@
                         <option value="">Todos os Status</option>
                         <option value="pendente" {{ 'selected' if filtros.status == 'pendente' }}>Pendente (A Pagar)</option>
                         <option value="pago" {{ 'selected' if filtros.status == 'pago' }}>Pago</option>
+                        <option value="vencido" {{ 'selected' if filtros.status == 'vencido' }}>Vencido (Atrasado)</option>
                     </select>
                 </div>
 

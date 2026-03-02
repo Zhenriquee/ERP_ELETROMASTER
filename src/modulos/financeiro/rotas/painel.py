@@ -81,7 +81,12 @@ def painel():
             query = query.filter(Despesa.descricao.ilike(f'%{f_busca}%'))
             
     if f_status:
-        query = query.filter(Despesa.status == f_status)
+        if f_status == 'vencido':
+            # Se escolher 'Vencidos', busca os pendentes com data menor que hoje
+            query = query.filter(Despesa.status == 'pendente', Despesa.data_vencimento < hoje)
+        else:
+            # Caso contrário (pendente, pago), busca normal
+            query = query.filter(Despesa.status == f_status)
     if f_categoria:
         query = query.filter(Despesa.categoria == f_categoria)
     if f_forma_pagamento:
@@ -100,6 +105,9 @@ def painel():
     # ============================================================
     total_pendente = sum(d.valor for d in despesas if d.status == 'pendente')
     total_pago = sum(d.valor for d in despesas if d.status == 'pago')
+
+    # NOVA LÓGICA: Calcula o vencido APENAS dentro dos itens já filtrados do mês
+    total_vencido_mes = sum(d.valor for d in despesas if d.status == 'pendente' and d.data_vencimento < hoje)
     
     total_vencido_geral = db.session.query(db.func.sum(Despesa.valor))\
         .filter(Despesa.status == 'pendente', Despesa.data_vencimento < hoje)\
@@ -115,6 +123,7 @@ def painel():
                            total_pendente=total_pendente,
                            total_pago=total_pago,
                            total_vencido_geral=total_vencido_geral,
+                           total_vencido_mes=total_vencido_mes, # <--- ENVIADO PARA O HTML AQUI
                            pode_ver_totais=pode_ver_totais,
                            destaque_id=destaque_id, # <--- ENVIADO PARA O HTML
                            filtros={

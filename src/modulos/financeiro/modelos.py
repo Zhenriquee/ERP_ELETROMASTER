@@ -52,6 +52,9 @@ class Despesa(db.Model):
     # Ex: 'manual', 'rh_automatico'
     origem = db.Column(db.String(30), default='manual') 
 
+    # --- NOVO: VÍNCULO DE PARCELAS ---
+    grupo_parcelamento = db.Column(db.String(50), nullable=True)
+
     venda_id = db.Column(db.Integer, db.ForeignKey('vendas.id'))
     venda = db.relationship('Venda', backref='custos_atrelados')
     

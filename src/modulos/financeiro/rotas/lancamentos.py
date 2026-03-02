@@ -11,6 +11,7 @@ from src.modulos.rh.modelos import Colaborador
 from . import bp_financeiro
 from src.modulos.estoque.modelos import ProdutoEstoque, MovimentacaoEstoque
 from decimal import Decimal
+import uuid
 
 def add_months(source_date, months):
     return source_date + relativedelta(months=+months)
@@ -74,6 +75,8 @@ def nova_despesa():
             data_base_compra = form.data_compra.data
             
             primeira_despesa_id = None # Para vincular estoque
+            # GERA O CÓDIGO DO GRUPO SE FOR PARCELADO
+            grupo_id = str(uuid.uuid4()) if qtd_parcelas > 1 else None
 
             # LOOP FINANCEIRO
             for i in range(qtd_parcelas):
@@ -105,7 +108,8 @@ def nova_despesa():
                     status=status_final,
                     data_pagamento=dt_pgto,
                     codigo_barras=form.codigo_barras.data,
-                    observacao=form.observacao.data
+                    observacao=form.observacao.data,
+                    grupo_parcelamento=grupo_id 
                 )
                 
                 if form.fornecedor_id.data and form.fornecedor_id.data > 0:

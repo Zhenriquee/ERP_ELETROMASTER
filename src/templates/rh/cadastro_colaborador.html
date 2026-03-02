@@ -51,9 +51,11 @@
             </div>
         </div>
 
-        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2 flex items-center">
+        <<h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2 flex items-center">
             <i data-lucide="dollar-sign" class="w-4 h-4 mr-2"></i> Dados Bancários & Salário
         </h3>
+        
+        {% set pode_salario = current_user.tem_permissao('rh_salarios') or current_user.cargo|lower == 'dono' %}
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="md:col-span-3">
