@@ -3,16 +3,19 @@
 document.addEventListener('DOMContentLoaded', function() {
     if(typeof lucide !== 'undefined') lucide.createIcons();
     setupEventListeners();
-    toggleCliente(); 
     
-    // Pequeno delay para garantir carregamento e aplicar regras iniciais
+    if(document.querySelector('input[name="tipo_cliente"]:checked')) {
+        window.alternarTipoCliente(document.querySelector('input[name="tipo_cliente"]:checked').value);
+    } else {
+        window.alternarTipoCliente('PF');
+    }
+    
     setTimeout(atualizarUnidadeECalcular, 100);
 });
 
-// --- FUNÇÃO GLOBAL DE MÁSCARA MONETÁRIA ---
 window.aplicarMascaraMoeda = function(input) {
     if(!input) return;
-    input.type = 'text'; // Permite formatação com vírgulas
+    input.type = 'text'; 
     
     if (input.value) {
         let val = input.value.replace(/\./g, '').replace(',', '.');
@@ -37,7 +40,6 @@ window.aplicarMascaraMoeda = function(input) {
     });
 }
 
-// --- FUNÇÕES DE LEITURA (Reverte máscara para cálculo matemático) ---
 window.lerValorMonetario = function(id) {
     const el = document.getElementById(id);
     if (!el || !el.value) return 0;
@@ -52,59 +54,42 @@ window.lerDecimalGenerico = function(id) {
 }
 
 function setupEventListeners() {
-    // 1. Aplicar máscaras
-    const inputsMonetarios = ['valor_acrescimo', 'valor_desconto_aplicado'];
+    const inputsMonetarios = ['valor_acrescimo', 'inputDesconto', 'valor_desconto_aplicado'];
     inputsMonetarios.forEach(id => {
-        aplicarMascaraMoeda(document.getElementById(id));
+        window.aplicarMascaraMoeda(document.getElementById(id));
     });
 
-    // 2. Limpar formatação no Submit (Para o Backend não quebrar)
     const formVenda = document.getElementById('formVenda');
     if (formVenda) {
         formVenda.addEventListener('submit', function() {
             inputsMonetarios.forEach(id => {
                 const el = document.getElementById(id);
-                if (el && el.value) {
-                    el.value = el.value.replace(/\./g, '').replace(',', '.');
-                }
+                if (el && el.value) el.value = el.value.replace(/\./g, '').replace(',', '.');
             });
             ['dimensao_1', 'dimensao_2', 'dimensao_3', 'quantidade_pecas'].forEach(id => {
                 const el = document.getElementById(id);
-                if (el && el.value) {
-                    el.value = el.value.replace(',', '.');
-                }
+                if (el && el.value) el.value = el.value.replace(',', '.');
             });
         });
     }
 
-    // Tipo de Cliente
-    const radiosTipo = document.querySelectorAll('input[name="tipo_cliente"]');
-    radiosTipo.forEach(radio => radio.addEventListener('change', toggleCliente));
-
-    // Inputs de Cálculo (Dimensões, Qtd, Valores)
     const inputsCalculo = document.querySelectorAll(
-        '#dimensao_1, #dimensao_2, #dimensao_3, #quantidade_pecas, #valor_acrescimo, #valor_desconto_aplicado'
+        '#dimensao_1, #dimensao_2, #dimensao_3, #quantidade_pecas, #valor_acrescimo, #inputDesconto, #valor_desconto_aplicado'
     );
     inputsCalculo.forEach(input => {
-        input.addEventListener('input', calculateAll);
-        input.addEventListener('change', calculateAll);
+        input.addEventListener('input', window.calcularTotal);
+        input.addEventListener('change', window.calcularTotal);
     });
 
-    // Selects (Produto e Medida)
     const selectProduto = document.getElementById('select-produto');
     if (selectProduto) selectProduto.addEventListener('change', atualizarUnidadeECalcular);
 
     const selectMedida = document.getElementById('select-medida');
-    if (selectMedida) selectMedida.addEventListener('change', calculateAll);
-
-    // Tipo de Desconto
-    const radiosDesconto = document.querySelectorAll('input[name="tipo_desconto"]');
-    radiosDesconto.forEach(radio => radio.addEventListener('change', calculateAll));
+    if (selectMedida) selectMedida.addEventListener('change', window.calcularTotal);
 
     configurarMascaras();
 }
 
-// --- LÓGICA DE UNIDADE E BLOQUEIO ---
 function atualizarUnidadeECalcular() {
     const selectProduto = document.getElementById('select-produto');
     const selectMedida = document.getElementById('select-medida');
@@ -148,14 +133,14 @@ function atualizarUnidadeECalcular() {
             if(avisoErro) avisoErro.classList.remove('hidden');
         }
     }
-    calculateAll();
+    window.calcularTotal();
 }
 
-function calculateAll() {
-    const d1 = lerDecimalGenerico('dimensao_1');
-    const d2 = lerDecimalGenerico('dimensao_2');
-    const d3 = lerDecimalGenerico('dimensao_3');
-    const qtd = lerDecimalGenerico('quantidade_pecas') || 1;
+window.calcularTotal = function() {
+    const d1 = window.lerDecimalGenerico('dimensao_1');
+    const d2 = window.lerDecimalGenerico('dimensao_2');
+    const d3 = window.lerDecimalGenerico('dimensao_3');
+    const qtd = window.lerDecimalGenerico('quantidade_pecas') || 1;
     
     const selectMedida = document.getElementById('select-medida');
     const tipoMedida = selectMedida ? selectMedida.value : 'm2';
@@ -206,12 +191,15 @@ function calculateAll() {
     if(elValorBase) elValorBase.value = valorBase.toFixed(2).replace('.', ',');
     if(elResumoBase) elResumoBase.innerText = valorBase.toFixed(2).replace('.', ',');
 
-    // Acréscimos e Descontos (Utilizando a leitura sem máscara)
-    const acrescimo = lerValorMonetario('valor_acrescimo');
-    const valorInputDesc = lerValorMonetario('valor_desconto_aplicado');
+    const acrescimo = window.lerValorMonetario('valor_acrescimo');
     
-    const tipoDescRadio = document.querySelector('input[name="tipo_desconto"]:checked');
-    const tipoDesc = tipoDescRadio ? tipoDescRadio.value : 'real';
+    let inputDescManual = document.getElementById('inputDesconto');
+    let inputDescFlask = document.getElementById('valor_desconto_aplicado');
+    let valorInputDesc = inputDescFlask ? window.lerValorMonetario('valor_desconto_aplicado') : window.lerValorMonetario('inputDesconto');
+    
+    let tipoDescRadio = document.querySelector('input[name="tipo_desconto"]:checked');
+    if(!tipoDescRadio) tipoDescRadio = document.querySelector('input[name="tipo_desconto_visual"]:checked');
+    const tipoDesc = tipoDescRadio ? tipoDescRadio.value : 'sem';
     
     const prefixoDesc = document.getElementById('prefixo-desconto');
     if(prefixoDesc) prefixoDesc.innerText = (tipoDesc === 'perc') ? '%' : 'R$';
@@ -235,21 +223,50 @@ function calculateAll() {
     if(elInputFinal) elInputFinal.value = final.toFixed(2).replace('.', ',');
 }
 
-// --- UTILITÁRIOS CLIENTE ---
-function toggleCliente() {
-    const radioPf = document.querySelector('input[name="tipo_cliente"][value="PF"]');
-    const isPf = radioPf ? radioPf.checked : true;
-    const blocoPf = document.getElementById('bloco-pf');
-    const blocoPj = document.getElementById('bloco-pj');
+window.toggleDesconto = function() {
+    let radios = document.getElementsByName('tipo_desconto');
+    if(radios.length === 0) radios = document.getElementsByName('tipo_desconto_visual');
+    let tipo = 'sem';
+    for(let r of radios) if(r.checked) tipo = r.value;
     
-    if (isPf) {
-        if(blocoPf) blocoPf.classList.remove('hidden-force');
-        if(blocoPj) blocoPj.classList.add('hidden-force');
-    } else {
-        if(blocoPf) blocoPf.classList.add('hidden-force');
-        if(blocoPj) blocoPj.classList.remove('hidden-force');
+    const inputManual = document.getElementById('inputDesconto') || document.getElementById('valor_desconto_aplicado');
+    
+    if(inputManual) {
+        if(tipo === 'sem') {
+            inputManual.disabled = true;
+            inputManual.value = '';
+        } else {
+            inputManual.disabled = false;
+        }
     }
-}
+    window.calcularTotal();
+};
+
+window.alternarTipoCliente = function(tipo) {
+    // Busca os IDs corretos que estão no form_cliente.html
+    const areaPf = document.getElementById('campos-pf') || document.getElementById('bloco-pf');
+    const areaPj = document.getElementById('campos-pj') || document.getElementById('bloco-pj');
+    
+    if (!areaPf || !areaPj) return;
+
+    if (tipo === 'PF') {
+        areaPf.classList.remove('hidden');
+        areaPf.classList.remove('hidden-force');
+        areaPj.classList.add('hidden');
+        areaPj.classList.add('hidden-force');
+        // Ajusta a obrigatoriedade dos campos
+        areaPf.querySelectorAll('input').forEach(i => { if(i.name !== 'pf_cpf') i.required = true; });
+        areaPj.querySelectorAll('input').forEach(i => i.required = false);
+    } else {
+        areaPf.classList.add('hidden');
+        areaPf.classList.add('hidden-force');
+        areaPj.classList.remove('hidden');
+        areaPj.classList.remove('hidden-force');
+        // Ajusta a obrigatoriedade dos campos
+        areaPf.querySelectorAll('input').forEach(i => i.required = false);
+        areaPj.querySelectorAll('input').forEach(i => { if(i.name !== 'pj_cnpj') i.required = true; });
+    }
+};
 
 function configurarMascaras() {
     const inpCpf = document.querySelector('[name="pf_cpf"]');

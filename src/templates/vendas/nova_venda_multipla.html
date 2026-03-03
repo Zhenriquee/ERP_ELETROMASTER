@@ -15,7 +15,6 @@
     </div>
 
     <form method="POST" id="formMultiplo" 
-          data-produtos='{{ produtos_json|tojson|safe }}'
           action="{{ url_for('vendas.salvar_venda_multipla') }}"
           enctype="multipart/form-data">
         
@@ -106,6 +105,9 @@
 {% endblock %}
 
 {% block scripts %}
+<script id="dados-produtos" type="application/json">
+    {{ produtos_json|tojson|safe }}
+</script>
 <script src="{{ url_for('static', filename='js/orcamento.js') }}"></script>
 <script src="{{ url_for('static', filename='js/vendas_multipla.js') }}"></script>
 {% endblock %}
