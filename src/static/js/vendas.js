@@ -1,20 +1,9 @@
 // src/static/js/vendas.js
 
-document.addEventListener('DOMContentLoaded', function() {
-    if(typeof lucide !== 'undefined') lucide.createIcons();
-    setupEventListeners();
-    
-    if(document.querySelector('input[name="tipo_cliente"]:checked')) {
-        window.alternarTipoCliente(document.querySelector('input[name="tipo_cliente"]:checked').value);
-    } else {
-        window.alternarTipoCliente('PF');
-    }
-    
-    setTimeout(atualizarUnidadeECalcular, 100);
-});
-
-window.aplicarMascaraMoeda = function(input) {
+window.aplicarMascaraMoeda = function(input, callback) {
     if(!input) return;
+    
+    input.removeAttribute('oninput');
     input.type = 'text'; 
     
     if (input.value) {
@@ -31,110 +20,29 @@ window.aplicarMascaraMoeda = function(input) {
         let v = e.target.value.replace(/\D/g, '');
         if (v === '') {
             e.target.value = '';
-            return;
+        } else {
+            v = (parseFloat(v) / 100).toFixed(2);
+            v = v.replace('.', ',');
+            v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+            e.target.value = v;
         }
-        v = (parseFloat(v) / 100).toFixed(2);
-        v = v.replace('.', ',');
-        v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-        e.target.value = v;
+        
+        if (typeof callback === 'function') callback();
     });
-}
+};
 
 window.lerValorMonetario = function(id) {
     const el = document.getElementById(id);
     if (!el || !el.value) return 0;
     let valStr = el.value.replace(/\./g, '').replace(',', '.');
     return parseFloat(valStr) || 0;
-}
+};
 
 window.lerDecimalGenerico = function(id) {
     const el = document.getElementById(id);
     if (!el || !el.value) return 0;
     return parseFloat(el.value.replace(',', '.')) || 0;
-}
-
-function setupEventListeners() {
-    const inputsMonetarios = ['valor_acrescimo', 'inputDesconto', 'valor_desconto_aplicado'];
-    inputsMonetarios.forEach(id => {
-        window.aplicarMascaraMoeda(document.getElementById(id));
-    });
-
-    const formVenda = document.getElementById('formVenda');
-    if (formVenda) {
-        formVenda.addEventListener('submit', function() {
-            inputsMonetarios.forEach(id => {
-                const el = document.getElementById(id);
-                if (el && el.value) el.value = el.value.replace(/\./g, '').replace(',', '.');
-            });
-            ['dimensao_1', 'dimensao_2', 'dimensao_3', 'quantidade_pecas'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el && el.value) el.value = el.value.replace(',', '.');
-            });
-        });
-    }
-
-    const inputsCalculo = document.querySelectorAll(
-        '#dimensao_1, #dimensao_2, #dimensao_3, #quantidade_pecas, #valor_acrescimo, #inputDesconto, #valor_desconto_aplicado'
-    );
-    inputsCalculo.forEach(input => {
-        input.addEventListener('input', window.calcularTotal);
-        input.addEventListener('change', window.calcularTotal);
-    });
-
-    const selectProduto = document.getElementById('select-produto');
-    if (selectProduto) selectProduto.addEventListener('change', atualizarUnidadeECalcular);
-
-    const selectMedida = document.getElementById('select-medida');
-    if (selectMedida) selectMedida.addEventListener('change', window.calcularTotal);
-
-    configurarMascaras();
-}
-
-function atualizarUnidadeECalcular() {
-    const selectProduto = document.getElementById('select-produto');
-    const selectMedida = document.getElementById('select-medida');
-    
-    let avisoErro = document.getElementById('aviso-sem-preco');
-    if (!avisoErro && selectMedida) {
-        avisoErro = document.createElement('div');
-        avisoErro.id = 'aviso-sem-preco';
-        avisoErro.className = 'text-red-600 text-xs mt-1 font-bold hidden';
-        avisoErro.innerText = 'Produto sem preço cadastrado para esta unidade!';
-        selectMedida.parentNode.appendChild(avisoErro);
-    }
-    
-    if (selectProduto && selectProduto.selectedIndex >= 0 && selectMedida) {
-        const option = selectProduto.options[selectProduto.selectedIndex];
-        
-        const precoM2 = parseFloat(option.getAttribute('data-m2')) || 0;
-        const precoM3 = parseFloat(option.getAttribute('data-m3')) || 0;
-        
-        const optionM2 = selectMedida.querySelector('option[value="m2"]');
-        const optionM3 = selectMedida.querySelector('option[value="m3"]');
-
-        selectMedida.style.pointerEvents = 'auto'; 
-        selectMedida.classList.remove('bg-gray-100', 'text-gray-400', 'border-red-500', 'bg-red-50'); 
-        if(avisoErro) avisoErro.classList.add('hidden');
-        if(optionM2) optionM2.disabled = false;
-        if(optionM3) optionM3.disabled = false;
-
-        if (precoM2 > 0 && precoM3 > 0) {
-            // Escolhe livremente
-        } else if (precoM2 > 0) {
-            selectMedida.value = 'm2';
-            if(optionM3) optionM3.disabled = true; 
-        } else if (precoM3 > 0) {
-            selectMedida.value = 'm3';
-            if(optionM2) optionM2.disabled = true;
-        } else {
-            selectMedida.value = 'm2';
-            selectMedida.style.pointerEvents = 'none';
-            selectMedida.classList.add('bg-red-50', 'text-gray-400', 'border-red-500');
-            if(avisoErro) avisoErro.classList.remove('hidden');
-        }
-    }
-    window.calcularTotal();
-}
+};
 
 window.calcularTotal = function() {
     const d1 = window.lerDecimalGenerico('dimensao_1');
@@ -193,8 +101,8 @@ window.calcularTotal = function() {
 
     const acrescimo = window.lerValorMonetario('valor_acrescimo');
     
-    let inputDescManual = document.getElementById('inputDesconto');
     let inputDescFlask = document.getElementById('valor_desconto_aplicado');
+    let inputDescManual = document.getElementById('inputDesconto');
     let valorInputDesc = inputDescFlask ? window.lerValorMonetario('valor_desconto_aplicado') : window.lerValorMonetario('inputDesconto');
     
     let tipoDescRadio = document.querySelector('input[name="tipo_desconto"]:checked');
@@ -221,7 +129,53 @@ window.calcularTotal = function() {
 
     if(elResumoTotal) elResumoTotal.innerText = final.toFixed(2).replace('.', ',');
     if(elInputFinal) elInputFinal.value = final.toFixed(2).replace('.', ',');
-}
+};
+
+window.atualizarUnidadeECalcular = function() {
+    const selectProduto = document.getElementById('select-produto');
+    const selectMedida = document.getElementById('select-medida');
+    
+    let avisoErro = document.getElementById('aviso-sem-preco');
+    if (!avisoErro && selectMedida) {
+        avisoErro = document.createElement('div');
+        avisoErro.id = 'aviso-sem-preco';
+        avisoErro.className = 'text-red-600 text-xs mt-1 font-bold hidden';
+        avisoErro.innerText = 'Produto sem preço cadastrado para esta unidade!';
+        selectMedida.parentNode.appendChild(avisoErro);
+    }
+    
+    if (selectProduto && selectProduto.selectedIndex >= 0 && selectMedida) {
+        const option = selectProduto.options[selectProduto.selectedIndex];
+        
+        const precoM2 = parseFloat(option.getAttribute('data-m2')) || 0;
+        const precoM3 = parseFloat(option.getAttribute('data-m3')) || 0;
+        
+        const optionM2 = selectMedida.querySelector('option[value="m2"]');
+        const optionM3 = selectMedida.querySelector('option[value="m3"]');
+
+        selectMedida.style.pointerEvents = 'auto'; 
+        selectMedida.classList.remove('bg-gray-100', 'text-gray-400', 'border-red-500', 'bg-red-50'); 
+        if(avisoErro) avisoErro.classList.add('hidden');
+        if(optionM2) optionM2.disabled = false;
+        if(optionM3) optionM3.disabled = false;
+
+        if (precoM2 > 0 && precoM3 > 0) {
+            // Escolhe livremente
+        } else if (precoM2 > 0) {
+            selectMedida.value = 'm2';
+            if(optionM3) optionM3.disabled = true; 
+        } else if (precoM3 > 0) {
+            selectMedida.value = 'm3';
+            if(optionM2) optionM2.disabled = true;
+        } else {
+            selectMedida.value = 'm2';
+            selectMedida.style.pointerEvents = 'none';
+            selectMedida.classList.add('bg-red-50', 'text-gray-400', 'border-red-500');
+            if(avisoErro) avisoErro.classList.remove('hidden');
+        }
+    }
+    window.calcularTotal();
+};
 
 window.toggleDesconto = function() {
     let radios = document.getElementsByName('tipo_desconto');
@@ -242,27 +196,29 @@ window.toggleDesconto = function() {
     window.calcularTotal();
 };
 
+// --- FUNÇÃO DO CLIENTE (Corrigida e Blindada) ---
 window.alternarTipoCliente = function(tipo) {
-    // Busca os IDs corretos que estão no form_cliente.html
-    const areaPf = document.getElementById('campos-pf') || document.getElementById('bloco-pf');
-    const areaPj = document.getElementById('campos-pj') || document.getElementById('bloco-pj');
+    const areaPf = document.getElementById('bloco-pf') || document.getElementById('campos-pf');
+    const areaPj = document.getElementById('bloco-pj') || document.getElementById('campos-pj');
     
     if (!areaPf || !areaPj) return;
 
-    if (tipo === 'PF') {
-        areaPf.classList.remove('hidden');
-        areaPf.classList.remove('hidden-force');
-        areaPj.classList.add('hidden');
-        areaPj.classList.add('hidden-force');
-        // Ajusta a obrigatoriedade dos campos
+    if (tipo === 'PF' || tipo.toLowerCase() === 'pf') {
+        areaPf.classList.remove('hidden-force', 'hidden');
+        areaPf.style.display = '';
+        
+        areaPj.classList.add('hidden-force', 'hidden');
+        areaPj.style.display = 'none';
+        
         areaPf.querySelectorAll('input').forEach(i => { if(i.name !== 'pf_cpf') i.required = true; });
         areaPj.querySelectorAll('input').forEach(i => i.required = false);
     } else {
-        areaPf.classList.add('hidden');
-        areaPf.classList.add('hidden-force');
-        areaPj.classList.remove('hidden');
-        areaPj.classList.remove('hidden-force');
-        // Ajusta a obrigatoriedade dos campos
+        areaPf.classList.add('hidden-force', 'hidden');
+        areaPf.style.display = 'none';
+        
+        areaPj.classList.remove('hidden-force', 'hidden');
+        areaPj.style.display = '';
+        
         areaPf.querySelectorAll('input').forEach(i => i.required = false);
         areaPj.querySelectorAll('input').forEach(i => { if(i.name !== 'pj_cnpj') i.required = true; });
     }
@@ -298,3 +254,62 @@ function configurarMascaras() {
         e.target.value = v.substring(0, 15);
     });
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+    
+    const inputsMonetarios = ['valor_acrescimo', 'inputDesconto', 'valor_desconto_aplicado'];
+    inputsMonetarios.forEach(id => {
+        window.aplicarMascaraMoeda(document.getElementById(id), window.calcularTotal);
+    });
+
+    const formVenda = document.getElementById('formVenda');
+    if (formVenda) {
+        formVenda.addEventListener('submit', function() {
+            inputsMonetarios.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value) {
+                    el.value = el.value.replace(/\./g, '').replace(',', '.');
+                }
+            });
+            ['dimensao_1', 'dimensao_2', 'dimensao_3', 'quantidade_pecas'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value) {
+                    el.value = el.value.replace(',', '.');
+                }
+            });
+        });
+    }
+
+    const radiosTipo = document.querySelectorAll('input[name="tipo_cliente"]');
+    radiosTipo.forEach(radio => radio.addEventListener('change', (e) => window.alternarTipoCliente(e.target.value)));
+
+    const inputsCalculo = document.querySelectorAll(
+        '#dimensao_1, #dimensao_2, #dimensao_3, #quantidade_pecas'
+    );
+    inputsCalculo.forEach(input => {
+        input.addEventListener('input', window.calcularTotal);
+        input.addEventListener('change', window.calcularTotal);
+    });
+
+    const selectProduto = document.getElementById('select-produto');
+    if (selectProduto) selectProduto.addEventListener('change', window.atualizarUnidadeECalcular);
+
+    const selectMedida = document.getElementById('select-medida');
+    if (selectMedida) selectMedida.addEventListener('change', window.calcularTotal);
+
+    let radiosDesconto = document.querySelectorAll('input[name="tipo_desconto"]');
+    if(radiosDesconto.length === 0) radiosDesconto = document.querySelectorAll('input[name="tipo_desconto_visual"]');
+    radiosDesconto.forEach(radio => radio.addEventListener('change', window.calcularTotal));
+
+    configurarMascaras();
+
+    let radioChecked = document.querySelector('input[name="tipo_cliente"]:checked');
+    if(radioChecked) {
+        window.alternarTipoCliente(radioChecked.value);
+    } else {
+        window.alternarTipoCliente('PF');
+    }
+    
+    setTimeout(window.atualizarUnidadeECalcular, 100);
+});

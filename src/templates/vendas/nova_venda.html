@@ -39,7 +39,7 @@
                         <div class="flex gap-4">
                             {% for subfield in form.tipo_cliente %}
                             <label class="cursor-pointer">
-                                {{ subfield(class="peer sr-only") }}
+                                {{ subfield(class="peer sr-only", onchange="window.alternarTipoCliente(this.value)") }}
                                 <div class="px-4 py-2 rounded-lg border border-gray-300 text-gray-500 font-bold hover:bg-gray-50 peer-checked:bg-navy-900 peer-checked:text-white peer-checked:border-navy-900 transition-all shadow-sm">
                                     {{ subfield.label.text }}
                                 </div>
