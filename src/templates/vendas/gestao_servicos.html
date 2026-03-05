@@ -73,6 +73,7 @@
                 <option value="producao" {{ 'selected' if filtros.status == 'producao' }}>Produção</option>
                 <option value="pronto" {{ 'selected' if filtros.status == 'pronto' }}>Pronto</option>
                 <option value="entregue" {{ 'selected' if filtros.status == 'entregue' }}>Entregue</option>
+                <option value="cancelado" {{ 'selected' if filtros.status == 'cancelado' }}>Cancelado</option>
             </select>
 
             <select id="filtroVendedor" class="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 font-medium cursor-pointer hover:border-navy-900 focus:outline-none">
@@ -96,6 +97,7 @@
                         <th class="px-6 py-4 text-center">Status</th>
                         <th class="px-6 py-4 text-right pr-12">Financeiro</th>
                         <th class="px-6 py-4 text-right w-48">Ações</th>
+                        
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
@@ -178,7 +180,11 @@
                                 'data_cancelamento': s.data_cancelamento.strftime('%Y-%m-%d %H:%M') if s.data_cancelamento else None,
                                 'motivo_cancelamento': s.motivo_cancelamento
                             } %}
-                            
+                            {% if current_user.tem_permissao('gestao_editar') or current_user.cargo|lower == 'dono' %}
+                            <a href="{{ url_for('vendas.editar_venda', id=s.id) }}" class="group relative inline-flex items-center justify-center p-2 rounded-lg bg-white border border-gray-200 hover:bg-blue-600 hover:border-blue-600 hover:text-white transition-all shadow-sm mr-2" title="Editar Venda">
+                                <i data-lucide="edit" class="w-4 h-4"></i>
+                            </a>
+                            {% endif %}
                             {% if current_user.tem_permissao('gestao_gerenciar') or current_user.cargo|lower == 'dono' %}
                             <button class="btn-abrir-modal group relative inline-flex items-center justify-center p-2 rounded-lg bg-white border border-gray-200 hover:bg-navy-900 hover:border-navy-900 hover:text-white transition-all shadow-sm"
                                 data-id="{{ s.id }}"

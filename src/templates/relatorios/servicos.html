@@ -74,6 +74,7 @@
                         <option value="pago" {% if filtros.get('status_pagamento') == 'pago' %}selected{% endif %}>Pago</option>
                         <option value="parcial" {% if filtros.get('status_pagamento') == 'parcial' %}selected{% endif %}>Parcial</option>
                         <option value="pendente" {% if filtros.get('status_pagamento') == 'pendente' %}selected{% endif %}>Pendente</option>
+                        
                     </select>
                 </div>
                 <div>
@@ -85,6 +86,7 @@
                         <option value="retrabalho" {% if filtros.get('status_servico') == 'retrabalho' %}selected{% endif %}>Retrabalho</option>
                         <option value="pronto" {% if filtros.get('status_servico') == 'pronto' %}selected{% endif %}>Pronto</option>
                         <option value="entregue" {% if filtros.get('status_servico') == 'entregue' %}selected{% endif %}>Entregue</option>
+                        
                     </select>
                 </div>
                 <div class="flex items-end gap-2 col-span-1 md:col-span-4 lg:col-span-1">

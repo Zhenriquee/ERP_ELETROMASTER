@@ -232,6 +232,7 @@ def sincronizar_modulos_oficiais():
         
         # 3. Gestão de Serviços (Acompanhamento)
         {'codigo': 'gestao_acesso', 'nome': 'Gestão de Serviços - Acesso ao Modulo', 'descricao': 'Visualizar a tabela principal de serviços em andamento.'},
+        {'codigo': 'gestao_editar', 'nome': 'Gestão de Serviços - Editar Serviços', 'descricao': 'Permite alterar detalhes, valores e pagamentos do serviço.'},
         {'codigo': 'gestao_ind_financeiro', 'nome': 'Gestão de Serviços - Cards Financeiros', 'descricao': 'Visualizar o Faturamento e Ticket Médio no topo da tela.'},
         {'codigo': 'gestao_ind_operacional', 'nome': 'Gestão de Serviços - Cards Operacionais', 'descricao': 'Visualizar a contagem de itens na Fila e Produção no topo.'},
         {'codigo': 'gestao_gerenciar', 'nome': 'Gestão de Serviços - Ver Detalhes (Modal)', 'descricao': 'Permite clicar no botão "Gerenciar" para ver a timeline e os itens.'},

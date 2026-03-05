@@ -1,0 +1,655 @@
+{% extends "base.html" %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vendas.css') }}">
+{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto max-w-7xl px-2 sm:px-4 pb-12">
+    
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-navy-900">Editar Serviço #{{ venda.id }}</h2>
+        <a href="{{ url_for('vendas.listar_vendas') }}" class="text-sm text-gray-500 hover:text-navy-900 flex items-center transition-colors">
+            <i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> Voltar para Lista
+        </a>
+    </div>
+
+    <form method="POST" id="formEditarVenda" action="{{ url_for('vendas.editar_venda', id=venda.id) }}" enctype="multipart/form-data">
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-6">
+                
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+                        <div class="p-2 bg-blue-50 text-blue-600 rounded-lg"><i data-lucide="user" class="w-6 h-6"></i></div>
+                        <h3 class="text-lg font-bold text-navy-900">1. Dados do Cliente</h3>
+                    </div>
+
+                    <div class="mb-6 flex gap-6">
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <input type="radio" name="tipo_cliente" value="PF" {% if venda.tipo_cliente == 'PF' %}checked{% endif %} onchange="window.alternarTipoCliente('PF')" class="peer sr-only">
+                            <div class="w-5 h-5 border-2 border-gray-300 rounded-full peer-checked:border-blue-600 peer-checked:bg-blue-600 transition-all flex items-center justify-center">
+                                <div class="w-2 h-2 bg-white rounded-full opacity-0 peer-checked:opacity-100"></div>
+                            </div>
+                            <span class="text-sm font-bold text-gray-600">Pessoa Física</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <input type="radio" name="tipo_cliente" value="PJ" {% if venda.tipo_cliente == 'PJ' %}checked{% endif %} onchange="window.alternarTipoCliente('PJ')" class="peer sr-only">
+                            <div class="w-5 h-5 border-2 border-gray-300 rounded-full peer-checked:border-blue-600 peer-checked:bg-blue-600 transition-all flex items-center justify-center">
+                                <div class="w-2 h-2 bg-white rounded-full opacity-0 peer-checked:opacity-100"></div>
+                            </div>
+                            <span class="text-sm font-bold text-gray-600">Pessoa Jurídica</span>
+                        </label>
+                    </div>
+
+                    <div id="campos-pf" class="grid grid-cols-1 md:grid-cols-2 gap-6 {% if venda.tipo_cliente == 'PJ' %}hidden-force{% endif %}">
+                        <div class="md:col-span-2">
+                            <label class="label-padrao">Nome Completo *</label>
+                            <input type="text" name="pf_nome" class="input-navy" value="{{ venda.cliente_nome if venda.tipo_cliente == 'PF' else '' }}" {% if venda.tipo_cliente == 'PF' %}required{% endif %}>
+                        </div>
+                        <div>
+                            <label class="label-padrao">CPF</label>
+                            <input type="text" name="pf_cpf" class="input-navy" value="{{ venda.cliente_documento if venda.tipo_cliente == 'PF' else '' }}">
+                        </div>
+                    </div>
+
+                    <div id="campos-pj" class="grid grid-cols-1 md:grid-cols-2 gap-6 {% if venda.tipo_cliente == 'PF' %}hidden-force{% endif %}">
+                        <div class="md:col-span-2">
+                            <label class="label-padrao">Razão Social / Fantasia *</label>
+                            <input type="text" name="pj_fantasia" class="input-navy" value="{{ venda.cliente_nome if venda.tipo_cliente == 'PJ' else '' }}" {% if venda.tipo_cliente == 'PJ' %}required{% endif %}>
+                        </div>
+                        <div>
+                            <label class="label-padrao">CNPJ</label>
+                            <input type="text" name="pj_cnpj" class="input-navy" value="{{ venda.cliente_documento if venda.tipo_cliente == 'PJ' else '' }}">
+                        </div>
+                        <div>
+                            <label class="label-padrao">Solicitante</label>
+                            <input type="text" name="pj_solicitante" class="input-navy" value="{{ venda.cliente_solicitante or '' }}">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-50">
+                        <div>
+                            <label class="label-padrao">Telefone / WhatsApp *</label>
+                            <input type="text" name="telefone" class="input-navy" value="{{ venda.cliente_contato }}" required>
+                        </div>
+                        <div>
+                            <label class="label-padrao">E-mail</label>
+                            <input type="email" name="email" class="input-navy" value="{{ venda.cliente_email or '' }}">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="label-padrao">Endereço Completo</label>
+                            <input type="text" name="endereco" class="input-navy" value="{{ venda.cliente_endereco or '' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
+                    <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-yellow-50 text-yellow-600 rounded-lg"><i data-lucide="ruler" class="w-6 h-6"></i></div>
+                            <h3 class="text-lg font-bold text-navy-900">2. Detalhes do Serviço</h3>
+                        </div>
+                        <span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full uppercase">
+                            Modo: {{ 'Múltiplo' if venda.modo == 'multipla' else 'Simples' }}
+                        </span>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="flex items-center gap-3 p-3 border border-red-200 bg-red-50 rounded-lg cursor-pointer hover:bg-red-100 transition-colors md:w-1/2">
+                            <input type="checkbox" name="prioridade" class="w-5 h-5 text-red-600 rounded border-gray-300 focus:ring-red-500" {% if venda.prioridade %}checked{% endif %}>
+                            <div>
+                                <span class="block text-sm font-bold text-red-700 uppercase">Prioridade Alta</span>
+                                <span class="block text-xs text-red-500">Destacar na produção.</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="label-padrao">Descrição Geral *</label>
+                        <textarea name="descricao_servico" class="input-navy h-20 resize-none" required>{{ venda.descricao_servico }}</textarea>
+                    </div>
+
+                    {% if venda.modo == 'simples' %}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <label class="label-padrao">Acabamento / Cor *</label>
+                                <select name="produto_id" id="select-produto" class="input-navy bg-white" onchange="window.atualizarUnidadeECalcular()">
+                                    <option value="" data-m2="0" data-m3="0">Selecione...</option>
+                                    {% for p in produtos_ativos %}
+                                        <option value="{{ p.id }}" data-m2="{{ p.preco_m2 or 0 }}" data-m3="{{ p.preco_m3 or 0 }}" {% if venda.produto_id == p.id %}selected{% endif %}>{{ p.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="label-padrao">Unidade de Medida</label>
+                                <select name="tipo_medida" id="select-medida" class="input-navy bg-white" onchange="window.calcularTotal()">
+                                    <option value="m2" {% if venda.tipo_medida == 'm2' %}selected{% endif %}>Quadrada (m²)</option>
+                                    <option value="m3" {% if venda.tipo_medida == 'm3' %}selected{% endif %}>Cúbica (m³)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 mb-6">
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                                <div>
+                                    <label class="label-mini">Altura (m)</label>
+                                    <input type="number" step="0.01" name="dimensao_1" id="dimensao_1" class="input-navy text-center font-bold" value="{{ venda.dimensao_1 or 0 }}" oninput="window.calcularTotal()">
+                                </div>
+                                <div>
+                                    <label class="label-mini">Largura (m)</label>
+                                    <input type="number" step="0.01" name="dimensao_2" id="dimensao_2" class="input-navy text-center font-bold" value="{{ venda.dimensao_2 or 0 }}" oninput="window.calcularTotal()">
+                                </div>
+                                <div id="div-dim-3" class="{% if venda.tipo_medida != 'm3' %}hidden-force{% endif %}">
+                                    <label class="label-mini">Profund. (m)</label>
+                                    <input type="number" step="0.01" name="dimensao_3" id="dimensao_3" class="input-navy text-center font-bold" value="{{ venda.dimensao_3 or 0 }}" oninput="window.calcularTotal()">
+                                </div>
+                                <div>
+                                    <label class="label-mini">Quantidade</label>
+                                    <input type="number" min="1" name="quantidade_pecas" id="quantidade_pecas" class="input-navy text-center font-bold" value="{{ venda.quantidade_pecas or 1 }}" oninput="window.calcularTotal()">
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center">
+                                <span class="text-xs text-gray-500 font-bold uppercase">Área Total</span>
+                                <div class="text-xl font-black text-navy-900">
+                                    <span id="display-metragem">{{ venda.metragem_total or 0 }}</span> 
+                                    <small id="display-unidade" class="text-gray-400 text-sm">{{ 'm³' if venda.tipo_medida == 'm3' else 'm²' }}</small>
+                                </div>
+                                <input type="hidden" name="metragem_total" id="metragem_total" value="{{ venda.metragem_total }}">
+                            </div>
+                        </div>
+
+                    {% else %}
+                        <div class="flex justify-between items-center border-b pb-2 mb-4">
+                            <h4 class="font-bold text-gray-700 text-sm">Itens da Venda</h4>
+                            <button type="button" onclick="window.adicionarLinhaEdit()" class="text-xs bg-navy-900 text-white px-3 py-1.5 rounded hover:bg-navy-700 font-bold transition-colors">
+                                + Add Item
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto rounded-lg border border-gray-200 mb-6">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
+                                    <tr>
+                                        <th class="p-2 w-1/3">Descrição</th>
+                                        <th class="p-2 w-1/4">Acabamento</th>
+                                        <th class="p-2 w-16 text-center">Qtd</th>
+                                        <th class="p-2 w-24 text-right">Unit.</th>
+                                        <th class="p-2 w-24 text-right">Total</th>
+                                        <th class="p-2 w-10"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="listaItensEdit" class="divide-y divide-gray-100">
+                                    {% for item in venda.itens %}
+                                    <tr class="hover:bg-gray-50 transition-colors" id="linha-edit-{{ item.id }}">
+                                        <input type="hidden" name="itens_id[]" value="{{ item.id }}">
+                                        <td class="p-2 align-top">
+                                            <input type="text" name="itens_descricao[]" class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-navy-900 outline-none" value="{{ item.descricao }}" required>
+                                        </td>
+                                        <td class="p-2 align-top">
+                                            <select name="itens_produto_id[]" class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-navy-900 outline-none" required>
+                                                <option value="">Selecione...</option>
+                                                {% for p in produtos_ativos %}
+                                                <option value="{{ p.id }}" {% if item.produto_id == p.id %}selected{% endif %}>{{ p.nome }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td class="p-2 align-top">
+                                            <input type="number" step="0.01" min="0.01" name="itens_qtd[]" value="{{ item.quantidade }}" class="w-full px-1 py-1 border border-gray-300 rounded text-center text-sm font-bold input-linha-qtd" required>
+                                        </td>
+                                        <td class="p-2 align-top">
+                                            <input type="text" name="itens_unit[]" value="{{ '%.2f'|format(item.valor_unitario)|replace('.', ',') }}" class="w-full px-1 py-1 border border-gray-300 rounded text-right text-sm input-linha-unit mascara-dinheiro" required>
+                                        </td>
+                                        <td class="p-2 align-top">
+                                            <input type="text" name="itens_total[]" value="{{ '%.2f'|format(item.valor_total)|replace('.', ',') }}" class="w-full px-1 py-1 border border-gray-300 rounded bg-gray-100 text-right text-sm font-bold input-linha-total mascara-dinheiro" required>
+                                        </td>
+                                        <td class="p-2 text-center align-top pt-1.5">
+                                            <button type="button" onclick="window.removerLinhaEdit(this)" class="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+
+                    <div>
+                        <label class="label-padrao text-gray-400">Observações Internas</label>
+                        <textarea name="observacoes_internas" class="input-navy bg-yellow-50 h-20 resize-none">{{ venda.observacoes_internas }}</textarea>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
+                    <div class="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-green-50 text-green-600 rounded-lg"><i data-lucide="dollar-sign" class="w-6 h-6"></i></div>
+                            <h3 class="text-lg font-bold text-navy-900">3. Pagamentos Recebidos</h3>
+                        </div>
+                        <button type="button" onclick="window.adicionarLinhaPgto()" class="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700 font-bold transition-colors">
+                            + Add Pagamento
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-x-auto rounded-lg border border-gray-200">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
+                                <tr>
+                                    <th class="p-2 w-1/3">Data</th>
+                                    <th class="p-2 w-1/3">Valor (R$)</th>
+                                    <th class="p-2 w-1/4">Tipo</th>
+                                    <th class="p-2 w-10"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="listaPgtosEdit" class="divide-y divide-gray-100">
+                                {% for p in venda.pagamentos %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <input type="hidden" name="pgto_id[]" value="{{ p.id }}">
+                                    <td class="p-2">
+                                        <input type="date" name="pgto_data[]" value="{{ p.data_pagamento.strftime('%Y-%m-%d') }}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-navy-900 outline-none" required>
+                                    </td>
+                                    <td class="p-2">
+                                        <input type="text" name="pgto_valor[]" value="{{ '%.2f'|format(p.valor)|replace('.', ',') }}" class="w-full px-2 py-1 border border-gray-300 rounded text-right text-sm font-bold mascara-dinheiro input-pgto-valor" required>
+                                    </td>
+                                    <td class="p-2">
+                                        <select name="pgto_tipo[]" class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-navy-900 outline-none">
+                                            <option value="parcial" {% if p.tipo == 'parcial' %}selected{% endif %}>Parcial</option>
+                                            <option value="total" {% if p.tipo == 'total' %}selected{% endif %}>Total/Quitação</option>
+                                        </select>
+                                    </td>
+                                    <td class="p-2 text-center">
+                                        <button type="button" onclick="window.removerLinhaEdit(this)" class="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="lg:col-span-1">
+                <div class="sticky-summary space-y-6">
+                    <div class="bg-navy-900 text-white rounded-2xl shadow-xl overflow-hidden relative">
+                        <div class="p-6 pb-8 bg-gradient-to-br from-navy-900 to-navy-800">
+                            <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total da Venda</p>
+                            <h2 class="text-4xl font-black tracking-tight flex items-baseline">
+                                <span class="text-lg mr-1 text-gray-400">R$</span>
+                                <span id="resumo-total">{{ '%.2f'|format(venda.valor_final)|replace('.', ',') }}</span>
+                            </h2>
+                        </div>
+
+                        <div class="bg-white p-6 text-gray-800 space-y-5">
+                            
+                            <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                                <span class="text-sm font-medium text-gray-500">Subtotal/Base</span>
+                                <span class="font-bold text-navy-900 text-lg">R$ <span id="resumo-base">{{ '%.2f'|format(venda.valor_base)|replace('.', ',') }}</span></span>
+                                <input type="hidden" name="valor_base" id="valor_base" value="{{ '%.2f'|format(venda.valor_base)|replace('.', ',') }}">
+                                <input type="hidden" name="valor_final" id="valor_final" value="{{ '%.2f'|format(venda.valor_final)|replace('.', ',') }}">
+                            </div>
+                            
+                            <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                <label class="flex items-center text-xs font-bold text-blue-700 uppercase mb-2">Acréscimo</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 font-bold">R$</span>
+                                    <input type="text" name="valor_acrescimo" id="valor_acrescimo" class="w-full pl-10 pr-3 py-2 border border-blue-200 rounded bg-white text-blue-800 font-bold focus:ring-2 focus:ring-blue-500 outline-none mascara-dinheiro" value="{{ '%.2f'|format(venda.valor_acrescimo or 0)|replace('.', ',') }}">
+                                </div>
+                            </div>
+
+                            <div class="bg-red-50 p-3 rounded-lg border border-red-100">
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="flex items-center text-xs font-bold text-red-700 uppercase">Desconto</label>
+                                    <div class="flex bg-white rounded border border-red-200 overflow-hidden">
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="tipo_desconto" value="sem" class="peer sr-only" {% if venda.tipo_desconto == 'sem' or not venda.tipo_desconto %}checked{% endif %}>
+                                            <span class="px-2 py-1 text-[10px] font-bold text-gray-400 peer-checked:bg-red-100 peer-checked:text-red-700 transition-colors">Sem</span>
+                                        </label>
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="tipo_desconto" value="perc" class="peer sr-only" {% if venda.tipo_desconto == 'perc' %}checked{% endif %}>
+                                            <span class="px-2 py-1 text-[10px] font-bold text-gray-400 peer-checked:bg-red-100 peer-checked:text-red-700 transition-colors">%</span>
+                                        </label>
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="tipo_desconto" value="real" class="peer sr-only" {% if venda.tipo_desconto == 'real' %}checked{% endif %}>
+                                            <span class="px-2 py-1 text-[10px] font-bold text-gray-400 peer-checked:bg-red-100 peer-checked:text-red-700 transition-colors">R$</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <span id="prefixo-desconto" class="absolute left-3 top-1/2 -translate-y-1/2 text-red-400 font-bold">{% if venda.tipo_desconto == 'perc' %}%{% else %}R${% endif %}</span>
+                                    {% set val_desc = venda.valor_desconto_aplicado %}
+                                    {% if venda.tipo_desconto == 'perc' and venda.valor_base > 0 %}
+                                        {% set val_desc = (venda.valor_desconto_aplicado / (venda.valor_base + venda.valor_acrescimo)) * 100 %}
+                                    {% endif %}
+                                    <input type="text" name="valor_desconto_aplicado" id="valor_desconto_aplicado" class="w-full pl-10 pr-3 py-2 border border-red-200 rounded bg-white text-red-800 font-bold focus:ring-2 focus:ring-red-500 outline-none mascara-dinheiro" value="{{ '%.2f'|format(val_desc or 0)|replace('.', ',') }}">
+                                </div>
+                            </div>
+
+                            <div class="pt-4 border-t border-gray-100 flex justify-between items-center text-sm">
+                                <span class="font-bold text-gray-600">Total Pago:</span>
+                                <span class="font-bold text-green-600" id="resumo-pago">R$ {{ '%.2f'|format(venda.valor_pago)|replace('.', ',') }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="font-bold text-gray-600">A Receber:</span>
+                                <span class="font-bold text-orange-600" id="resumo-restante">R$ {{ '%.2f'|format(venda.valor_restante)|replace('.', ',') }}</span>
+                            </div>
+
+                            <div class="pt-4">
+                                <button type="submit" class="w-full py-4 bg-navy-900 hover:bg-navy-800 text-white rounded-xl font-bold shadow-lg flex items-center justify-center transition-all hover:-translate-y-1">
+                                    <span class="mr-2">SALVAR ALTERAÇÕES</span>
+                                    <i data-lucide="save" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<script id="dados-produtos" type="application/json">
+    {{ produtos_json|tojson|safe }}
+</script>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if(typeof lucide !== 'undefined') lucide.createIcons();
+        
+        let PRODUTOS_DISPONIVEIS = [];
+        const scriptProdutos = document.getElementById('dados-produtos');
+        if (scriptProdutos) {
+            try { PRODUTOS_DISPONIVEIS = JSON.parse(scriptProdutos.textContent); } catch(e) {}
+        }
+        
+        const modoSimples = {{ 'true' if venda.modo == 'simples' else 'false' }};
+        
+        // --- MÁSCARAS BLINDADAS ---
+        window.aplicarMascaraMoeda = function(input, callback) {
+            if(!input) return;
+            input.removeAttribute('oninput'); 
+            input.type = 'text';
+            
+            // Auto-formata garantindo que não estrague valores carregados do servidor
+            if (input.value) {
+                let valStr = input.value.toString().replace(/\./g, '').replace(',', '.');
+                let valNum = parseFloat(valStr);
+                if (!isNaN(valNum)) {
+                    let v = valNum.toFixed(2).replace('.', ',');
+                    v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+                    input.value = v;
+                }
+            }
+
+            // Previne que a máscara duplique os eventos de tecla
+            if (!input.dataset.mascaraAtiva) {
+                input.dataset.mascaraAtiva = 'true';
+                input.addEventListener('input', function(e) {
+                    let v = e.target.value.replace(/\D/g, '');
+                    if (v === '') {
+                        e.target.value = '';
+                    } else {
+                        v = (parseFloat(v) / 100).toFixed(2);
+                        v = v.replace('.', ',');
+                        v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+                        e.target.value = v;
+                    }
+                    if(typeof callback === 'function') callback();
+                });
+            }
+        };
+
+        window.lerValorLocal = function(el) {
+            if (!el) return 0;
+            let val = el.value || el.innerText || '0';
+            let v = val.replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.');
+            return parseFloat(v) || 0;
+        };
+
+        window.formatarNoElemento = function(el, valor) {
+            if (!el) return;
+            let v = parseFloat(valor).toFixed(2);
+            v = v.replace('.', ',');
+            v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+            if(el.tagName === 'INPUT') el.value = v;
+            else el.innerText = v;
+        };
+
+        // Aplica máscaras nos campos financeiros base
+        const acrescimoInput = document.getElementById('valor_acrescimo');
+        const descontoInput = document.getElementById('valor_desconto_aplicado');
+        aplicarMascaraMoeda(acrescimoInput, window.calcularTotalFinal);
+        aplicarMascaraMoeda(descontoInput, window.calcularTotalFinal);
+
+        // --- CLIENTE TOGGLE ---
+        window.alternarTipoCliente = function(tipo) {
+            const areaPf = document.getElementById('campos-pf');
+            const areaPj = document.getElementById('campos-pj');
+            if (tipo === 'PF') {
+                areaPf.classList.remove('hidden-force');
+                areaPj.classList.add('hidden-force');
+            } else {
+                areaPf.classList.add('hidden-force');
+                areaPj.classList.remove('hidden-force');
+            }
+        };
+
+        // --- CÁLCULOS MODO SIMPLES ---
+        window.calcularTotal = function() {
+            if(!modoSimples) return;
+            const d1 = window.lerValorLocal(document.getElementById('dimensao_1')) || 0;
+            const d2 = window.lerValorLocal(document.getElementById('dimensao_2')) || 0;
+            const d3 = window.lerValorLocal(document.getElementById('dimensao_3')) || 0;
+            const qtd = window.lerValorLocal(document.getElementById('quantidade_pecas')) || 1;
+            
+            const selectMedida = document.getElementById('select-medida');
+            const tipoMedida = selectMedida ? selectMedida.value : 'm2';
+            
+            let precoUnitario = 0;
+            const selectProduto = document.getElementById('select-produto');
+            if (selectProduto && selectProduto.selectedIndex >= 0) {
+                const option = selectProduto.options[selectProduto.selectedIndex];
+                const pM2 = parseFloat(option.getAttribute('data-m2')) || 0;
+                const pM3 = parseFloat(option.getAttribute('data-m3')) || 0;
+                precoUnitario = tipoMedida === 'm3' ? pM3 : pM2;
+            }
+
+            let metragem = (tipoMedida === 'm3') ? (d1 * d2 * (d3 > 0 ? d3 : 0) * qtd) : (d1 * d2 * qtd);
+            const casas = (tipoMedida === 'm3') ? 3 : 2;
+
+            document.getElementById('display-metragem').innerText = metragem.toFixed(casas).replace('.', ',');
+            document.getElementById('metragem_total').value = metragem.toFixed(casas).replace('.', ',');
+
+            const valorBase = metragem * precoUnitario;
+            document.getElementById('resumo-base').innerText = valorBase.toFixed(2).replace('.', ',');
+            document.getElementById('valor_base').value = valorBase.toFixed(2).replace('.', ',');
+            
+            window.calcularTotalFinal();
+        };
+
+        window.atualizarUnidadeECalcular = function() {
+            if(!modoSimples) return;
+            const selectProduto = document.getElementById('select-produto');
+            const selectMedida = document.getElementById('select-medida');
+            const divDim3 = document.getElementById('div-dim-3');
+            
+            if (selectProduto && selectProduto.selectedIndex >= 0 && selectMedida) {
+                const option = selectProduto.options[selectProduto.selectedIndex];
+                const precoM2 = parseFloat(option.getAttribute('data-m2')) || 0;
+                const precoM3 = parseFloat(option.getAttribute('data-m3')) || 0;
+                
+                if(precoM2 > 0 && precoM3 == 0) selectMedida.value = 'm2';
+                else if (precoM3 > 0 && precoM2 == 0) selectMedida.value = 'm3';
+                
+                if (selectMedida.value === 'm3' && divDim3) divDim3.classList.remove('hidden-force');
+                else if (divDim3) divDim3.classList.add('hidden-force');
+            }
+            window.calcularTotal();
+        };
+
+        // --- CÁLCULOS MODO MÚLTIPLO ---
+        window.calcLinhaEdit = function(tr, origem) {
+            const qtdInp = tr.querySelector('.input-linha-qtd');
+            const unitInp = tr.querySelector('.input-linha-unit');
+            const totalInp = tr.querySelector('.input-linha-total');
+            
+            let qtd = parseFloat((qtdInp.value || '0').replace(',', '.')) || 0;
+            let unit = window.lerValorLocal(unitInp);
+            let total = window.lerValorLocal(totalInp);
+            
+            if (origem === 'qtd' || origem === 'unit') {
+                window.formatarNoElemento(totalInp, qtd * unit);
+            } else if (origem === 'total') {
+                if (qtd > 0) window.formatarNoElemento(unitInp, total / qtd);
+            }
+            window.calcularTotalFinal();
+        };
+
+        // --- CÁLCULO FINANCEIRO GERAL ---
+        window.calcularTotalFinal = function() {
+            let base = 0;
+            if(modoSimples) {
+                base = window.lerValorLocal(document.getElementById('valor_base'));
+            } else {
+                document.querySelectorAll('.input-linha-total').forEach(inp => {
+                    base += window.lerValorLocal(inp);
+                });
+                const rbase = document.getElementById('resumo-base');
+                const vbase = document.getElementById('valor_base');
+                if(rbase) rbase.innerText = base.toFixed(2).replace('.', ',');
+                if(vbase) vbase.value = base.toFixed(2).replace('.', ',');
+            }
+
+            const acrescimo = window.lerValorLocal(document.getElementById('valor_acrescimo'));
+            const descInput = window.lerValorLocal(document.getElementById('valor_desconto_aplicado'));
+            
+            let tipoDesc = 'sem';
+            document.querySelectorAll('input[name="tipo_desconto"]').forEach(r => { if(r.checked) tipoDesc = r.value; });
+            
+            const prefixoDesc = document.getElementById('prefixo-desconto');
+            if(prefixoDesc) prefixoDesc.innerText = (tipoDesc === 'perc') ? '%' : 'R$';
+
+            let descontoReais = 0;
+            const subtotal = base + acrescimo;
+
+            if (tipoDesc === 'perc') descontoReais = subtotal * (descInput / 100);
+            else if (tipoDesc === 'real') descontoReais = descInput;
+            else if(document.getElementById('valor_desconto_aplicado')) document.getElementById('valor_desconto_aplicado').value = '';
+
+            let final = subtotal - descontoReais;
+            if (final < 0) final = 0;
+
+            document.getElementById('resumo-total').innerText = final.toFixed(2).replace('.', ',');
+            document.getElementById('valor_final').value = final.toFixed(2).replace('.', ',');
+            
+            let pago = 0;
+            document.querySelectorAll('.input-pgto-valor').forEach(inp => { pago += window.lerValorLocal(inp); });
+            
+            const resumoPago = document.getElementById('resumo-pago');
+            const resumoRestante = document.getElementById('resumo-restante');
+            
+            if(resumoPago) resumoPago.innerText = `R$ ${pago.toFixed(2).replace('.', ',')}`;
+            if(resumoRestante) {
+                let rest = final - pago;
+                if(rest < 0) rest = 0;
+                resumoRestante.innerText = `R$ ${rest.toFixed(2).replace('.', ',')}`;
+            }
+        };
+
+        // Delegação de Eventos Multiplos
+        const listaItensEdit = document.getElementById('listaItensEdit');
+        if(listaItensEdit) {
+            listaItensEdit.addEventListener('input', function(e) {
+                if(e.target.classList.contains('input-linha-qtd')) window.calcLinhaEdit(e.target.closest('tr'), 'qtd');
+            });
+        }
+        
+        document.querySelectorAll('input[name="tipo_desconto"]').forEach(r => r.addEventListener('change', window.calcularTotalFinal));
+
+        // --- ADICIONAR E REMOVER LINHAS ---
+        let tempIdCounter = -1;
+        window.adicionarLinhaEdit = function() {
+            const tbody = document.getElementById('listaItensEdit');
+            const id = tempIdCounter--;
+            
+            let optionsProd = '<option value="">Selecione...</option>';
+            PRODUTOS_DISPONIVEIS.forEach(p => { optionsProd += `<option value="${p.id}">${p.nome}</option>`; });
+
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50 transition-colors";
+            tr.innerHTML = `
+                <input type="hidden" name="itens_id[]" value="novo">
+                <td class="p-2 align-top"><input type="text" name="itens_descricao[]" class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-navy-900 outline-none" required></td>
+                <td class="p-2 align-top"><select name="itens_produto_id[]" class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-navy-900 outline-none" required>${optionsProd}</select></td>
+                <td class="p-2 align-top"><input type="number" step="0.01" min="0.01" name="itens_qtd[]" value="1" class="w-full px-1 py-1 border border-gray-300 rounded text-center text-sm font-bold input-linha-qtd" required></td>
+                <td class="p-2 align-top"><input type="text" name="itens_unit[]" placeholder="0,00" class="w-full px-1 py-1 border border-gray-300 rounded text-right text-sm input-linha-unit mascara-dinheiro" required></td>
+                <td class="p-2 align-top"><input type="text" name="itens_total[]" placeholder="0,00" class="w-full px-1 py-1 border border-gray-300 rounded bg-gray-100 text-right text-sm font-bold input-linha-total mascara-dinheiro" required></td>
+                <td class="p-2 text-center align-top pt-1.5"><button type="button" onclick="window.removerLinhaEdit(this)" class="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+            `;
+            tbody.appendChild(tr);
+            
+            const unitInp = tr.querySelector('.input-linha-unit');
+            const totInp = tr.querySelector('.input-linha-total');
+            window.aplicarMascaraMoeda(unitInp, () => window.calcLinhaEdit(tr, 'unit'));
+            window.aplicarMascaraMoeda(totInp, () => window.calcLinhaEdit(tr, 'total'));
+            
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+        };
+
+        window.adicionarLinhaPgto = function() {
+            const tbody = document.getElementById('listaPgtosEdit');
+            const dataHoje = new Date().toISOString().split('T')[0];
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50 transition-colors";
+            tr.innerHTML = `
+                <input type="hidden" name="pgto_id[]" value="novo">
+                <td class="p-2"><input type="date" name="pgto_data[]" value="${dataHoje}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-navy-900 outline-none" required></td>
+                <td class="p-2"><input type="text" name="pgto_valor[]" placeholder="0,00" class="w-full px-2 py-1 border border-gray-300 rounded text-right text-sm font-bold mascara-dinheiro input-pgto-valor" required></td>
+                <td class="p-2">
+                    <select name="pgto_tipo[]" class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-navy-900 outline-none">
+                        <option value="parcial">Parcial</option>
+                        <option value="total">Total/Quitação</option>
+                    </select>
+                </td>
+                <td class="p-2 text-center"><button type="button" onclick="window.removerLinhaEdit(this)" class="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+            `;
+            tbody.appendChild(tr);
+            const valInp = tr.querySelector('.input-pgto-valor');
+            window.aplicarMascaraMoeda(valInp, window.calcularTotalFinal);
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+        };
+
+        window.removerLinhaEdit = function(btn) {
+            btn.closest('tr').remove();
+            window.calcularTotalFinal();
+        };
+
+        // Iniciar máscaras para as linhas que já vêm do banco de dados
+        document.querySelectorAll('#listaItensEdit tr').forEach(tr => {
+            const unitInp = tr.querySelector('.input-linha-unit');
+            const totInp = tr.querySelector('.input-linha-total');
+            if(unitInp) window.aplicarMascaraMoeda(unitInp, () => window.calcLinhaEdit(tr, 'unit'));
+            if(totInp) window.aplicarMascaraMoeda(totInp, () => window.calcLinhaEdit(tr, 'total'));
+        });
+        
+        document.querySelectorAll('#listaPgtosEdit tr').forEach(tr => {
+            const valInp = tr.querySelector('.input-pgto-valor');
+            if(valInp) window.aplicarMascaraMoeda(valInp, window.calcularTotalFinal);
+        });
+
+        // Evento de Submit Seguro
+        document.getElementById('formEditarVenda').addEventListener('submit', function(e) {
+            // Remove cifrão se sobrar, mas deixa o número estruturado pro backend tratar perfeitamente.
+            document.querySelectorAll('.mascara-dinheiro').forEach(el => {
+                if(el.value) el.value = el.value.replace(/R\$\s*/g, '');
+            });
+        });
+        
+        window.calcularTotalFinal();
+    });
+</script>
+{% endblock %}
