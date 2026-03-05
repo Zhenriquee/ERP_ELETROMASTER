@@ -86,7 +86,7 @@
                         <option value="retrabalho" {% if filtros.get('status_servico') == 'retrabalho' %}selected{% endif %}>Retrabalho</option>
                         <option value="pronto" {% if filtros.get('status_servico') == 'pronto' %}selected{% endif %}>Pronto</option>
                         <option value="entregue" {% if filtros.get('status_servico') == 'entregue' %}selected{% endif %}>Entregue</option>
-                        
+                        <option value="cancelado" {% if filtros.get('status_servico') == 'cancelado' %}selected{% endif %}>Cancelado</option>
                     </select>
                 </div>
                 <div class="flex items-end gap-2 col-span-1 md:col-span-4 lg:col-span-1">

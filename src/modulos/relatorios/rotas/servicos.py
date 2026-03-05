@@ -33,7 +33,12 @@ def relatorio_servicos():
         query = query.filter(Venda.status_pagamento == status_pagamento)
         
     if status_servico != 'todos':
-        query = query.filter(ItemVenda.status == status_servico)
+        if status_servico == 'cancelado':
+            # Se for cancelado, busca pelo status geral da Venda
+            query = query.filter(Venda.status == 'cancelado')
+        else:
+            # Se for status de produção, busca no Item (e ignora os que a venda foi cancelada)
+            query = query.filter(ItemVenda.status == status_servico, Venda.status != 'cancelado')
 
     itens = query.order_by(Venda.criado_em.desc(), ItemVenda.id.asc()).all()
 

@@ -64,27 +64,43 @@ def painel():
 
     if pode_ver_dados_financeiros:
         recebido_mes = db.session.query(func.sum(Pagamento.valor))\
-            .filter(extract('month', Pagamento.data_pagamento) == mes_atual, 
-                    extract('year', Pagamento.data_pagamento) == ano_atual).scalar() or 0
+            .join(Venda, Pagamento.venda_id == Venda.id)\
+            .filter(
+                extract('month', Pagamento.data_pagamento) == mes_atual, 
+                extract('year', Pagamento.data_pagamento) == ano_atual,
+                Venda.status != 'cancelado',
+                Venda.status != 'orcamento'
+            ).scalar() or 0
 
-        total_vendido_geral = db.session.query(func.sum(Venda.valor_final)).filter(Venda.status != 'cancelado', Venda.status != 'orcamento').scalar() or 0
-        total_pago_geral = db.session.query(func.sum(Pagamento.valor)).scalar() or 0
-        a_receber = total_vendido_geral - total_pago_geral
-        if a_receber < 0: a_receber = 0
+        # 2. A Receber Geral (Soma estrita do saldo restante apenas de vendas ativas)
+        vendas_ativas_dash = Venda.query.filter(
+            Venda.status != 'cancelado', 
+            Venda.status != 'orcamento'
+        ).all()
+        a_receber = sum(float(v.valor_restante) for v in vendas_ativas_dash)
 
         meta_config = MetaMensal.query.filter_by(mes=mes_atual, ano=ano_atual).first()
         meta_valor_mes = float(meta_config.valor_loja) if meta_config else 1
         dias_uteis = meta_config.dias_uteis if meta_config and meta_config.dias_uteis > 0 else 1
         meta_diaria_alvo = meta_valor_mes / dias_uteis
 
+        # 3. Recebido Hoje (Ignorando pagamentos de vendas canceladas)
         recebido_hoje = db.session.query(func.sum(Pagamento.valor))\
-            .filter(func.date(Pagamento.data_pagamento) == hoje).scalar() or 0
+            .join(Venda, Pagamento.venda_id == Venda.id)\
+            .filter(
+                func.date(Pagamento.data_pagamento) == hoje,
+                Venda.status != 'cancelado',
+                Venda.status != 'orcamento'
+            ).scalar() or 0
 
+        # 4. Vendido Hoje (Isso já estava ignorando canceladas corretamente)
         vendido_hoje = db.session.query(func.sum(Venda.valor_final))\
-            .filter(func.date(Venda.criado_em) == hoje,
-                    Venda.status != 'cancelado', 
-                    Venda.status != 'orcamento').scalar() or 0
-
+            .filter(
+                func.date(Venda.criado_em) == hoje,
+                Venda.status != 'cancelado', 
+                Venda.status != 'orcamento'
+            ).scalar() or 0
+        
         atingimento_dia_perc = (float(recebido_hoje) / meta_diaria_alvo) * 100 if meta_diaria_alvo > 0 else 0
 
         a_pagar_mes = db.session.query(func.sum(Despesa.valor))\
@@ -122,9 +138,12 @@ def painel():
                 chart_labels.append(nome_mes)
 
                 soma_v = db.session.query(func.sum(Pagamento.valor))\
+                    .join(Venda, Pagamento.venda_id == Venda.id)\
                     .filter(
                         extract('month', Pagamento.data_pagamento) == mes_iter, 
-                        extract('year', Pagamento.data_pagamento) == ano_iter
+                        extract('year', Pagamento.data_pagamento) == ano_iter,
+                        Venda.status != 'cancelado',
+                        Venda.status != 'orcamento'
                     ).scalar() or 0
                 chart_data_vendas.append(float(soma_v))
 

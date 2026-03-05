@@ -117,13 +117,33 @@ def cancelar_venda(id):
         flash('Informe o motivo (min 5 chars).', 'error')
         return redirect(url_for('vendas.listar_vendas'))
     
+    agora = hora_brasilia()
+    
+    # Cancela a venda principal
     venda.status = 'cancelado'
     venda.motivo_cancelamento = motivo
-    venda.data_cancelamento = hora_brasilia()
+    venda.data_cancelamento = agora
     venda.usuario_cancelamento_id = current_user.id
     
+    # PERCORRE E CANCELA TODOS OS ITENS DA VENDA (Simples ou Múltipla)
+    for item in venda.itens:
+        if item.status != 'cancelado':
+            status_antigo = item.status
+            item.status = 'cancelado'
+            
+            # Opcional: Adiciona um log no histórico do item
+            log = ItemVendaHistorico(
+                item_id=item.id,
+                usuario_id=current_user.id,
+                status_anterior=status_antigo,
+                status_novo='cancelado',
+                acao=f"Cancelamento de Serviço: {motivo}",
+                data_acao=agora
+            )
+            db.session.add(log)
+    
     db.session.commit()
-    flash('Serviço cancelado.', 'info')
+    flash('Serviço e seus itens foram cancelados com sucesso.', 'info')
     
     return redirect(url_for('vendas.listar_vendas'))
 

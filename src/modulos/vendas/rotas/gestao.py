@@ -88,8 +88,13 @@ def listar_vendas():
     total_vendido = db.session.query(func.sum(Venda.valor_final)).filter(Venda.status != 'orcamento', Venda.status != 'cancelado').scalar() or 0
     total_recebido_geral = db.session.query(func.sum(Pagamento.valor)).scalar() or 0
     
-    a_receber = total_vendido - total_recebido_geral
-    if a_receber < 0: a_receber = 0
+    # KPIS FINANCEIROS SEGUROS (Calculado item por item para evitar furos matemáticos)
+    vendas_ativas_gestao = Venda.query.filter(
+        Venda.status != 'orcamento', 
+        Venda.status != 'cancelado'
+    ).all()
+    
+    a_receber = sum(float(v.valor_restante) for v in vendas_ativas_gestao)
     
     recebido_mes = db.session.query(func.sum(Pagamento.valor)).filter(Pagamento.data_pagamento >= inicio_mes).scalar() or 0
     
