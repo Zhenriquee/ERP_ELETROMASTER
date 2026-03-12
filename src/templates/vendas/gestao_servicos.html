@@ -247,7 +247,7 @@
                 <button id="btnFecharModal" class="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
 
-            <div class="flex border-b border-gray-100 bg-gray-50 px-4">
+            <div class="flex border-b border-gray-100 bg-gray-50 px-4 shrink-0">
                 <button class="tab-btn active px-6 py-4 text-sm font-bold text-navy-900 border-b-2 border-navy-900 transition-colors flex items-center hover:bg-gray-100" data-target="tab-servico">
                     <i data-lucide="layers" class="w-4 h-4 mr-2 text-electric-500"></i>
                     Detalhes & Produção
@@ -264,8 +264,9 @@
                 </button>
             </div>
 
-            <div class="flex-1 overflow-hidden relative bg-white">
-                <div id="tab-servico" class="tab-content active h-full overflow-y-auto custom-scrollbar p-6 space-y-6">
+            <div class="flex-1 overflow-y-auto overflow-x-hidden relative bg-white min-h-0 custom-scrollbar">
+                
+                <div id="tab-servico" class="tab-content active p-6 space-y-6">
                     <div class="flex items-center justify-between bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 shadow-sm">
                         <div class="flex items-center text-blue-900">
                             <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3"><i data-lucide="phone" class="w-4 h-4 text-blue-600"></i></div>
@@ -301,7 +302,7 @@
                 </div>
                 
                 {% if current_user.tem_permissao('gestao_financeiro') or current_user.cargo|lower == 'dono' %}
-                <div id="tab-financeiro" class="tab-content h-full overflow-y-auto custom-scrollbar p-6 hidden space-y-6">
+                <div id="tab-financeiro" class="tab-content hidden p-6 space-y-6">
                     <div class="text-center mb-6">
                         <p class="text-sm text-gray-500 font-medium">Valor Restante a Pagar</p>
                         <h3 class="text-4xl font-black text-navy-900 mt-1">R$ <span id="modalRestanteDisplay">0.00</span></h3>
@@ -339,7 +340,7 @@
                 </div>
                 {% endif %}
 
-                <div id="tab-tecnico" class="tab-content h-full overflow-y-auto custom-scrollbar p-6 hidden space-y-6">
+                <div id="tab-tecnico" class="tab-content hidden p-6 space-y-6">
                     <div id="containerItensTecnicos" class="space-y-8">
                         <p class="text-center text-gray-400 py-10">Carregando informações...</p>
                     </div>
@@ -347,8 +348,6 @@
             </div>
         </div>
     </div>
-
-</div>
 {% endblock %}
 
 {% block scripts %}
