@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 2. DEFINIÇÃO DAS COLUNAS
     const defColunas = {
         id: { label: "Venda / Data", align: "left" },
+        dtrecebimento: { label: "Data Receb.", align: "left" }, // <--- LINHA ADICIONADA AQUI
         cliente: { label: "Cliente", align: "left" },
         vendedor: { label: "Vendedor", align: "left" },
         item: { label: "Descrição Item", align: "left", acionaGranular: true },
@@ -119,6 +120,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     switch(col) {
                         case 'id': td = `<span class="font-bold text-navy-900">#${row.venda_id}</span><br><span class="text-[10px] text-gray-500">${row.data_fmt}</span>`; break;
+                        case 'dtrecebimento': 
+                            if (row.pagamentos_detalhados && row.pagamentos_detalhados.length > 0) {
+                                let divPgtos = row.pagamentos_detalhados.map(p => 
+                                    `<div class="whitespace-nowrap"><span class="font-bold text-gray-700">${p.data}:</span> <span class="text-green-600 font-medium">R$ ${p.valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span></div>`
+                                ).join('');
+                                td = `<div class="text-[11px] space-y-1">${divPgtos}</div>`;
+                            } else {
+                                td = `<span class="text-xs text-gray-400">-</span>`;
+                            }
+                            break;
                         case 'cliente': td = `<span class="font-bold truncate max-w-[150px] block">${row.cliente}</span>`; break;
                         case 'vendedor': td = `<span class="text-xs text-gray-600">${row.vendedor}</span>`; break;
                         case 'item': td = `<span class="font-medium text-xs">${row.item_desc}</span>`; break;

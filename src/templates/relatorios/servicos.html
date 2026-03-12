@@ -27,6 +27,14 @@
 
     <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 mb-6 no-print">
         <form method="GET" class="space-y-4">
+            <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Filtrar período por</label>
+                    <select name="tipo_data_filtro" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                        <option value="criacao" {% if filtros.get('tipo_data_filtro') == 'criacao' or not filtros.get('tipo_data_filtro') %}selected{% endif %}>Data de Criação</option>
+                        <option value="recebimento" {% if filtros.get('tipo_data_filtro') == 'recebimento' %}selected{% endif %}>Data de Recebimento</option>
+                    </select>
+                </div>
+                
             <div class="flex items-center gap-4 border-b border-gray-100 pb-4">
                 <label class="flex items-center gap-2 text-sm font-bold text-gray-700 cursor-pointer">
                     <input type="radio" name="tipo_periodo" value="mes" class="text-navy-900 focus:ring-navy-900" 
@@ -111,7 +119,8 @@
             
             <p class="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-wider">Identificação</p>
             <div class="space-y-2 mb-4">
-                <label class="flex items-center text-sm cursor-pointer"><input type="checkbox" value="id" class="chk-col mr-2" checked disabled> ID / Data</label>
+                <label class="flex items-center text-sm cursor-pointer"><input type="checkbox" value="id" class="chk-col mr-2" checked disabled> ID / Data de Criação</label>
+                <label class="flex items-center text-sm cursor-pointer text-green-600 font-bold"><input type="checkbox" value="dtrecebimento" class="chk-col mr-2" checked> Data de Recebimento</label>
                 <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="cliente" class="chk-col mr-2" checked> Cliente</label>
                 <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="vendedor" class="chk-col mr-2"> Vendedor</label>
             </div>

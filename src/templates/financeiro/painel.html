@@ -208,11 +208,17 @@
                         </td>
                         <td class="px-6 py-4 text-center">
                             {% if d.status == 'pago' %}
-                                <span class="status-badge status-pago">Pago</span>
+                                <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-green-50 text-green-700 border border-green-200">
+                                    <i data-lucide="check-circle" class="w-3 h-3 mr-1"></i> Pago
+                                </span>
                             {% elif d.dias_atraso > 0 %}
-                                <span class="status-badge status-atrasado">{{ d.dias_atraso }} Dias Atraso</span>
+                                <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-700 border border-red-200 shadow-sm animate-pulse">
+                                    <i data-lucide="alert-circle" class="w-3 h-3 mr-1"></i> {{ d.dias_atraso }} Dias Atraso
+                                </span>
                             {% else %}
-                                <span class="status-badge status-pendente">Pendente</span>
+                                <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-yellow-50 text-yellow-700 border border-yellow-200">
+                                    <i data-lucide="clock" class="w-3 h-3 mr-1"></i> Pendente
+                                </span>
                             {% endif %}
                         </td>
                         <td class="px-6 py-4 text-right flex justify-end items-center gap-2">
