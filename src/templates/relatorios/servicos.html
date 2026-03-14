@@ -107,9 +107,9 @@
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-navy-900"><p class="text-xs font-bold text-gray-400 uppercase">Serviços / Itens</p><h3 class="text-xl font-black text-navy-900 mt-1">{{ qtd_servicos }} <span class="text-sm text-gray-500">/ {{ qtd_itens }}</span></h3></div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-blue-500"><p class="text-xs font-bold text-gray-400 uppercase">Faturamento Bruto</p><h3 class="text-lg font-bold text-blue-600 mt-1">R$ {{ "%.2f"|format(total_valor)|replace('.', ',') }}</h3></div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-green-500"><p class="text-xs font-bold text-gray-400 uppercase">Recebido (Caixa)</p><h3 class="text-lg font-bold text-green-600 mt-1">R$ {{ "%.2f"|format(total_pago)|replace('.', ',') }}</h3></div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-orange-500"><p class="text-xs font-bold text-gray-400 uppercase">A Receber</p><h3 class="text-lg font-bold text-orange-600 mt-1">R$ {{ "%.2f"|format(total_restante)|replace('.', ',') }}</h3></div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-blue-500"><p class="text-xs font-bold text-gray-400 uppercase">Faturamento Bruto</p><h3 class="text-lg font-bold text-blue-600 mt-1">R$ {{ "{:,.2f}".format(total_valor).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h3></div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-green-500"><p class="text-xs font-bold text-gray-400 uppercase">Recebido (Caixa)</p><h3 class="text-lg font-bold text-green-600 mt-1">R$ {{ "{:,.2f}".format(total_pago).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h3></div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-orange-500"><p class="text-xs font-bold text-gray-400 uppercase">A Receber</p><h3 class="text-lg font-bold text-orange-600 mt-1">R$ {{ "{:,.2f}".format(total_restante).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h3></div>
     </div>
 
     <div class="flex flex-col lg:flex-row gap-6">
@@ -195,4 +195,5 @@
 
 {% block scripts %}
     <script src="{{ url_for('static', filename='js/relatorios.js') }}"></script>
+
 {% endblock %}

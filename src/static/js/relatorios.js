@@ -234,3 +234,37 @@ window.togglePeriodo = function() {
         if(divDatas) divDatas.classList.remove('hidden');
     }
 };
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Diga ao script como encontrar os seus checkboxes de colunas.
+    // ⚠️ ATENÇÃO: Troque '.classe-do-seu-checkbox' pela classe real que você usou no HTML (Ex: '.toggle-coluna', '.chk-col', etc)
+    const checkboxesColunas = document.querySelectorAll('.chk-col'); 
+    
+    if (checkboxesColunas.length > 0) {
+        // 2. RECUPERA a memória salva quando a tela termina de carregar
+        checkboxesColunas.forEach(chk => {
+            // Usa o ID, Nome ou Valor do checkbox para criar uma chave única de memória
+            const identificador = chk.id || chk.name || chk.value;
+            const chaveLocal = 'memoria_colunas_servico_' + identificador;
+            
+            const estadoSalvo = localStorage.getItem(chaveLocal);
+            
+            // Se existir algo na memória, aplica no checkbox
+            if (estadoSalvo !== null) {
+                const deveEstarMarcado = (estadoSalvo === 'true');
+                
+                // Se o status salvo for diferente do atual, nós alteramos e forçamos a execução
+                if (chk.checked !== deveEstarMarcado) {
+                    chk.checked = deveEstarMarcado;
+                    // Dispara o evento de "change" para que o seu sistema esconda/mostre a coluna automaticamente
+                    chk.dispatchEvent(new Event('change'));
+                }
+            }
+
+            // 3. GRAVA NA MEMÓRIA sempre que você clica no checkbox
+            chk.addEventListener('change', function() {
+                localStorage.setItem(chaveLocal, this.checked);
+            });
+        });
+    }
+});
