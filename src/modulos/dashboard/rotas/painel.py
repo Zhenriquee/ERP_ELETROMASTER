@@ -125,7 +125,7 @@ def painel():
                     Venda.status != 'cancelado', Venda.status != 'orcamento').scalar() or 0
         
         ticket_medio = (float(faturamento_mes) / qtd_vendas_mes) if qtd_vendas_mes > 0 else 0
-        perc_meta_mes = (float(faturamento_mes) / meta_valor_mes) * 100
+        perc_meta_mes = (float(recebido_mes) / meta_valor_mes) * 100 if meta_valor_mes > 0 else 0
 
         # Processa os gráficos apenas se tiver a permissão dash_graficos
         # Processa Gráfico de Linhas (Fluxo)
