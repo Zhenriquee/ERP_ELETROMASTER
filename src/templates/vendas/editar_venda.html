@@ -439,12 +439,20 @@
         };
 
         // --- CÁLCULOS MODO SIMPLES ---
+        // --- CÁLCULOS MODO SIMPLES ---
         window.calcularTotal = function() {
             if(!modoSimples) return;
-            const d1 = window.lerValorLocal(document.getElementById('dimensao_1')) || 0;
-            const d2 = window.lerValorLocal(document.getElementById('dimensao_2')) || 0;
-            const d3 = window.lerValorLocal(document.getElementById('dimensao_3')) || 0;
-            const qtd = window.lerValorLocal(document.getElementById('quantidade_pecas')) || 1;
+            
+            // CORREÇÃO: Utiliza parseFloat diretamente, pois os campos são <input type="number">
+            const elD1 = document.getElementById('dimensao_1');
+            const elD2 = document.getElementById('dimensao_2');
+            const elD3 = document.getElementById('dimensao_3');
+            const elQtd = document.getElementById('quantidade_pecas');
+            
+            const d1 = elD1 && elD1.value ? parseFloat(elD1.value) : 0;
+            const d2 = elD2 && elD2.value ? parseFloat(elD2.value) : 0;
+            const d3 = elD3 && elD3.value ? parseFloat(elD3.value) : 0;
+            const qtd = elQtd && elQtd.value ? parseInt(elQtd.value) : 1;
             
             const selectMedida = document.getElementById('select-medida');
             const tipoMedida = selectMedida ? selectMedida.value : 'm2';

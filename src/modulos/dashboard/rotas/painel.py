@@ -79,10 +79,53 @@ def painel():
         ).all()
         a_receber = sum(float(v.valor_restante) for v in vendas_ativas_dash)
 
+        # =======================================================
+        # MUDANÇA: CÁLCULO DA META DIÁRIA DINÂMICA
+        # =======================================================
         meta_config = MetaMensal.query.filter_by(mes=mes_atual, ano=ano_atual).first()
         meta_valor_mes = float(meta_config.valor_loja) if meta_config else 1
-        dias_uteis = meta_config.dias_uteis if meta_config and meta_config.dias_uteis > 0 else 1
-        meta_diaria_alvo = meta_valor_mes / dias_uteis
+        
+        if meta_config:
+            import calendar
+            dias_trabalho = [int(d) for d in meta_config.config_semana.split(',')] if meta_config.config_semana else []
+            feriados = []
+            if meta_config.config_feriados:
+                try:
+                    feriados = [int(d) for d in meta_config.config_feriados.replace('.',',').split(',') if d.strip().isdigit()]
+                except:
+                    pass
+
+            cal = calendar.monthcalendar(ano_atual, mes_atual)
+            dias_uteis_restantes = 0
+            
+            # Conta os dias úteis a partir de HOJE (incluindo hoje)
+            for semana in cal:
+                for dia_idx, dia_numero in enumerate(semana):
+                    if dia_numero != 0 and dia_numero >= hoje.day:
+                        if dia_idx in dias_trabalho and dia_numero not in feriados:
+                            dias_uteis_restantes += 1
+
+            # Soma tudo que foi recebido ATÉ ONTEM
+            recebido_ate_ontem = db.session.query(func.sum(Pagamento.valor))\
+                .join(Venda, Pagamento.venda_id == Venda.id)\
+                .filter(
+                    extract('month', Pagamento.data_pagamento) == mes_atual, 
+                    extract('year', Pagamento.data_pagamento) == ano_atual,
+                    func.date(Pagamento.data_pagamento) < hoje,
+                    Venda.status != 'cancelado',
+                    Venda.status != 'orcamento'
+                ).scalar() or 0
+
+            # Calcula o alvo do dia redistribuindo o rombo (ou superávit)
+            if dias_uteis_restantes > 0:
+                meta_diaria_alvo = (meta_valor_mes - float(recebido_ate_ontem)) / dias_uteis_restantes
+            else:
+                meta_diaria_alvo = 0
+                
+            if meta_diaria_alvo < 0:
+                meta_diaria_alvo = 0 # Meta batida, folga!
+        else:
+            meta_diaria_alvo = 0
 
         # 3. Recebido Hoje (Ignorando pagamentos de vendas canceladas)
         recebido_hoje = db.session.query(func.sum(Pagamento.valor))\
