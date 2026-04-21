@@ -62,7 +62,7 @@ class Despesa(db.Model):
 
     @property
     def dias_atraso(self):
-        if self.data_pagamento or self.status == 'cancelado':
+        if self.status in ['pago', 'cancelado']:
             return 0
         hoje = date.today()
         if hoje > self.data_vencimento:
