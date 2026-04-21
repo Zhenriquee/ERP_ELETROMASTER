@@ -68,8 +68,9 @@ def painel():
     if destaque_id:
         despesa_destaque = Despesa.query.get(destaque_id)
         if despesa_destaque:
-            mes = despesa_destaque.data_vencimento.month
-            ano = despesa_destaque.data_vencimento.year
+            data_ref = despesa_destaque.data_exibicao
+            mes = getattr(data_ref, 'month', despesa_destaque.data_vencimento.month)
+            ano = getattr(data_ref, 'year', despesa_destaque.data_vencimento.year)
 
     # Filtros Avançados
     f_busca = request.args.get('q', '').strip() 
@@ -165,6 +166,7 @@ def painel():
                            total_vencido_geral=total_vencido_geral,
                            total_vencido_mes=total_vencido_mes, # <--- ENVIADO PARA O HTML AQUI
                            pode_ver_totais=pode_ver_totais,
+                           destaque_id=destaque_id,
                            filtros={
                                'q': f_busca,
                                'categoria': f_categoria,
