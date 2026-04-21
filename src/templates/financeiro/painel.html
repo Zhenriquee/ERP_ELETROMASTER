@@ -34,7 +34,7 @@
             <div class="flex justify-between items-start z-10 relative">
                 <div>
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Vencidas (Geral)</p>
-                    <h3 class="text-2xl font-bold text-red-600 mt-1">R$ {{ "%.2f"|format(total_vencido_geral)|replace('.', ',') }}</h3>
+                    <h3 class="text-2xl font-bold text-red-600 mt-1">R$ {{ fmt_moeda(total_vencido_geral) }}</h3>
                 </div>
                 <div class="p-2 bg-red-50 rounded-lg text-red-600">
                     <i data-lucide="alert-triangle" class="w-6 h-6"></i>
@@ -49,7 +49,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Vencidas (Mês)</p>
-                    <h3 class="text-2xl font-bold text-orange-600 mt-1">R$ {{ "%.2f"|format(total_vencido_mes)|replace('.', ',') }}</h3>
+                    <h3 class="text-2xl font-bold text-orange-600 mt-1">R$ {{ fmt_moeda(total_vencido_mes) }}</h3>
                 </div>
                 <div class="p-2 bg-orange-50 rounded-lg text-orange-600">
                     <i data-lucide="calendar-x" class="w-6 h-6"></i>
@@ -61,7 +61,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">A Pagar (Mês)</p>
-                    <h3 class="text-2xl font-bold text-gray-800 mt-1">R$ {{ "%.2f"|format(total_pendente)|replace('.', ',') }}</h3>
+                    <h3 class="text-2xl font-bold text-gray-800 mt-1">R$ {{ fmt_moeda(total_pendente) }}</h3>
                 </div>
                 <div class="p-2 bg-yellow-50 rounded-lg text-yellow-600">
                     <i data-lucide="clock" class="w-6 h-6"></i>
@@ -73,7 +73,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Pago (Mês)</p>
-                    <h3 class="text-2xl font-bold text-gray-800 mt-1">R$ {{ "%.2f"|format(total_pago)|replace('.', ',') }}</h3>
+                    <h3 class="text-2xl font-bold text-gray-800 mt-1">R$ {{ fmt_moeda(total_pago) }}</h3>
                 </div>
                 <div class="p-2 bg-green-50 rounded-lg text-green-600">
                     <i data-lucide="check-circle" class="w-6 h-6"></i>
@@ -127,7 +127,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Categoria</label>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">CATEGORIA</label>
                     <select id="filtroCat" class="w-full p-2 border border-gray-300 rounded text-xs bg-white focus:ring-1 focus:ring-navy-900">
                         <option value="">Todas</option>
                         <option value="salarios" {{ 'selected' if filtros.categoria == 'salarios' }}>Salários & Folha</option>
@@ -162,7 +162,7 @@
                 </div>
                 
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Vencimento Exato (Opcional)</label>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">DATA REFERENCIA (OPCIONAL)</label>
                     <input type="date" id="filtroVencimento" value="{{ filtros.vencimento }}" class="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-navy-900 outline-none">
                 </div>
                 
@@ -179,7 +179,12 @@
             <table class="w-full text-left text-sm text-gray-600">
                 <thead class="bg-gray-50 text-xs uppercase font-semibold text-gray-500">
                     <tr>
-                        <th class="px-6 py-4">Vencimento</th>
+                        <th class="px-6 py-4 flex items-center gap-1.5">
+                            Data (Ref.)
+                            <button type="button" onclick="alert('COMO FUNCIONA A DATA (REF.)?\n\n• Pagas: Mostra a data em que foi efetivamente paga.\n• Atrasadas: Rolam automaticamente para o mês atual e mostram a data de hoje.\n• No Prazo: Mostra a data original de vencimento.')" class="p-1 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-navy-900" title="Clique para ver a regra">
+                                <i data-lucide="help-circle" class="w-3.5 h-3.5 text-navy-600"></i>
+                            </button>
+                        </th>
                         <th class="px-6 py-4">Descrição</th>
                         <th class="px-6 py-4">Categoria</th>
                         <th class="px-6 py-4">Valor</th>
@@ -189,7 +194,7 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     {% for d in despesas %}
-                    <tr class="transition-colors {% if destaque_id == d.id %}bg-yellow-100 border-l-4 border-yellow-500 shadow-sm{% else %}hover:bg-gray-50{% endif %}" {% if destaque_id == d.id %}id="linha-destaque"{% endif %}>                        <td class="px-6 py-4 font-medium text-gray-800">{{ d.data_vencimento.strftime('%d/%m/%Y') }}</td>
+                    <tr class="transition-colors {% if destaque_id == d.id %}bg-yellow-100 border-l-4 border-yellow-500 shadow-sm{% else %}hover:bg-gray-50{% endif %}" {% if destaque_id == d.id %}id="linha-destaque"{% endif %}>                        <td class="px-6 py-4 font-medium text-gray-800">{{ d.data_exibicao.strftime('%d/%m/%Y') }}</td>
                         <td class="px-6 py-4">
                             <div class="font-medium text-gray-900">
                                 {{ d.descricao }}<span class="text-gray-500 font-normal ml-1">{{ d.parcelamento_info }}</span>
@@ -204,7 +209,7 @@
                             {% endif %}
                         </td>
                         <td class="px-6 py-4 font-bold text-gray-800">
-                            R$ {{ "%.2f"|format(d.valor)|replace('.', ',') }}
+                            R$ {{ fmt_moeda(d.valor) }}
                         </td>
                         <td class="px-6 py-4 text-center">
                             {% if d.status == 'pago' %}
@@ -230,7 +235,7 @@
                                     '{{ d.colaborador.banco or '' }}',
                                     '{{ d.colaborador.agencia or '' }}',
                                     '{{ d.colaborador.conta or '' }}',
-                                    '{{ "%.2f"|format(d.valor)|replace('.', ',') }}'
+                                    '{{ fmt_moeda(d.valor) }}'
                                 )" 
                                 class="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Ver Detalhes Bancários">
                                     <i data-lucide="user-check" class="w-4 h-4"></i>

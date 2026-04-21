@@ -82,3 +82,18 @@ class Despesa(db.Model):
                 except ValueError:
                     return ""
         return ""
+
+    @property
+    def data_exibicao(self):
+        # Se estiver pago, a data de referência é a do pagamento
+        if self.status == 'pago' and self.data_pagamento:
+            return self.data_pagamento
+        
+        hoje = date.today()
+        # Se estiver pendente, mas já rolou para o mês atual/seguinte, mostra a data atual
+        if self.status == 'pendente':
+            if self.data_vencimento < hoje and (self.data_vencimento.year < hoje.year or self.data_vencimento.month < hoje.month):
+                return hoje
+        
+        # Caso contrário, mostra o vencimento original
+        return self.data_vencimento

@@ -4,6 +4,7 @@ from sqlalchemy import func, extract, desc
 from sqlalchemy.orm import joinedload
 from datetime import date, timedelta, datetime
 from dateutil.relativedelta import relativedelta
+import calendar
 
 from src.extensoes import banco_de_dados as db
 from src.modulos.vendas.modelos import Venda, Pagamento, ItemVenda
@@ -86,7 +87,6 @@ def painel():
         meta_valor_mes = float(meta_config.valor_loja) if meta_config else 1
         
         if meta_config:
-            import calendar
             dias_trabalho = [int(d) for d in meta_config.config_semana.split(',')] if meta_config.config_semana else []
             feriados = []
             if meta_config.config_feriados:
@@ -146,9 +146,9 @@ def painel():
         
         atingimento_dia_perc = (float(recebido_hoje) / meta_diaria_alvo) * 100 if meta_diaria_alvo > 0 else 0
 
+        ultimo_dia_mes_atual = date(ano_atual, mes_atual, calendar.monthrange(ano_atual, mes_atual)[1])
         a_pagar_mes = db.session.query(func.sum(Despesa.valor))\
-            .filter(extract('month', Despesa.data_vencimento) == mes_atual,
-                    extract('year', Despesa.data_vencimento) == ano_atual,
+            .filter(Despesa.data_vencimento <= ultimo_dia_mes_atual,
                     Despesa.status == 'pendente').scalar() or 0
 
         lista_vencidos = Despesa.query.filter(Despesa.status == 'pendente', Despesa.data_vencimento < hoje).order_by(Despesa.data_vencimento.asc()).all()
@@ -190,10 +190,20 @@ def painel():
                     ).scalar() or 0
                 chart_data_vendas.append(float(soma_v))
 
-                soma_d = db.session.query(func.sum(Despesa.valor))\
-                    .filter(extract('month', Despesa.data_vencimento) == mes_iter, 
-                            extract('year', Despesa.data_vencimento) == ano_iter).scalar() or 0
-                chart_data_despesas.append(float(soma_d))
+                soma_d_pago = db.session.query(func.sum(Despesa.valor))\
+                    .filter(Despesa.status == 'pago',
+                            extract('month', Despesa.data_pagamento) == mes_iter, 
+                            extract('year', Despesa.data_pagamento) == ano_iter).scalar() or 0
+                
+                soma_d_pendente = 0
+                if mes_iter == mes_atual and ano_iter == ano_atual:
+                    ultimo_dia_iter = date(ano_iter, mes_iter, calendar.monthrange(ano_iter, mes_iter)[1])
+                    soma_d_pendente = db.session.query(func.sum(Despesa.valor))\
+                        .filter(Despesa.status == 'pendente',
+                                Despesa.data_vencimento <= ultimo_dia_iter).scalar() or 0
+
+                soma_d = float(soma_d_pago) + float(soma_d_pendente)
+                chart_data_despesas.append(soma_d)
 
         # Processa Gráfico de Rosca (Custos)
         if pode_ver_custos:

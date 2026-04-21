@@ -2,6 +2,7 @@ from flask import render_template, request
 from flask_login import login_required, current_user
 from sqlalchemy import extract, desc, and_
 from datetime import date
+import calendar
 from src.modulos.autenticacao.permissoes import cargo_exigido
 
 from src.extensoes import banco_de_dados as db
@@ -13,23 +14,36 @@ from sqlalchemy import extract, desc, and_, or_
 @login_required
 @cargo_exigido('financeiro_acesso')
 def painel():
-    hoje = date.today()
+    def fmt_moeda(valor):
+        if not valor: return "0,00"
+        return f"{float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     
+    hoje = date.today()
     # ============================================================
     # 1. PREPARAÇÃO DOS FILTROS (PERIODOS E LISTAS)
     # ============================================================
-    competencias_db = db.session.query(
-            extract('year', Despesa.data_vencimento).label('ano'),
-            extract('month', Despesa.data_vencimento).label('mes')
-        ).group_by('ano', 'mes').all()
+    # Vencimentos
+    comp_venc = db.session.query(
+        extract('year', Despesa.data_vencimento).label('ano'),
+        extract('month', Despesa.data_vencimento).label('mes')
+    ).group_by('ano', 'mes').all()
     
-    lista_competencias = []
-    for ano, mes in competencias_db:
-        lista_competencias.append((int(ano), int(mes)))
+    # Pagamentos
+    comp_pag = db.session.query(
+        extract('year', Despesa.data_pagamento).label('ano'),
+        extract('month', Despesa.data_pagamento).label('mes')
+    ).filter(Despesa.data_pagamento != None).group_by('ano', 'mes').all()
 
-    if (hoje.year, hoje.month) not in lista_competencias:
-        lista_competencias.append((hoje.year, hoje.month))
+    conjunto_competencias = set()
+    for ano, mes in comp_venc:
+        if ano and mes: conjunto_competencias.add((int(ano), int(mes)))
+    for ano, mes in comp_pag:
+        if ano and mes: conjunto_competencias.add((int(ano), int(mes)))
+
+    if (hoje.year, hoje.month) not in conjunto_competencias:
+        conjunto_competencias.add((hoje.year, hoje.month))
     
+    lista_competencias = list(conjunto_competencias)
     lista_competencias.sort(key=lambda x: (x[0], x[1]), reverse=True)
 
     periodos = []
@@ -69,10 +83,25 @@ def painel():
     # ============================================================
     # 3. QUERY PRINCIPAL (LISTA)
     # ============================================================
-    query = Despesa.query.filter(
-        extract('month', Despesa.data_vencimento) == mes,
-        extract('year', Despesa.data_vencimento) == ano
+    ultimo_dia_filtro = date(ano, mes, calendar.monthrange(ano, mes)[1])
+
+    cond_pago = and_(
+        Despesa.status == 'pago',
+        extract('month', Despesa.data_pagamento) == mes,
+        extract('year', Despesa.data_pagamento) == ano
     )
+
+    if ano == hoje.year and mes == hoje.month:
+        cond_pendente = and_(Despesa.status == 'pendente', Despesa.data_vencimento <= ultimo_dia_filtro)
+    elif ano > hoje.year or (ano == hoje.year and mes > hoje.month):
+        cond_pendente = and_(Despesa.status == 'pendente', extract('month', Despesa.data_vencimento) == mes, extract('year', Despesa.data_vencimento) == ano)
+    else:
+        cond_pendente = False
+
+    if cond_pendente is not False:
+        query = Despesa.query.filter(or_(cond_pago, cond_pendente))
+    else:
+        query = Despesa.query.filter(cond_pago)
     
     if f_busca:
         if f_busca.isdigit():
@@ -96,7 +125,18 @@ def painel():
     if f_fornecedor:
         query = query.filter(Despesa.fornecedor_id == f_fornecedor)
     if f_vencimento:
-        query = query.filter(Despesa.data_vencimento == f_vencimento)
+        try:
+            f_venc_date = date.fromisoformat(f_vencimento)
+            c1 = and_(Despesa.status == 'pago', Despesa.data_pagamento == f_venc_date)
+            c2 = and_(Despesa.status == 'pendente', Despesa.data_vencimento == f_venc_date)
+            
+            if f_venc_date == hoje:
+                c3 = and_(Despesa.status == 'pendente', Despesa.data_vencimento < hoje)
+                query = query.filter(or_(c1, c2, c3))
+            else:
+                query = query.filter(or_(c1, c2))
+        except ValueError:
+            pass
 
     despesas = query.order_by(Despesa.status.asc(), Despesa.data_vencimento.asc()).all()
     
@@ -106,8 +146,8 @@ def painel():
     total_pendente = sum(d.valor for d in despesas if d.status == 'pendente')
     total_pago = sum(d.valor for d in despesas if d.status == 'pago')
 
-    # NOVA LÓGICA: Calcula o vencido APENAS dentro dos itens já filtrados do mês
-    total_vencido_mes = sum(d.valor for d in despesas if d.status == 'pendente' and d.data_vencimento < hoje)
+    # NOVA LÓGICA: Calcula o vencido APENAS dentro dos itens originais deste mês, ignorando rollover
+    total_vencido_mes = sum(d.valor for d in despesas if d.status == 'pendente' and d.data_vencimento < hoje and d.data_vencimento.month == mes and d.data_vencimento.year == ano)
     
     total_vencido_geral = db.session.query(db.func.sum(Despesa.valor))\
         .filter(Despesa.status == 'pendente', Despesa.data_vencimento < hoje)\
@@ -125,7 +165,6 @@ def painel():
                            total_vencido_geral=total_vencido_geral,
                            total_vencido_mes=total_vencido_mes, # <--- ENVIADO PARA O HTML AQUI
                            pode_ver_totais=pode_ver_totais,
-                           destaque_id=destaque_id, # <--- ENVIADO PARA O HTML
                            filtros={
                                'q': f_busca,
                                'categoria': f_categoria,
@@ -134,4 +173,5 @@ def painel():
                                'tipo_custo': f_tipo_custo,
                                'fornecedor': f_fornecedor,
                                'status': f_status
-                           })
+                           },
+                           fmt_moeda=fmt_moeda)
