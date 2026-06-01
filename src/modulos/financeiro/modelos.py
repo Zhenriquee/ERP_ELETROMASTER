@@ -26,6 +26,12 @@ class Despesa(db.Model):
     
     descricao = db.Column(db.String(100), nullable=False)
     valor = db.Column(db.Numeric(10, 2), nullable=False)
+    
+    # Novos campos para Acréscimo e Desconto
+    valor_acrescimo = db.Column(db.Numeric(10, 2), default=0)
+    valor_desconto = db.Column(db.Numeric(10, 2), default=0)
+    motivo_ajuste = db.Column(db.String(255), nullable=True)
+    
     categoria = db.Column(db.String(50), nullable=False)
     tipo_custo = db.Column(db.String(20), nullable=False)
     

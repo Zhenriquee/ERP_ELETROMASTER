@@ -228,6 +228,19 @@
                         </td>
                         <td class="px-6 py-4 text-right flex justify-end items-center gap-2">
                             {% if d.categoria == 'salarios' and d.colaborador %}
+                                {% if d.status != 'pago' and (current_user.tem_permissao('financeiro_editar') or current_user.cargo|lower == 'dono') %}
+                                <button onclick="abrirModalAjusteSalario(
+                                    {{ d.id }},
+                                    '{{ d.colaborador.nome_completo }}',
+                                    '{{ d.valor|string|replace('.', ',') }}',
+                                    '{{ d.valor_acrescimo|default('0', true)|string|replace('.', ',') }}',
+                                    '{{ d.valor_desconto|default('0', true)|string|replace('.', ',') }}',
+                                    '{{ d.motivo_ajuste or '' }}'
+                                )"
+                                class="p-2 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors border border-orange-200" title="Ajustar Lançamento (Acréscimo/Desconto)">
+                                    <i data-lucide="sliders" class="w-4 h-4"></i>
+                                </button>
+                                {% endif %}
                                 <button onclick="abrirModalSalario(
                                     '{{ d.colaborador.nome_completo }}',
                                     '{{ d.colaborador.cpf }}',
@@ -327,6 +340,45 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Ajuste de Salário -->
+<div id="modalAjusteSalario" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity opacity-0">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-0 transform scale-95 transition-transform duration-300 overflow-hidden">
+        <div class="bg-gradient-to-r from-orange-600 to-orange-500 p-6 text-white">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-orange-100 text-xs font-bold uppercase tracking-wider">Ajuste de Salário</p>
+                    <h3 class="text-xl font-bold mt-1" id="modAjsNome">--</h3>
+                </div>
+                <button onclick="fecharModalAjusteSalario()" class="text-white hover:text-orange-200"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+        </div>
+
+        <form id="formAjusteSalario" method="POST" action="">
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Acréscimo (R$)</label>
+                        <input type="text" name="valor_acrescimo" id="modAjsAcrescimo" class="w-full mt-1 p-2 border border-gray-300 rounded focus:ring-orange-500 focus:border-orange-500 text-gray-700" placeholder="0,00">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Desconto (R$)</label>
+                        <input type="text" name="valor_desconto" id="modAjsDesconto" class="w-full mt-1 p-2 border border-gray-300 rounded focus:ring-orange-500 focus:border-orange-500 text-gray-700" placeholder="0,00">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Motivo do Ajuste</label>
+                    <input type="text" name="motivo_ajuste" id="modAjsMotivo" class="w-full mt-1 p-2 border border-gray-300 rounded focus:ring-orange-500 focus:border-orange-500 text-gray-700" placeholder="Ex: Bônus de meta atingida">
+                </div>
+                
+                <div class="pt-4 flex gap-2 justify-end border-t border-gray-100">
+                    <button type="button" onclick="fecharModalAjusteSalario()" class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded font-medium">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 text-white bg-orange-600 hover:bg-orange-700 rounded font-medium">Salvar Ajuste</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -360,6 +412,28 @@
 
     function fecharModalSalario() {
         const modal = document.getElementById('modalSalario');
+        modal.classList.add('opacity-0');
+        modal.querySelector('div').classList.add('scale-95');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+
+    function abrirModalAjusteSalario(id, nome, valorFinal, acrescimo, desconto, motivo) {
+        document.getElementById('modAjsNome').innerText = nome;
+        document.getElementById('modAjsAcrescimo').value = acrescimo;
+        document.getElementById('modAjsDesconto').value = desconto;
+        document.getElementById('modAjsMotivo').value = motivo;
+        document.getElementById('formAjusteSalario').action = "/financeiro/ajustar_salario/" + id;
+
+        const modal = document.getElementById('modalAjusteSalario');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.querySelector('div').classList.remove('scale-95');
+        }, 10);
+    }
+
+    function fecharModalAjusteSalario() {
+        const modal = document.getElementById('modalAjusteSalario');
         modal.classList.add('opacity-0');
         modal.querySelector('div').classList.add('scale-95');
         setTimeout(() => modal.classList.add('hidden'), 300);

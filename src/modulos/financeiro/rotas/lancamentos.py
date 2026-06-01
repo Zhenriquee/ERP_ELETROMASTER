@@ -322,3 +322,52 @@ def editar_despesa(id):
                            colaborador=colaborador_dados, 
                            produtos_disponiveis=produtos_disponiveis, 
                            itens_salvos=itens_salvos)
+
+@bp_financeiro.route('/ajustar_salario/<int:id>', methods=['POST'])
+@login_required
+@cargo_exigido('financeiro_editar')
+def ajustar_salario(id):
+    despesa = Despesa.query.get_or_404(id)
+    
+    if despesa.categoria != 'salarios':
+        flash('Esta despesa não é um salário.', 'error')
+        return redirect(url_for('financeiro.painel'))
+    
+    if despesa.status == 'pago':
+        flash('Não é possível ajustar um salário já pago.', 'error')
+        return redirect(url_for('financeiro.painel'))
+        
+    try:
+        acrescimo_str = request.form.get('valor_acrescimo', '0')
+        desconto_str = request.form.get('valor_desconto', '0')
+        
+        if not acrescimo_str: acrescimo_str = '0'
+        if not desconto_str: desconto_str = '0'
+        
+        # Tratamento simples para converter string BR (1.000,00) para Decimal (1000.00)
+        acrescimo_val = acrescimo_str.replace('R$', '').replace('.', '').replace(',', '.').strip()
+        desconto_val = desconto_str.replace('R$', '').replace('.', '').replace(',', '.').strip()
+        
+        acrescimo = Decimal(acrescimo_val) if acrescimo_val else Decimal('0')
+        desconto = Decimal(desconto_val) if desconto_val else Decimal('0')
+        motivo = request.form.get('motivo_ajuste', '')
+        
+        # Recupera o valor base (original) desfazendo o ajuste anterior, se existir
+        valor_base = despesa.valor - Decimal(despesa.valor_acrescimo or 0) + Decimal(despesa.valor_desconto or 0)
+        
+        # Atualiza os campos
+        despesa.valor_acrescimo = acrescimo
+        despesa.valor_desconto = desconto
+        despesa.motivo_ajuste = motivo
+        
+        # Recalcula o valor final
+        despesa.valor = valor_base + acrescimo - desconto
+        
+        db.session.commit()
+        flash('Salário ajustado com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao ajustar salário: {str(e)}', 'error')
+        
+    return redirect(url_for('financeiro.painel'))
