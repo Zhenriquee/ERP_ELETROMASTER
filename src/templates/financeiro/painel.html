@@ -272,9 +272,15 @@
 
                             {% if d.status != 'pago' %}
                                 {% if current_user.tem_permissao('financeiro_pagar') or current_user.cargo|lower == 'dono' %}
-                                <a href="{{ url_for('financeiro.marcar_pago', id=d.id) }}" class="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-200 font-bold text-xs" title="Dar Baixa">
-                                    <i data-lucide="check" class="w-4 h-4"></i>
-                                </a>
+                                    {% if d.categoria == 'salarios' %}
+                                        <button onclick="abrirModalBaixaSalario({{ d.id }}, '{% if d.colaborador %}{{ d.colaborador.nome_completo|escape }}{% else %}Salário{% endif %}')" class="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-200 font-bold text-xs" title="Dar Baixa">
+                                            <i data-lucide="check" class="w-4 h-4"></i>
+                                        </button>
+                                    {% else %}
+                                        <a href="{{ url_for('financeiro.marcar_pago', id=d.id) }}" class="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-200 font-bold text-xs" title="Dar Baixa">
+                                            <i data-lucide="check" class="w-4 h-4"></i>
+                                        </a>
+                                    {% endif %}
                                 {% endif %}
                             {% endif %}
                             
@@ -379,6 +385,35 @@
         </form>
     </div>
 </div>
+<!-- Modal Baixa de Salário -->
+<div id="modalBaixaSalario" style="display:none" class="fixed inset-0 z-50 items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div id="modalBaixaSalarioInner" class="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-0 transform transition-all duration-300 overflow-hidden">
+        <div class="bg-gradient-to-r from-green-600 to-green-500 p-6 text-white">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-green-100 text-xs font-bold uppercase tracking-wider">Confirmar Baixa de Salário</p>
+                    <h3 class="text-xl font-bold mt-1" id="modBaixaNome">--</h3>
+                </div>
+                <button type="button" onclick="fecharModalBaixaSalario()" class="text-white hover:text-green-200"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+        </div>
+
+        <form id="formBaixaSalario" method="POST" action="">
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase block mb-1">Data de Pagamento</label>
+                    <input type="date" name="data_pagamento" id="modBaixaData" class="w-full mt-1 p-2 border border-gray-300 rounded focus:ring-green-500 focus:border-green-500 text-gray-700" required>
+                </div>
+                
+                <div class="pt-4 flex gap-2 justify-end border-t border-gray-100">
+                    <button type="button" onclick="fecharModalBaixaSalario()" class="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded font-medium">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 text-white bg-green-600 hover:bg-green-700 rounded font-bold flex items-center gap-2"><i data-lucide="check" class="w-4 h-4"></i> Confirmar Baixa</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -437,6 +472,27 @@
         modal.classList.add('opacity-0');
         modal.querySelector('div').classList.add('scale-95');
         setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+
+    function abrirModalBaixaSalario(id, nome) {
+        document.getElementById('modBaixaNome').innerText = nome;
+        document.getElementById('formBaixaSalario').action = "/financeiro/pagar/" + id;
+        
+        // Define data padrão como hoje (local)
+        const hoje = new Date();
+        const ano = hoje.getFullYear();
+        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dia = String(hoje.getDate()).padStart(2, '0');
+        document.getElementById('modBaixaData').value = `${ano}-${mes}-${dia}`;
+
+        const modal = document.getElementById('modalBaixaSalario');
+        modal.style.display = 'flex';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function fecharModalBaixaSalario() {
+        const modal = document.getElementById('modalBaixaSalario');
+        modal.style.display = 'none';
     }
 
     // --- NOVA LÓGICA DE AUTO-SCROLL PARA CONTA DESTACADA ---

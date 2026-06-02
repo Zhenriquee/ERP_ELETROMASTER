@@ -7,15 +7,26 @@ from src.modulos.financeiro.modelos import Despesa
 from src.modulos.estoque.modelos import MovimentacaoEstoque, ProdutoEstoque
 from . import bp_financeiro
 
-@bp_financeiro.route('/pagar/<int:id>')
+@bp_financeiro.route('/pagar/<int:id>', methods=['GET', 'POST'])
 @login_required
 @cargo_exigido('financeiro_pagar')
 def marcar_pago(id):
+    from flask import request
+    from datetime import datetime
     despesa = Despesa.query.get_or_404(id)
     
     if despesa.status != 'pago':
         despesa.status = 'pago'
-        despesa.data_pagamento = date.today()
+        
+        data_pagamento_str = request.form.get('data_pagamento') if request.method == 'POST' else None
+        if data_pagamento_str:
+            try:
+                despesa.data_pagamento = datetime.strptime(data_pagamento_str, '%Y-%m-%d').date()
+            except ValueError:
+                despesa.data_pagamento = date.today()
+        else:
+            despesa.data_pagamento = date.today()
+            
         db.session.commit()
         flash('Conta marcada como PAGA.', 'success')
     
