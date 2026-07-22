@@ -60,7 +60,20 @@
         <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-yellow-400 kpi-card">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">A Pagar (Mês)</p>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">
+                        A Pagar
+                        {% if filtros.data_inicio or filtros.data_fim %}
+                            <span class="text-yellow-500">(Período)</span>
+                            <span class="block text-[10px] text-gray-400 mt-1 normal-case font-medium">
+                                {% if filtros.data_inicio and filtros.data_fim %} de {{ filtros.data_inicio[8:10] }}/{{ filtros.data_inicio[5:7] }}/{{ filtros.data_inicio[0:4] }} até {{ filtros.data_fim[8:10] }}/{{ filtros.data_fim[5:7] }}/{{ filtros.data_fim[0:4] }}
+                                {% elif filtros.data_inicio %} a partir de {{ filtros.data_inicio[8:10] }}/{{ filtros.data_inicio[5:7] }}/{{ filtros.data_inicio[0:4] }}
+                                {% elif filtros.data_fim %} até {{ filtros.data_fim[8:10] }}/{{ filtros.data_fim[5:7] }}/{{ filtros.data_fim[0:4] }}
+                                {% endif %}
+                            </span>
+                        {% else %}
+                            (Mês)
+                        {% endif %}
+                    </p>
                     <h3 class="text-2xl font-bold text-gray-800 mt-1">R$ {{ fmt_moeda(total_pendente) }}</h3>
                 </div>
                 <div class="p-2 bg-yellow-50 rounded-lg text-yellow-600">
@@ -72,7 +85,20 @@
         <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500 kpi-card">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Pago (Mês)</p>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">
+                        Pago 
+                        {% if filtros.data_inicio or filtros.data_fim %}
+                            <span class="text-green-500">(Período)</span>
+                            <span class="block text-[10px] text-gray-400 mt-1 normal-case font-medium">
+                                {% if filtros.data_inicio and filtros.data_fim %} de {{ filtros.data_inicio[8:10] }}/{{ filtros.data_inicio[5:7] }}/{{ filtros.data_inicio[0:4] }} até {{ filtros.data_fim[8:10] }}/{{ filtros.data_fim[5:7] }}/{{ filtros.data_fim[0:4] }}
+                                {% elif filtros.data_inicio %} a partir de {{ filtros.data_inicio[8:10] }}/{{ filtros.data_inicio[5:7] }}/{{ filtros.data_inicio[0:4] }}
+                                {% elif filtros.data_fim %} até {{ filtros.data_fim[8:10] }}/{{ filtros.data_fim[5:7] }}/{{ filtros.data_fim[0:4] }}
+                                {% endif %}
+                            </span>
+                        {% else %}
+                            (Mês)
+                        {% endif %}
+                    </p>
                     <h3 class="text-2xl font-bold text-gray-800 mt-1">R$ {{ fmt_moeda(total_pago) }}</h3>
                 </div>
                 <div class="p-2 bg-green-50 rounded-lg text-green-600">
@@ -112,10 +138,9 @@
             </div>
         </div>
 
-        <details id="detalhesFiltros" class="mt-4 border-t border-gray-100 pt-4 group">
-            {% if filtros.categoria or filtros.status or filtros.fornecedor %} open {% endif %}>
+        <details id="detalhesFiltros" {{ 'open' if filtros.categoria or filtros.status or filtros.fornecedor or filtros.data_inicio or filtros.data_fim }} class="mt-4 border-t border-gray-100 pt-4 group">
             <summary class="list-none cursor-pointer hidden"></summary> 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo de Custo</label>
                     <select id="filtroTipo" class="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-navy-900 outline-none">
@@ -161,9 +186,13 @@
                     </select>
                 </div>
                 
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">DATA REFERENCIA (OPCIONAL)</label>
-                    <input type="date" id="filtroVencimento" value="{{ filtros.vencimento }}" class="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-navy-900 outline-none">
+                <div class="md:col-span-2 xl:col-span-2">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Data Referência</label>
+                    <div class="flex items-center gap-1.5">
+                        <input type="date" id="filtroDataInicio" value="{{ filtros.data_inicio }}" class="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-navy-900 outline-none" title="Data Inicial">
+                        <span class="text-gray-400 text-xs font-bold shrink-0">até</span>
+                        <input type="date" id="filtroDataFim" value="{{ filtros.data_fim }}" class="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-navy-900 outline-none" title="Data Final">
+                    </div>
                 </div>
                 
                 </div>

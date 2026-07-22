@@ -45,7 +45,8 @@ def listar_vendas():
     filtro_q = request.args.get('q', '').strip()
     filtro_status = request.args.get('status', '')
     filtro_vendedor = request.args.get('vendedor', '')
-    filtro_data = request.args.get('data', '')
+    filtro_data_inicio = request.args.get('data_inicio', '')
+    filtro_data_fim = request.args.get('data_fim', '')
 
     # 2. Query
     query = Venda.query.filter(Venda.status != 'orcamento')
@@ -71,8 +72,10 @@ def listar_vendas():
                      .join(Colaborador, Usuario.colaborador_id == Colaborador.id)\
                      .filter(Colaborador.nome_completo == filtro_vendedor)
 
-    if filtro_data:
-        query = query.filter(func.date(Venda.criado_em) == filtro_data)
+    if filtro_data_inicio:
+        query = query.filter(func.date(Venda.criado_em) >= filtro_data_inicio)
+    if filtro_data_fim:
+        query = query.filter(func.date(Venda.criado_em) <= filtro_data_fim)
 
     query = query.order_by(Venda.id.desc())
     paginacao = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -85,18 +88,51 @@ def listar_vendas():
     inicio_mes = hoje.replace(day=1)
     data_30_dias_atras = hora_brasilia() - timedelta(days=30)
     
-    total_vendido = db.session.query(func.sum(Venda.valor_final)).filter(Venda.status != 'orcamento', Venda.status != 'cancelado').scalar() or 0
-    total_recebido_geral = db.session.query(func.sum(Pagamento.valor)).scalar() or 0
-    
-    # KPIS FINANCEIROS SEGUROS (Calculado item por item para evitar furos matemáticos)
-    vendas_ativas_gestao = Venda.query.filter(
-        Venda.status != 'orcamento', 
-        Venda.status != 'cancelado'
-    ).all()
+    # Reutiliza os filtros para as KPIs (exceto para os cancelados)
+    query_kpi_base = Venda.query.filter(Venda.status != 'orcamento')
+
+    if filtro_q:
+        query_kpi_base = query_kpi_base.outerjoin(ItemVenda)
+        condicoes_kpi = [
+            Venda.cliente_nome.ilike(f'%{filtro_q}%'),
+            Venda.descricao_servico.ilike(f'%{filtro_q}%'),
+            ItemVenda.descricao.ilike(f'%{filtro_q}%'),
+            Venda.cor_nome_snapshot.ilike(f'%{filtro_q}%')
+        ]
+        if filtro_q.isdigit():
+            condicoes_kpi.append(Venda.id == int(filtro_q))
+        query_kpi_base = query_kpi_base.filter(or_(*condicoes_kpi)).distinct()
+
+    if filtro_status:
+        query_kpi_base = query_kpi_base.filter(Venda.status == filtro_status)
+
+    if filtro_vendedor:
+        query_kpi_base = query_kpi_base.join(Usuario, Venda.vendedor_id == Usuario.id)\
+                                     .join(Colaborador, Usuario.colaborador_id == Colaborador.id)\
+                                     .filter(Colaborador.nome_completo == filtro_vendedor)
+
+    if filtro_data_inicio:
+        query_kpi_base = query_kpi_base.filter(func.date(Venda.criado_em) >= filtro_data_inicio)
+    if filtro_data_fim:
+        query_kpi_base = query_kpi_base.filter(func.date(Venda.criado_em) <= filtro_data_fim)
+
+    # KPIS FINANCEIROS COM FILTROS APLICADOS
+    vendas_ativas_gestao = query_kpi_base.filter(Venda.status != 'cancelado').all()
     
     a_receber = sum(float(v.valor_restante) for v in vendas_ativas_gestao)
     
-    recebido_mes = db.session.query(func.sum(Pagamento.valor)).filter(Pagamento.data_pagamento >= inicio_mes).scalar() or 0
+    vendas_filtradas_ids = [v.id for v in vendas_ativas_gestao]
+    
+    recebido_mes = 0
+    if vendas_filtradas_ids:
+        query_pagamentos = db.session.query(func.sum(Pagamento.valor))\
+            .filter(Pagamento.venda_id.in_(vendas_filtradas_ids))
+            
+        # Se NÃO usou filtro de data, restringe aos pagamentos deste mês
+        if not filtro_data_inicio and not filtro_data_fim:
+            query_pagamentos = query_pagamentos.filter(Pagamento.data_pagamento >= inicio_mes)
+            
+        recebido_mes = query_pagamentos.scalar() or 0
     
     # Contagens
     itens_pendente = ItemVenda.query.join(Venda).filter(ItemVenda.status=='pendente', Venda.status!='cancelado', Venda.modo=='multipla').count()
@@ -138,7 +174,8 @@ def listar_vendas():
                                'q': filtro_q,
                                'status': filtro_status,
                                'vendedor': filtro_vendedor,
-                               'data': filtro_data
+                               'data_inicio': filtro_data_inicio,
+                               'data_fim': filtro_data_fim
                            })
 
 @bp_vendas.route('/editar/<int:id>', methods=['GET', 'POST'])
@@ -151,6 +188,17 @@ def editar_venda(id):
 
     if request.method == 'POST':
         try:
+            # 0. Data de criação do serviço (editável)
+            criado_em_data_str = request.form.get('criado_em_data', '').strip()
+            criado_em_hora_str = request.form.get('criado_em_hora', '').strip()
+            if criado_em_data_str:
+                hora_str = criado_em_hora_str if criado_em_hora_str else venda.criado_em.strftime('%H:%M')
+                try:
+                    nova_data = datetime.strptime(f"{criado_em_data_str} {hora_str}", '%Y-%m-%d %H:%M')
+                    venda.criado_em = nova_data
+                except ValueError:
+                    pass  # Mantém a data original se houver erro de parsing
+
             # 1. Dados do Cliente
             venda.tipo_cliente = request.form.get('tipo_cliente')
             if venda.tipo_cliente == 'PF':
@@ -187,13 +235,23 @@ def editar_venda(id):
                 venda.quantidade_pecas = int(request.form.get('quantidade_pecas') or 1)
                 venda.metragem_total = converter_decimal(request.form.get('metragem_total'))
                 
-                # Atualizar o item único
+                # Atualizar os itens ocultos da Venda Simples
+                # Caso a Venda tenha sido dividida em retrabalho parcial, ela pode ter múltiplos itens
                 if venda.itens:
-                    item = venda.itens[0]
-                    item.produto_id = venda.produto_id
-                    item.quantidade = venda.quantidade_pecas
-                    item.valor_total = venda.valor_final
-                    item.descricao = venda.descricao_servico
+                    soma_qtd_atual = sum(i.quantidade for i in venda.itens)
+                    diff_qtd = venda.quantidade_pecas - soma_qtd_atual
+                    
+                    for idx, item in enumerate(venda.itens):
+                        item.produto_id = venda.produto_id
+                        item.descricao = venda.descricao_servico
+                        
+                        # O primeiro item absorve a diferença de quantidade caso o usuário tenha alterado na edição
+                        if idx == 0 and diff_qtd != 0:
+                            item.quantidade += diff_qtd
+                            
+                        # Recalcular valor total baseado na nova quantidade do item
+                        proporcao = Decimal(item.quantidade) / Decimal(venda.quantidade_pecas) if venda.quantidade_pecas > 0 else Decimal(0)
+                        item.valor_total = venda.valor_final * proporcao
             else:
                 # Múltiplo - Atualizar Itens Dinamicamente
                 itens_enviados_ids = []

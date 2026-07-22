@@ -37,6 +37,8 @@ def painel():
     qtd_proximos = 0
     lista_vencidos = []
     lista_proximos = []
+    vendas_hoje_lista = []
+    pagamentos_hoje_lista = []
     ticket_medio = 0
     meta_valor_mes = 0
     perc_meta_mes = 0
@@ -143,6 +145,22 @@ def painel():
                 Venda.status != 'cancelado', 
                 Venda.status != 'orcamento'
             ).scalar() or 0
+        
+        # 4b. Lista de vendas geradas hoje (para o drill-down de Novos Serviços)
+        vendas_hoje_lista = Venda.query.filter(
+            func.date(Venda.criado_em) == hoje,
+            Venda.status != 'cancelado',
+            Venda.status != 'orcamento'
+        ).order_by(Venda.id.desc()).all()
+        
+        # 4c. Lista de pagamentos recebidos hoje (para o drill-down de Recebido Hoje)
+        pagamentos_hoje_lista = db.session.query(Pagamento, Venda)\
+            .join(Venda, Pagamento.venda_id == Venda.id)\
+            .filter(
+                func.date(Pagamento.data_pagamento) == hoje,
+                Venda.status != 'cancelado',
+                Venda.status != 'orcamento'
+            ).order_by(Pagamento.id.desc()).all()
         
         atingimento_dia_perc = (float(recebido_hoje) / meta_diaria_alvo) * 100 if meta_diaria_alvo > 0 else 0
 
@@ -302,7 +320,9 @@ def painel():
                            kpi_recebido=fmt_moeda(recebido_mes),
                            kpi_receber=fmt_moeda(a_receber),
                            vendas_hoje=fmt_moeda(recebido_hoje), 
-                           valor_vendido_hoje=fmt_moeda(vendido_hoje), 
+                           valor_vendido_hoje=fmt_moeda(vendido_hoje),
+                           vendas_hoje_lista=vendas_hoje_lista, 
+                           pagamentos_hoje_lista=pagamentos_hoje_lista,
                            meta_diaria_alvo=fmt_moeda(meta_diaria_alvo),
                            atingimento_dia_perc=round(atingimento_dia_perc, 2),
                            kpi_pagar=fmt_moeda(a_pagar_mes),

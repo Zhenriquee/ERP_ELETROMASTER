@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
             params.set('ano', ano);
             
             // Certifique-se de que 'filtroTipo' está neste array abaixo
-            ['filtroTexto', 'filtroCat', 'filtroStatus', 'filtroFornecedor', 'filtroPagamento', 'filtroTipo', 'filtroVencimento'].forEach(id => {
+            ['filtroTexto', 'filtroCat', 'filtroStatus', 'filtroFornecedor', 'filtroPagamento', 'filtroTipo', 'filtroDataInicio', 'filtroDataFim'].forEach(id => {
                 const el = document.getElementById(id);
                 const paramName = id.replace('filtro', '').toLowerCase(); 
                 
@@ -202,6 +202,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if(key === 'tipo') key = 'tipo_custo'; // <-- GARANTA QUE ESTA LINHA EXISTA
                     if(key === 'pagamento') key = 'forma_pagamento';
                     if(key === 'texto') key = 'q';
+                    if(key === 'datainicio') key = 'data_inicio';
+                    if(key === 'datafim') key = 'data_fim';
                     
                     params.set(key, el.value);
                 } else if(el && !el.value) {

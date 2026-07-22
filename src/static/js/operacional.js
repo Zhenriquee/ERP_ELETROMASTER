@@ -210,7 +210,33 @@ function fecharModalBaixa() {
     if(modal) modal.classList.add('hidden');
 }
 
-// ... (código anterior)
+// --- FUNÇÕES DO MODAL DE RETRABALHO ---
+function abrirModalRetrabalho(itemId, quantidadeMaxima, tipoItem) {
+    const modal = document.getElementById('modalRetrabalho');
+    const form = document.getElementById('formRetrabalho');
+    const inputQtd = document.getElementById('qtdRetrabalhoInput');
+    const spanMax = document.getElementById('qtdMaxRetrabalho');
+    
+    if(!modal || !form || !inputQtd) return;
+
+    // Define a rota correta baseada no tipo (para compatibilidade com Venda Multipla vs Venda Simples original, embora agora todos usem item no painel)
+    if (tipoItem === 'item') {
+        form.action = `/operacional/item/${itemId}/retrabalho`;
+    } else {
+        form.action = `/operacional/venda/${itemId}/retrabalho`;
+    }
+    
+    inputQtd.max = quantidadeMaxima;
+    inputQtd.value = quantidadeMaxima; // Sugere o total por padrão
+    spanMax.innerText = quantidadeMaxima;
+
+    modal.classList.remove('hidden');
+}
+
+function fecharModalRetrabalho() {
+    const modal = document.getElementById('modalRetrabalho');
+    if(modal) modal.classList.add('hidden');
+}
 
 // --- FUNÇÕES GALERIA DE FOTOS ---
 function abrirModalFotos(listaFotos) {

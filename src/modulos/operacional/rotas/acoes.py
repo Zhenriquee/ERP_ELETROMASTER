@@ -27,8 +27,54 @@ def estornar_estoque_producao(referencia_id):
         
     return qtd_estornada
 
+# --- FUNÇÃO AUXILIAR: AGRUPAR ITENS FRAGMENTADOS ---
+def agrupar_itens_fragmentados(item_id):
+    """
+    Busca se há outros itens na MESMA venda, com a MESMA descrição, 
+    MESMO produto, MESMA cor e MESMO status.
+    Se houver, mescla-os no item atual para evitar cards duplicados no painel
+    quando pedaços separados de um lote (retrabalho parcial) terminam no mesmo estágio.
+    """
+    item = ItemVenda.query.get(item_id)
+    if not item: return
+    
+    similares = ItemVenda.query.filter_by(
+        venda_id=item.venda_id,
+        status=item.status,
+        descricao=item.descricao,
+        produto_id=item.produto_id,
+        cor_id=item.cor_id,
+        tipo_medida=item.tipo_medida
+    ).filter(ItemVenda.id != item.id).all()
+    
+    for outro in similares:
+        item.quantidade += outro.quantidade
+        item.valor_total += outro.valor_total
+        if item.metragem_total and outro.metragem_total:
+            item.metragem_total += outro.metragem_total
+        elif outro.metragem_total:
+            item.metragem_total = outro.metragem_total
+            
+        if outro.fotos:
+            for foto in outro.fotos:
+                foto.item_venda_id = item.id
+                
+        historicos = ItemVendaHistorico.query.filter_by(item_id=outro.id).all()
+        for hist in historicos:
+            hist.item_id = item.id
+            
+        # Reatribuir movimentações de estoque (para não perder o rastro do fragmento excluído)
+        movimentacoes = MovimentacaoEstoque.query.filter_by(referencia_id=outro.id, origem='producao').all()
+        for mov in movimentacoes:
+            mov.referencia_id = item.id
+            
+        db.session.delete(outro)
+    
+    if similares:
+        db.session.flush()
+
 # --- ROTA PARA ENVIAR PARA RETRABALHO (ITEM) ---
-@bp_operacional.route('/item/<int:id>/retrabalho')
+@bp_operacional.route('/item/<int:id>/retrabalho', methods=['GET', 'POST'])
 @login_required
 @cargo_exigido('producao_operar')
 def retrabalho_item(id):
@@ -37,33 +83,139 @@ def retrabalho_item(id):
     agora = hora_brasilia()
     
     status_anterior = item.status
-    item.status = 'retrabalho'
     
-    # CORREÇÃO: Se estava pronto, significa que já havia debitado estoque. Estorna!
-    if status_anterior == 'pronto':
-        estornar_estoque_producao(item.id)
-        item.data_pronto = None
-        item.usuario_pronto_id = None
-    
-    if not item.data_inicio_producao:
-        item.data_inicio_producao = agora
-    
-    log = ItemVendaHistorico(
-        item_id=item.id,
-        usuario_id=current_user.id,
-        status_anterior=status_anterior,
-        status_novo='retrabalho',
-        acao="Enviado para Retrabalho",
-        data_acao=agora
-    )
-    db.session.add(log)
-    
-    if venda_pai.modo == 'multipla':
-        if venda_pai.status == 'pronto':
-            venda_pai.status = 'producao'
+    qtd_retrabalho = item.quantidade
+    if request.method == 'POST':
+        qtd_informada = request.form.get('quantidade_retrabalho', type=int)
+        if qtd_informada and qtd_informada > 0 and qtd_informada <= item.quantidade:
+            qtd_retrabalho = qtd_informada
+
+    # Se a quantidade informada for menor que a total, faremos a DIVISÃO do item
+    if qtd_retrabalho < item.quantidade:
+        # Calcular proporções
+        proporcao = Decimal(qtd_retrabalho) / Decimal(item.quantidade)
+        valor_retrabalho = item.valor_total * proporcao
+        metragem_retrabalho = (item.metragem_total or Decimal(0)) * proporcao
+        
+        # Subtrair do item original (mantém o status atual dele, ex: pronto ou producao)
+        item.quantidade -= qtd_retrabalho
+        item.valor_total -= valor_retrabalho
+        if item.metragem_total:
+            item.metragem_total -= metragem_retrabalho
             
+        # Criar o novo item (clone para o retrabalho)
+        novo_item = ItemVenda(
+            venda_id=item.venda_id,
+            descricao=item.descricao,
+            cor_id=item.cor_id,
+            produto_id=item.produto_id,
+            quantidade=qtd_retrabalho,
+            valor_unitario=item.valor_unitario,
+            valor_total=valor_retrabalho,
+            metragem_total=metragem_retrabalho,
+            tipo_medida=item.tipo_medida,
+            status='retrabalho',
+            data_inicio_producao=agora,
+            usuario_producao_id=item.usuario_producao_id or current_user.id
+        )
+        db.session.add(novo_item)
+        db.session.flush() # Para gerar o ID do novo item
+        
+        # Copiar fotos do item original para o novo item
+        if item.fotos:
+            for foto in item.fotos:
+                nova_foto = FotoItemVenda(
+                    item_venda_id=novo_item.id,
+                    nome_arquivo=foto.nome_arquivo,
+                    tipo_mime=foto.tipo_mime,
+                    dados_binarios=foto.dados_binarios,
+                    etapa=foto.etapa,
+                    enviado_por_id=foto.enviado_por_id,
+                    data_upload=foto.data_upload
+                )
+                db.session.add(nova_foto)
+                
+        # O log de histórico vai para o novo item
+        log = ItemVendaHistorico(
+            item_id=novo_item.id,
+            usuario_id=current_user.id,
+            status_anterior=status_anterior,
+            status_novo='retrabalho',
+            acao=f"Retrabalho Parcial ({qtd_retrabalho} peças separadas)",
+            data_acao=agora
+        )
+        db.session.add(log)
+        
+        # CORREÇÃO DE ESTOQUE para retrabalho parcial vindo de 'pronto':
+        # O item restante PERMANECE 'pronto'. Apenas o estorno proporcional à fração
+        # que foi para retrabalho é realizado:
+        #   1. Estorna TODA a baixa original (que foi pelo total)
+        #   2. Registra uma nova baixa apenas pelo restante (item.quantidade já reduzido)
+        if status_anterior == 'pronto':
+            # 1. Estorna o lançamento original (total)
+            estornar_estoque_producao(item.id)
+
+            # 2. Re-aplica a baixa apenas para a quantidade restante (que fica pronto)
+            venda_pai_local = Venda.query.get(item.venda_id)
+            if venda_pai_local and venda_pai_local.modo == 'simples' and venda_pai_local.produto_id:
+                produto_est = ProdutoEstoque.query.get(venda_pai_local.produto_id)
+                if produto_est:
+                    fator = produto_est.consumo_por_m3 or Decimal(0) if venda_pai_local.tipo_medida == 'm3' else produto_est.consumo_por_m2 or Decimal(0)
+                    metragem_total_venda = venda_pai_local.metragem_total or Decimal(0)
+                    qtd_total_venda = Decimal(venda_pai_local.quantidade_pecas or 1)
+                    metragem_restante = (metragem_total_venda / qtd_total_venda) * Decimal(item.quantidade)
+                    qtd_nova_baixa = metragem_restante * fator
+                    if qtd_nova_baixa > 0:
+                        mov_novo = MovimentacaoEstoque(
+                            produto_id=produto_est.id,
+                            tipo='saida',
+                            quantidade=qtd_nova_baixa,
+                            saldo_anterior=produto_est.quantidade_atual,
+                            saldo_novo=produto_est.quantidade_atual - qtd_nova_baixa,
+                            origem='producao',
+                            referencia_id=item.id,
+                            usuario_id=current_user.id,
+                            observacao=f"Reajuste Baixa Parcial (retrabalho) - Item #{item.id}"
+                        )
+                        produto_est.quantidade_atual -= qtd_nova_baixa
+                        db.session.add(mov_novo)
+
+            # O item restante FICA em 'pronto' — não volta para produção
+            # Apenas garante que data_pronto continua preenchida
+            flash(f'{qtd_retrabalho} peças enviadas para Retrabalho. As demais permanecem como Finalizadas.', 'warning')
+        else:
+            flash(f'{qtd_retrabalho} peças separadas para Retrabalho.', 'warning')
+            
+    else:
+        # Lógica original para o item todo
+        item.status = 'retrabalho'
+        
+        if status_anterior == 'pronto':
+            estornar_estoque_producao(item.id)
+            item.data_pronto = None
+            item.usuario_pronto_id = None
+        
+        if not item.data_inicio_producao:
+            item.data_inicio_producao = agora
+        
+        log = ItemVendaHistorico(
+            item_id=item.id,
+            usuario_id=current_user.id,
+            status_anterior=status_anterior,
+            status_novo='retrabalho',
+            acao="Enviado para Retrabalho",
+            data_acao=agora
+        )
+        db.session.add(log)
+        flash('Item enviado para Retrabalho.', 'warning')
+    
+    # Atualiza o status da Venda Pai se necessário
+    if venda_pai.status == 'pronto':
+        venda_pai.status = 'producao'
+            
+    db.session.flush()
+    agrupar_itens_fragmentados(item.id)
     db.session.commit()
-    flash('Item enviado para Retrabalho.', 'warning')
     return redirect(url_for('operacional.painel'))
 
 # --- ROTA PARA ENVIAR PARA RETRABALHO (VENDA SIMPLES) ---
@@ -121,6 +273,38 @@ def avancar_item(id):
         acao_texto = "Iniciou Produção"
         
     elif item.status in ['producao', 'retrabalho']:
+        # Baixa de Estoque Automática (Venda Simples)
+        if venda_pai.modo == 'simples' and venda_pai.produto_id:
+            produto = ProdutoEstoque.query.get(venda_pai.produto_id)
+            if produto:
+                fator_consumo = Decimal(0)
+                if venda_pai.tipo_medida == 'm3':
+                    fator_consumo = produto.consumo_por_m3 or Decimal(0)
+                else:
+                    fator_consumo = produto.consumo_por_m2 or Decimal(0)
+                
+                # Calcula a metragem proporcional à quantidade DESSA parte do item dividido
+                metragem_total_venda = venda_pai.metragem_total or Decimal(0)
+                metragem_proporcional = (metragem_total_venda / Decimal(venda_pai.quantidade_pecas or 1)) * Decimal(item.quantidade)
+                
+                qtd_baixa = metragem_proporcional * fator_consumo
+                
+                if qtd_baixa > 0:
+                    mov = MovimentacaoEstoque(
+                        produto_id=produto.id,
+                        tipo='saida',
+                        quantidade=qtd_baixa,
+                        saldo_anterior=produto.quantidade_atual,
+                        saldo_novo=produto.quantidade_atual - qtd_baixa,
+                        origem='producao',
+                        referencia_id=item.id,
+                        usuario_id=current_user.id,
+                        observacao=f"Baixa Auto ({'Retrabalho' if item.status=='retrabalho' else 'Normal'}) - Item #{item.id}"
+                    )
+                    produto.quantidade_atual -= qtd_baixa
+                    db.session.add(mov)
+                    flash(f'Finalizado! Baixa proporcional de {qtd_baixa:.3f} {produto.unidade} registrada.', 'success')
+
         item.status = 'pronto'
         item.data_pronto = agora
         item.usuario_pronto_id = current_user.id
@@ -152,6 +336,8 @@ def avancar_item(id):
                 venda_pai.data_inicio_producao = agora
                 venda_pai.usuario_producao_id = current_user.id
 
+    db.session.flush()
+    agrupar_itens_fragmentados(item.id)
     db.session.commit()
     return redirect(url_for('operacional.painel'))
 
@@ -210,6 +396,8 @@ def voltar_item(id):
         if 'pronto' in status_set:
             venda_pai.status = 'pronto'
     
+    db.session.flush()
+    agrupar_itens_fragmentados(item.id)
     db.session.commit()
     
     # Feedback visual claro para o usuário
@@ -398,6 +586,8 @@ def finalizar_com_baixa(id):
             venda_pai.data_pronto = hora_brasilia()
             venda_pai.usuario_pronto_id = current_user.id
             
+    db.session.flush()
+    agrupar_itens_fragmentados(item.id)
     db.session.commit()
     
     if total_debitado > 0:

@@ -20,19 +20,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const inpTexto = document.getElementById('filtroTexto');
     const selStatus = document.getElementById('filtroStatus');
     const selVendedor = document.getElementById('filtroVendedor');
-    const inpData = document.getElementById('filtroData');
+    const inpDataInicio = document.getElementById('filtroDataInicio');
+    const inpDataFim = document.getElementById('filtroDataFim');
 
     function aplicarFiltros() {
         const q = inpTexto ? inpTexto.value : '';
         const status = selStatus ? selStatus.value : '';
         const vendedor = selVendedor ? selVendedor.value : '';
-        const data = inpData ? inpData.value : '';
+        const data_inicio = inpDataInicio ? inpDataInicio.value : '';
+        const data_fim = inpDataFim ? inpDataFim.value : '';
 
         const params = new URLSearchParams();
         if(q) params.append('q', q);
         if(status) params.append('status', status);
         if(vendedor) params.append('vendedor', vendedor);
-        if(data) params.append('data', data);
+        if(data_inicio) params.append('data_inicio', data_inicio);
+        if(data_fim) params.append('data_fim', data_fim);
         params.append('page', 1);
 
         window.location.href = `${window.location.pathname}?${params.toString()}`;
@@ -40,7 +43,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if(selStatus) selStatus.addEventListener('change', aplicarFiltros);
     if(selVendedor) selVendedor.addEventListener('change', aplicarFiltros);
-    if(inpData) inpData.addEventListener('change', aplicarFiltros);
+    if(inpDataInicio) inpDataInicio.addEventListener('change', aplicarFiltros);
+    if(inpDataFim) inpDataFim.addEventListener('change', aplicarFiltros);
     
     if(inpTexto) {
         let timeout;

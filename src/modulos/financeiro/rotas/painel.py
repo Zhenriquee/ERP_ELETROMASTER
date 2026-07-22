@@ -8,7 +8,7 @@ from src.modulos.autenticacao.permissoes import cargo_exigido
 from src.extensoes import banco_de_dados as db
 from src.modulos.financeiro.modelos import Despesa, Fornecedor
 from . import bp_financeiro
-from sqlalchemy import extract, desc, and_, or_
+from sqlalchemy import extract, desc, and_, or_, func
 
 @bp_financeiro.route('/', methods=['GET'])
 @login_required
@@ -75,11 +75,12 @@ def painel():
     # Filtros Avançados
     f_busca = request.args.get('q', '').strip() 
     f_categoria = request.args.get('categoria', '')
-    f_vencimento = request.args.get('vencimento', '')
     f_forma_pagamento = request.args.get('forma_pagamento', '')
     f_tipo_custo = request.args.get('tipo_custo', '')
     f_fornecedor = request.args.get('fornecedor', type=int)
     f_status = request.args.get('status', '')
+    f_data_inicio = request.args.get('data_inicio', '')
+    f_data_fim = request.args.get('data_fim', '')
 
     # ============================================================
     # 3. QUERY PRINCIPAL (LISTA)
@@ -125,19 +126,41 @@ def painel():
         query = query.filter(Despesa.tipo_custo == f_tipo_custo)
     if f_fornecedor:
         query = query.filter(Despesa.fornecedor_id == f_fornecedor)
-    if f_vencimento:
-        try:
-            f_venc_date = date.fromisoformat(f_vencimento)
-            c1 = and_(Despesa.status == 'pago', Despesa.data_pagamento == f_venc_date)
-            c2 = and_(Despesa.status == 'pendente', Despesa.data_vencimento == f_venc_date)
+    
+    if f_data_inicio or f_data_fim:
+        condicoes_data = []
+        
+        # 1. Pago: filtramos pela data de pagamento
+        if f_data_inicio and f_data_fim:
+            condicoes_data.append(and_(Despesa.status == 'pago', func.date(Despesa.data_pagamento) >= f_data_inicio, func.date(Despesa.data_pagamento) <= f_data_fim))
+        elif f_data_inicio:
+            condicoes_data.append(and_(Despesa.status == 'pago', func.date(Despesa.data_pagamento) >= f_data_inicio))
+        elif f_data_fim:
+            condicoes_data.append(and_(Despesa.status == 'pago', func.date(Despesa.data_pagamento) <= f_data_fim))
             
-            if f_venc_date == hoje:
-                c3 = and_(Despesa.status == 'pendente', Despesa.data_vencimento < hoje)
-                query = query.filter(or_(c1, c2, c3))
-            else:
-                query = query.filter(or_(c1, c2))
-        except ValueError:
-            pass
+        # 2. Pendente: filtramos pela data de vencimento original
+        if f_data_inicio and f_data_fim:
+            condicoes_data.append(and_(Despesa.status != 'pago', func.date(Despesa.data_vencimento) >= f_data_inicio, func.date(Despesa.data_vencimento) <= f_data_fim))
+        elif f_data_inicio:
+            condicoes_data.append(and_(Despesa.status != 'pago', func.date(Despesa.data_vencimento) >= f_data_inicio))
+        elif f_data_fim:
+            condicoes_data.append(and_(Despesa.status != 'pago', func.date(Despesa.data_vencimento) <= f_data_fim))
+
+        # 3. Rollover: Dividas de meses anteriores rolam para a data de "hoje"
+        # Se a data atual (hoje) estiver dentro do range filtrado, devemos trazer essas dívidas também
+        inclui_hoje = True
+        hoje_str = hoje.isoformat()
+        if f_data_inicio and hoje_str < f_data_inicio:
+            inclui_hoje = False
+        if f_data_fim and hoje_str > f_data_fim:
+            inclui_hoje = False
+            
+        if inclui_hoje:
+            primeiro_dia_mes_atual = hoje.replace(day=1)
+            c_rolada = and_(Despesa.status == 'pendente', Despesa.data_vencimento < primeiro_dia_mes_atual)
+            condicoes_data.append(c_rolada)
+        
+        query = query.filter(or_(*condicoes_data))
 
     despesas = query.order_by(Despesa.status.asc(), Despesa.data_vencimento.asc()).all()
     
@@ -148,11 +171,40 @@ def painel():
     total_pago = sum(d.valor for d in despesas if d.status == 'pago')
 
     # NOVA LÓGICA: Calcula o vencido APENAS dentro dos itens originais deste mês, ignorando rollover
-    total_vencido_mes = sum(d.valor for d in despesas if d.status == 'pendente' and d.data_vencimento < hoje and d.data_vencimento.month == mes and d.data_vencimento.year == ano)
+    total_vencido_mes = sum(d.valor for d in despesas if d.status == 'pendente' and d.data_vencimento < hoje)
     
-    total_vencido_geral = db.session.query(db.func.sum(Despesa.valor))\
-        .filter(Despesa.status == 'pendente', Despesa.data_vencimento < hoje)\
-        .scalar() or 0
+    # O total_vencido_geral: aplica a mesma lógica de rollover que a lista principal
+    if f_data_inicio or f_data_fim:
+        # Checa se "hoje" está dentro do range filtrado
+        inclui_hoje_kpi = True
+        if f_data_inicio and hoje_str < f_data_inicio:
+            inclui_hoje_kpi = False
+        if f_data_fim and hoje_str > f_data_fim:
+            inclui_hoje_kpi = False
+
+        conds_venc_geral = []
+        # Dívidas pendentes cuja data de vencimento está no range e já venceu
+        if f_data_inicio and f_data_fim:
+            conds_venc_geral.append(and_(Despesa.status == 'pendente', Despesa.data_vencimento < hoje, func.date(Despesa.data_vencimento) >= f_data_inicio, func.date(Despesa.data_vencimento) <= f_data_fim))
+        elif f_data_inicio:
+            conds_venc_geral.append(and_(Despesa.status == 'pendente', Despesa.data_vencimento < hoje, func.date(Despesa.data_vencimento) >= f_data_inicio))
+        elif f_data_fim:
+            conds_venc_geral.append(and_(Despesa.status == 'pendente', Despesa.data_vencimento < hoje, func.date(Despesa.data_vencimento) <= f_data_fim))
+
+        # Dívidas de meses anteriores que rolaram para hoje (só se "hoje" estiver no range)
+        if inclui_hoje_kpi:
+            primeiro_dia_mes_atual = hoje.replace(day=1)
+            conds_venc_geral.append(and_(Despesa.status == 'pendente', Despesa.data_vencimento < primeiro_dia_mes_atual))
+
+        if conds_venc_geral:
+            total_vencido_geral = db.session.query(func.sum(Despesa.valor)).filter(or_(*conds_venc_geral)).scalar() or 0
+        else:
+            total_vencido_geral = 0
+    else:
+        total_vencido_geral = db.session.query(func.sum(Despesa.valor)).filter(
+            Despesa.status == 'pendente',
+            Despesa.data_vencimento < hoje
+        ).scalar() or 0
     
     pode_ver_totais = current_user.tem_permissao('financeiro_cards') or current_user.cargo.lower() == 'dono'
 
@@ -164,16 +216,17 @@ def painel():
                            total_pendente=total_pendente,
                            total_pago=total_pago,
                            total_vencido_geral=total_vencido_geral,
-                           total_vencido_mes=total_vencido_mes, # <--- ENVIADO PARA O HTML AQUI
+                           total_vencido_mes=total_vencido_mes,
                            pode_ver_totais=pode_ver_totais,
                            destaque_id=destaque_id,
                            filtros={
                                'q': f_busca,
                                'categoria': f_categoria,
-                               'vencimento': f_vencimento,
+                               'data_inicio': f_data_inicio,
+                               'data_fim': f_data_fim,
                                'forma_pagamento': f_forma_pagamento,
                                'tipo_custo': f_tipo_custo,
-                               'fornecedor': f_fornecedor,
+                               'fornecedor': str(f_fornecedor) if f_fornecedor else '',
                                'status': f_status
                            },
                            fmt_moeda=fmt_moeda)

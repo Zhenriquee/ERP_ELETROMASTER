@@ -252,14 +252,87 @@
                 <button onclick="fecharModal('modalPerformance')" class="text-gray-400 hover:text-red-500"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
             <ul class="space-y-3">
-                <li class="flex justify-between p-3 bg-green-50 rounded border border-green-100">
-                    <span class="text-green-700 font-bold">Vendido Hoje</span>
-                    <span class="font-black text-green-700">R$ {{ vendas_hoje }}</span>
+
+                {# --- RECEBIDO HOJE (com drill-down de pagamentos) --- #}
+                <li class="rounded border border-green-100 overflow-hidden">
+                    <button onclick="toggleVendasHoje()" class="w-full flex justify-between items-center p-3 bg-green-50 hover:bg-green-100 transition-colors">
+                        <span class="text-green-700 font-bold flex items-center gap-2">
+                            <i data-lucide="trending-up" class="w-4 h-4"></i> Recebido Hoje
+                            {% if pagamentos_hoje_lista %}
+                            <span class="text-[10px] bg-green-200 text-green-800 font-bold px-2 py-0.5 rounded-full">{{ pagamentos_hoje_lista|length }}</span>
+                            {% endif %}
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <span class="font-black text-green-700">R$ {{ vendas_hoje }}</span>
+                            {% if pagamentos_hoje_lista %}
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-green-600 transition-transform" id="iconeVendasHoje"></i>
+                            {% endif %}
+                        </div>
+                    </button>
+
+                    {% if pagamentos_hoje_lista %}
+                    <div id="listaVendasHoje" class="hidden border-t border-green-100 max-h-52 overflow-y-auto">
+                        {% for pgto, venda in pagamentos_hoje_lista %}
+                        {% set is_total = (pgto.tipo == 'total') or (venda.valor_restante|float <= 0.01) %}
+                        <div class="flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 transition-colors {{ 'border-t border-gray-100' if not loop.first }}">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">#{{ venda.id }}</span>
+                                    <span class="text-xs font-semibold text-navy-900 truncate">{{ venda.cliente_nome }}</span>
+                                </div>
+                                <div class="flex items-center gap-1.5 mt-0.5 pl-0">
+                                    {% if is_total %}
+                                    <span class="text-[9px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full uppercase">Quitado</span>
+                                    {% else %}
+                                    <span class="text-[9px] font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full uppercase">Parcial</span>
+                                    {% endif %}
+                                    {% if venda.descricao_servico %}
+                                    <p class="text-[10px] text-gray-400 truncate">{{ venda.descricao_servico }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold text-green-700 ml-3 shrink-0">R$ {{ fmt_moeda(pgto.valor) }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </li>
-                
-                <li class="flex justify-between p-3 bg-gray-50 rounded">
-                    <span class="text-gray-600">Novos Serviços (Hoje)</span>
-                    <span class="font-bold text-navy-900">R$ {{ valor_vendido_hoje }}</span>
+
+                {# --- NOVOS SERVIÇOS HOJE (com drill-down de vendas criadas hoje) --- #}
+                <li class="rounded border border-gray-200 overflow-hidden">
+                    <button onclick="toggleNovosServicos()" class="w-full flex justify-between items-center p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <span class="text-gray-700 font-semibold flex items-center gap-2">
+                            <i data-lucide="file-plus" class="w-4 h-4 text-gray-400"></i> Novos Serviços Hoje
+                            {% if vendas_hoje_lista %}
+                            <span class="text-[10px] bg-gray-200 text-gray-700 font-bold px-2 py-0.5 rounded-full">{{ vendas_hoje_lista|length }}</span>
+                            {% endif %}
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-navy-900">R$ {{ valor_vendido_hoje }}</span>
+                            {% if vendas_hoje_lista %}
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform" id="iconeNovosServicos"></i>
+                            {% endif %}
+                        </div>
+                    </button>
+
+                    {% if vendas_hoje_lista %}
+                    <div id="listaNovosServicos" class="hidden border-t border-gray-200 max-h-52 overflow-y-auto">
+                        {% for v in vendas_hoje_lista %}
+                        <div class="flex items-center justify-between px-3 py-2 hover:bg-gray-50 transition-colors {{ 'border-t border-gray-100' if not loop.first }}">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">#{{ v.id }}</span>
+                                    <span class="text-xs font-semibold text-navy-900 truncate">{{ v.cliente_nome }}</span>
+                                </div>
+                                {% if v.descricao_servico %}
+                                <p class="text-[10px] text-gray-400 truncate mt-0.5 pl-7">{{ v.descricao_servico }}</p>
+                                {% endif %}
+                            </div>
+                            <span class="text-xs font-bold text-navy-900 ml-3 shrink-0">R$ {{ fmt_moeda(v.valor_final) }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </li>
 
                 <li class="flex justify-between p-3 bg-gray-50 rounded">
@@ -411,5 +484,33 @@
             const event = new Event('dadosCarregados');
             window.dispatchEvent(event);
         });
+
+        function toggleVendasHoje() {
+            const lista = document.getElementById('listaVendasHoje');
+            const icone = document.getElementById('iconeVendasHoje');
+            if (!lista) return;
+            const aberta = !lista.classList.contains('hidden');
+            if (aberta) {
+                lista.classList.add('hidden');
+                if (icone) icone.style.transform = 'rotate(0deg)';
+            } else {
+                lista.classList.remove('hidden');
+                if (icone) icone.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        function toggleNovosServicos() {
+            const lista = document.getElementById('listaNovosServicos');
+            const icone = document.getElementById('iconeNovosServicos');
+            if (!lista) return;
+            const aberta = !lista.classList.contains('hidden');
+            if (aberta) {
+                lista.classList.add('hidden');
+                if (icone) icone.style.transform = 'rotate(0deg)';
+            } else {
+                lista.classList.remove('hidden');
+                if (icone) icone.style.transform = 'rotate(180deg)';
+            }
+        }
     </script>
 {% endblock %}

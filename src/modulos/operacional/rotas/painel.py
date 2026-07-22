@@ -52,110 +52,143 @@ def painel():
         joinedload(Venda.cor),
         joinedload(Venda.itens).joinedload(ItemVenda.fotos)
     ).all()
-
+    
     tarefas = []
 
-    # --- PROCESSAMENTO DE ITENS ---
+    # --- PROCESSAMENTO DE ITENS (Vendas Múltiplas) ---
+    # Agrupa itens do mesmo venda_id + status + descricao em um único card
+    grupos_multi = {}
     for i in itens_multi:
-        nome_acabamento = '-'
-        if i.produto: nome_acabamento = i.produto.nome
-        elif i.cor: nome_acabamento = i.cor.nome
+        chave = (i.venda_id, i.status, i.descricao, i.produto_id, i.cor_id)
+        if chave not in grupos_multi:
+            grupos_multi[chave] = []
+        grupos_multi[chave].append(i)
 
-        data_ref = i.venda.criado_em
+    for chave, grupo in grupos_multi.items():
+        # Usa o item de menor ID como âncora (recebe as ações de avançar/retrabalho)
+        ancora = min(grupo, key=lambda x: x.id)
+        v = ancora.venda
+
+        nome_acabamento = '-'
+        if ancora.produto: nome_acabamento = ancora.produto.nome
+        elif ancora.cor: nome_acabamento = ancora.cor.nome
+
+        # Soma quantidades e metragens de todos os fragmentos
+        quantidade_total = sum(x.quantidade for x in grupo)
+        metragem_total_grupo = sum(x.metragem_total or 0 for x in grupo)
+
+        data_ref = v.criado_em
         tempo_label = "Tempo em Fila"
-        
-        if i.status == 'producao':
-            data_ref = i.data_inicio_producao or i.venda.criado_em
+        if ancora.status == 'producao':
+            data_ref = ancora.data_inicio_producao or v.criado_em
             tempo_label = "Tempo em Execução"
-        elif i.status == 'retrabalho':
-            data_ref = i.data_inicio_producao or i.venda.criado_em
+        elif ancora.status == 'retrabalho':
+            data_ref = ancora.data_inicio_producao or v.criado_em
             tempo_label = "Tempo em Retrabalho"
-        elif i.status == 'pronto':
-            data_ref = i.data_pronto or i.venda.criado_em
+        elif ancora.status == 'pronto':
+            data_ref = ancora.data_pronto or v.criado_em
             tempo_label = "Tempo Aguardando"
 
         metragem_texto = "Não informada"
-        if i.metragem_total and i.metragem_total > 0:
-            un = "m³" if i.tipo_medida == 'm3' else "m²"
-            metragem_texto = f"{float(i.metragem_total):.2f} {un}"
+        if metragem_total_grupo and metragem_total_grupo > 0:
+            un = "m³" if ancora.tipo_medida == 'm3' else "m²"
+            metragem_texto = f"{float(metragem_total_grupo):.2f} {un}"
 
         fotos_urls = []
-        if i.fotos:
-            fotos_urls = [url_for('vendas.imagem_db', foto_id=f.id) for f in i.fotos]
-            
+        for frag in grupo:
+            if frag.fotos:
+                fotos_urls += [url_for('vendas.imagem_db', foto_id=f.id) for f in frag.fotos]
+
         tarefas.append({
             'tipo': 'item',
-            'id': i.id,
-            'venda_id': i.venda_id,
-            'descricao': i.descricao,
-            'quantidade': i.quantidade,
+            'id': ancora.id,
+            'venda_id': ancora.venda_id,
+            'descricao': ancora.descricao,
+            'quantidade': quantidade_total,
             'cor': nome_acabamento,
-            'status': i.status,
-            'cliente': i.venda.cliente_nome,
-            'obs': i.venda.observacoes_internas,
-            'criado_em': i.venda.criado_em,
-            'is_producao': (i.status in ['producao', 'retrabalho']),
+            'status': ancora.status,
+            'cliente': v.cliente_nome,
+            'obs': v.observacoes_internas,
+            'criado_em': v.criado_em,
+            'is_producao': (ancora.status in ['producao', 'retrabalho']),
             'tempo_decorrido': calcular_tempo_decorrido(data_ref),
             'tempo_label': tempo_label,
             'metragem': metragem_texto,
-            'prioridade': i.venda.prioridade,
-            'fotos': fotos_urls
+            'prioridade': v.prioridade,
+            'fotos': fotos_urls,
+            'is_venda_simples': False
         })
 
     # --- PROCESSAMENTO DE VENDAS SIMPLES ---
+    # Agrupa itens (fragmentados por retrabalho parcial) do mesmo venda_id + status
     for v in vendas_simples:
         nome_acabamento = 'Padrão'
         if v.produto: nome_acabamento = v.produto.nome
         elif v.cor: nome_acabamento = v.cor.nome
 
-        data_ref = v.criado_em
-        tempo_label = "Tempo em Fila"
-        
-        if v.status == 'producao':
-            data_ref = v.data_inicio_producao or v.criado_em
-            tempo_label = "Tempo em Execução"
-        elif v.status == 'retrabalho':
-            data_ref = v.data_inicio_producao or v.criado_em
-            tempo_label = "Tempo em Retrabalho"
-        elif v.status == 'pronto':
-            data_ref = v.data_pronto or v.criado_em
-            tempo_label = "Tempo Aguardando"
+        # Agrupa os sub-itens por status
+        grupos_status = {}
+        for i in v.itens:
+            if i.status not in grupos_status:
+                grupos_status[i.status] = []
+            grupos_status[i.status].append(i)
 
-        dimensoes = ""
-        if v.dimensao_1 and v.dimensao_2:
-            if v.tipo_medida == 'm3' and v.dimensao_3:
-                dimensoes = f"({float(v.dimensao_1)} x {float(v.dimensao_2)} x {float(v.dimensao_3)})"
-            else:
-                dimensoes = f"({float(v.dimensao_1)} x {float(v.dimensao_2)})"
-        
-        metragem_texto = "Não informada"
-        if v.metragem_total and v.metragem_total > 0:
-            un = "m³" if v.tipo_medida == 'm3' else "m²"
-            metragem_texto = f"{float(v.metragem_total):.2f} {un} {dimensoes}"
+        for status, grupo in grupos_status.items():
+            ancora = min(grupo, key=lambda x: x.id)
 
-        fotos_urls = []
-        if v.itens and v.itens[0].fotos:
-            fotos_urls = [url_for('vendas.imagem_db', foto_id=f.id) for f in v.itens[0].fotos]
-            
-        tarefas.append({
-            'tipo': 'venda',
-            'id': v.id,
-            'venda_id': v.id,
-            'item_unico_id': v.itens[0].id if v.itens else None,
-            'descricao': v.descricao_servico,
-            'quantidade': v.quantidade_pecas,
-            'cor': nome_acabamento,
-            'status': v.status,
-            'cliente': v.cliente_nome,
-            'obs': v.observacoes_internas,
-            'criado_em': v.criado_em,
-            'is_producao': (v.status in ['producao', 'retrabalho']),
-            'tempo_decorrido': calcular_tempo_decorrido(data_ref),
-            'tempo_label': tempo_label,
-            'metragem': metragem_texto,
-            'prioridade': v.prioridade,
-            'fotos': fotos_urls
-        })
+            # Soma quantidades de todos os fragmentos no mesmo status
+            quantidade_total = sum(x.quantidade for x in grupo)
+
+            data_ref = v.criado_em
+            tempo_label = "Tempo em Fila"
+            if status == 'producao':
+                data_ref = ancora.data_inicio_producao or v.criado_em
+                tempo_label = "Tempo em Execução"
+            elif status == 'retrabalho':
+                data_ref = ancora.data_inicio_producao or v.criado_em
+                tempo_label = "Tempo em Retrabalho"
+            elif status == 'pronto':
+                data_ref = ancora.data_pronto or v.criado_em
+                tempo_label = "Tempo Aguardando"
+
+            dimensoes = ""
+            if v.dimensao_1 and v.dimensao_2:
+                if v.tipo_medida == 'm3' and v.dimensao_3:
+                    dimensoes = f"({float(v.dimensao_1)} x {float(v.dimensao_2)} x {float(v.dimensao_3)})"
+                else:
+                    dimensoes = f"({float(v.dimensao_1)} x {float(v.dimensao_2)})"
+
+            metragem_texto = "Não informada"
+            if v.metragem_total and v.metragem_total > 0:
+                un = "m³" if v.tipo_medida == 'm3' else "m²"
+                # Metragem proporcional ao total de peças neste grupo
+                metragem_prop = (float(v.metragem_total) / (v.quantidade_pecas or 1)) * quantidade_total
+                metragem_texto = f"{metragem_prop:.2f} {un} {dimensoes}"
+
+            fotos_urls = []
+            for frag in grupo:
+                if frag.fotos:
+                    fotos_urls += [url_for('vendas.imagem_db', foto_id=f.id) for f in frag.fotos]
+
+            tarefas.append({
+                'tipo': 'item',
+                'id': ancora.id,
+                'venda_id': v.id,
+                'descricao': v.descricao_servico,
+                'quantidade': quantidade_total,
+                'cor': nome_acabamento,
+                'status': status,
+                'cliente': v.cliente_nome,
+                'obs': v.observacoes_internas,
+                'criado_em': v.criado_em,
+                'is_producao': (status in ['producao', 'retrabalho']),
+                'tempo_decorrido': calcular_tempo_decorrido(data_ref),
+                'tempo_label': tempo_label,
+                'metragem': metragem_texto,
+                'prioridade': v.prioridade,
+                'fotos': fotos_urls,
+                'is_venda_simples': True
+            })
 
     # Ordenação
     tarefas.sort(key=lambda x: (not x['prioridade'], not x['is_producao'], x['criado_em']))

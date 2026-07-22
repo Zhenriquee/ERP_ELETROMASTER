@@ -25,12 +25,35 @@
         <div class="lg:col-span-2 grid grid-cols-2 gap-4">
             <div class="bg-navy-900 text-white p-5 rounded-2xl shadow-lg relative overflow-hidden group">
                 <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:scale-110 transition-transform"><i data-lucide="dollar-sign" class="w-16 h-16"></i></div>
-                <p class="text-xs font-bold uppercase tracking-wider opacity-70">A Receber (Geral)</p>
+                <p class="text-xs font-bold uppercase tracking-wider opacity-70">
+                    A Receber (Geral)
+                    {% if filtros.data_inicio or filtros.data_fim %}
+                        <span class="block text-[10px] text-yellow-300 mt-1 normal-case font-medium">
+                            {% if filtros.data_inicio and filtros.data_fim %} de {{ filtros.data_inicio[8:10] }}/{{ filtros.data_inicio[5:7] }}/{{ filtros.data_inicio[0:4] }} até {{ filtros.data_fim[8:10] }}/{{ filtros.data_fim[5:7] }}/{{ filtros.data_fim[0:4] }}
+                            {% elif filtros.data_inicio %} a partir de {{ filtros.data_inicio[8:10] }}/{{ filtros.data_inicio[5:7] }}/{{ filtros.data_inicio[0:4] }}
+                            {% elif filtros.data_fim %} até {{ filtros.data_fim[8:10] }}/{{ filtros.data_fim[5:7] }}/{{ filtros.data_fim[0:4] }}
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                </p>
                 <h3 class="text-2xl font-black mt-1 format-money" data-value="{{ kpi_receber }}">--</h3>
             </div>
             <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden group">
                 <div class="absolute right-0 top-0 p-4 text-green-100 group-hover:scale-110 transition-transform"><i data-lucide="trending-up" class="w-16 h-16"></i></div>
-                <p class="text-xs font-bold uppercase text-gray-400">Recebido (Mês)</p>
+                <p class="text-xs font-bold uppercase text-gray-400">
+                    Recebido 
+                    {% if filtros.data_inicio or filtros.data_fim %}
+                        <span class="text-green-500">(Período)</span>
+                        <span class="block text-[10px] text-gray-400 mt-1 normal-case font-medium">
+                            {% if filtros.data_inicio and filtros.data_fim %} de {{ filtros.data_inicio[8:10] }}/{{ filtros.data_inicio[5:7] }}/{{ filtros.data_inicio[0:4] }} até {{ filtros.data_fim[8:10] }}/{{ filtros.data_fim[5:7] }}/{{ filtros.data_fim[0:4] }}
+                            {% elif filtros.data_inicio %} a partir de {{ filtros.data_inicio[8:10] }}/{{ filtros.data_inicio[5:7] }}/{{ filtros.data_inicio[0:4] }}
+                            {% elif filtros.data_fim %} até {{ filtros.data_fim[8:10] }}/{{ filtros.data_fim[5:7] }}/{{ filtros.data_fim[0:4] }}
+                            {% endif %}
+                        </span>
+                    {% else %}
+                        (Mês)
+                    {% endif %}
+                </p>
                 <h3 class="text-2xl font-black mt-1 text-green-600 format-money" data-value="{{ kpi_recebido_mes }}">--</h3>
             </div>
         </div>
@@ -83,7 +106,11 @@
                 {% endfor %}
             </select>
 
-            <input type="date" id="filtroData" value="{{ filtros.data }}" class="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 cursor-pointer">
+            <div class="flex items-center gap-1">
+                <input type="date" id="filtroDataInicio" value="{{ filtros.data_inicio }}" class="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 cursor-pointer" title="Data Inicial">
+                <span class="text-gray-400 text-xs font-bold">até</span>
+                <input type="date" id="filtroDataFim" value="{{ filtros.data_fim }}" class="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 cursor-pointer" title="Data Final">
+            </div>
         </div>
     </div>
 
