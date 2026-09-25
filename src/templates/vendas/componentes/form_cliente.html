@@ -104,5 +104,22 @@
                 <input type="text" name="endereco" class="input-navy" placeholder="Rua, Número, Bairro, Cidade">
             {% endif %}
         </div>
+        <div class="md:col-span-2">
+            <label class="label-padrao">Funil *</label>
+            {% if form %}
+                {{ form.funil(class="input-navy", required=True) }}
+            {% else %}
+                <select name="funil" class="input-navy" required>
+                    <option value="" disabled selected>Selecione...</option>
+                    <option value="Indicação">Indicação</option>
+                    <option value="Captação">Captação</option>
+                    <option value="Lead">Lead</option>
+                    <option value="Visita">Visita</option>
+                    <option value="Resgate">Resgate</option>
+                    <option value="Google">Google</option>
+                    <option value="Cliente da Base">Cliente da Base</option>
+                </select>
+            {% endif %}
+        </div>
     </div>
 </div>

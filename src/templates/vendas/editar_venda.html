@@ -113,6 +113,19 @@
                             <label class="label-padrao">Endereço Completo</label>
                             <input type="text" name="endereco" class="input-navy" value="{{ venda.cliente_endereco or '' }}">
                         </div>
+                        <div class="md:col-span-2">
+                            <label class="label-padrao">Funil *</label>
+                            <select name="funil" class="input-navy" required>
+                                <option value="" disabled {% if not venda.funil %}selected{% endif %}>Selecione...</option>
+                                <option value="Indicação" {% if venda.funil == 'Indicação' %}selected{% endif %}>Indicação</option>
+                                <option value="Captação" {% if venda.funil == 'Captação' %}selected{% endif %}>Captação</option>
+                                <option value="Lead" {% if venda.funil == 'Lead' %}selected{% endif %}>Lead</option>
+                                <option value="Visita" {% if venda.funil == 'Visita' %}selected{% endif %}>Visita</option>
+                                <option value="Resgate" {% if venda.funil == 'Resgate' %}selected{% endif %}>Resgate</option>
+                                <option value="Google" {% if venda.funil == 'Google' %}selected{% endif %}>Google</option>
+                                <option value="Cliente da Base" {% if venda.funil == 'Cliente da Base' %}selected{% endif %}>Cliente da Base</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 

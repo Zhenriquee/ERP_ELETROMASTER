@@ -71,6 +71,7 @@ def nova_venda():
                 preco_snapshot = produto_selecionado.preco_m2 or Decimal(0)
 
             nova_venda = Venda(
+                funil=form.funil.data,
                 prioridade=form.prioridade.data, # <--- NOVO CAMPO
                 tipo_cliente=form.tipo_cliente.data,
                 cliente_nome=c_nome,
@@ -179,8 +180,14 @@ def salvar_venda_multipla():
         # Captura Prioridade
         is_prioridade = True if request.form.get('prioridade') == 'on' else False
 
+        funil = request.form.get('funil')
+        if not funil:
+            flash('O campo Funil é obrigatório.', 'error')
+            return redirect(url_for('vendas.nova_venda_multipla'))
+
         nova_venda = Venda(
             modo='multipla',
+            funil=funil,
             prioridade=is_prioridade,
             tipo_cliente=tipo_cliente,
             cliente_nome=nome,

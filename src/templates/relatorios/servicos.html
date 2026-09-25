@@ -13,9 +13,9 @@
                 <a href="{{ url_for('relatorios.painel') }}" class="text-gray-400 hover:text-navy-900 transition-colors">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
-                <h2 class="text-2xl font-bold text-navy-900">Relatório Dinâmico de Serviços</h2>
+                <h2 class="text-2xl font-bold text-navy-900">Dashboard de Serviços</h2>
             </div>
-            <p class="text-sm text-gray-500 ml-7">Monte sua tabela agrupando ou detalhando os dados.</p>
+            <p class="text-sm text-gray-500 ml-7">Indicadores financeiros e operacionais.</p>
         </div>
         
         <div class="flex gap-2">
@@ -25,53 +25,20 @@
         </div>
     </div>
 
+    <!-- Filtros -->
     <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 mb-6 no-print">
         <form method="GET" class="space-y-4">
-            <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Filtrar período por</label>
-                    <select name="tipo_data_filtro" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-                        <option value="criacao" {% if filtros.get('tipo_data_filtro') == 'criacao' or not filtros.get('tipo_data_filtro') %}selected{% endif %}>Data de Criação</option>
-                        <option value="recebimento" {% if filtros.get('tipo_data_filtro') == 'recebimento' %}selected{% endif %}>Data de Recebimento</option>
-                    </select>
-                </div>
+            <h3 class="text-sm font-bold text-navy-900 mb-2 border-b pb-2"><i data-lucide="filter" class="w-4 h-4 inline-block mr-1"></i> Filtros do Relatório</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 
-            <div class="flex items-center gap-4 border-b border-gray-100 pb-4">
-                <label class="flex items-center gap-2 text-sm font-bold text-gray-700 cursor-pointer">
-                    <input type="radio" name="tipo_periodo" value="mes" class="text-navy-900 focus:ring-navy-900" 
-                           {% if filtros.get('tipo_periodo', 'mes') == 'mes' %}checked{% endif %}
-                           onchange="togglePeriodo()">
-                    Filtrar por Mês
-                </label>
-                <label class="flex items-center gap-2 text-sm font-bold text-gray-700 cursor-pointer">
-                    <input type="radio" name="tipo_periodo" value="periodo" class="text-navy-900 focus:ring-navy-900"
-                           {% if filtros.get('tipo_periodo') == 'periodo' %}checked{% endif %}
-                           onchange="togglePeriodo()">
-                    Período Específico
-                </label>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                <div id="filtroMesAno" class="flex gap-2 {% if filtros.get('tipo_periodo') == 'periodo' %}hidden{% endif %}">
+                <div class="col-span-2 flex gap-2">
                     <div class="w-1/2">
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Mês</label>
-                        <select name="mes" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-                            {% for m in range(1, 13) %}<option value="{{ m }}" {% if m == mes_atual %}selected{% endif %}>{{ ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m-1] }}</option>{% endfor %}
-                        </select>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Início (Recebimento)</label>
+                        <input type="date" name="data_inicio" value="{{ data_inicio }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
                     </div>
                     <div class="w-1/2">
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Ano</label>
-                        <input type="number" name="ano" value="{{ ano_atual }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                    </div>
-                </div>
-
-                <div id="filtroDatas" class="col-span-2 flex gap-2 {% if filtros.get('tipo_periodo', 'mes') == 'mes' %}hidden{% endif %}">
-                    <div class="w-1/2">
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Início</label>
-                        <input type="date" name="data_inicio" value="{{ filtros.get('data_inicio', '') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                    </div>
-                    <div class="w-1/2">
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Fim</label>
-                        <input type="date" name="data_fim" value="{{ filtros.get('data_fim', '') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Fim (Recebimento)</label>
+                        <input type="date" name="data_fim" value="{{ data_fim }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
                     </div>
                 </div>
 
@@ -82,118 +49,594 @@
                         <option value="pago" {% if filtros.get('status_pagamento') == 'pago' %}selected{% endif %}>Pago</option>
                         <option value="parcial" {% if filtros.get('status_pagamento') == 'parcial' %}selected{% endif %}>Parcial</option>
                         <option value="pendente" {% if filtros.get('status_pagamento') == 'pendente' %}selected{% endif %}>Pendente</option>
-                        
                     </select>
                 </div>
+
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Status Produção</label>
-                    <select name="status_servico" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-                        <option value="todos" {% if filtros.get('status_servico') == 'todos' %}selected{% endif %}>Todos</option>
-                        <option value="pendente" {% if filtros.get('status_servico') == 'pendente' %}selected{% endif %}>Fila</option>
-                        <option value="producao" {% if filtros.get('status_servico') == 'producao' %}selected{% endif %}>Produção</option>
-                        <option value="retrabalho" {% if filtros.get('status_servico') == 'retrabalho' %}selected{% endif %}>Retrabalho</option>
-                        <option value="pronto" {% if filtros.get('status_servico') == 'pronto' %}selected{% endif %}>Pronto</option>
-                        <option value="entregue" {% if filtros.get('status_servico') == 'entregue' %}selected{% endif %}>Entregue</option>
-                        <option value="cancelado" {% if filtros.get('status_servico') == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Funil</label>
+                    <select name="funil" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                        <option value="todos" {% if filtros.get('funil') == 'todos' %}selected{% endif %}>Todos</option>
+                        {% for f in opcoes_funil %}
+                        <option value="{{ f }}" {% if filtros.get('funil') == f %}selected{% endif %}>{{ f }}</option>
+                        {% endfor %}
                     </select>
                 </div>
-                <div class="flex items-end gap-2 col-span-1 md:col-span-4 lg:col-span-1">
-                    <button type="submit" class="flex-1 bg-navy-900 text-white font-bold py-2 rounded-lg shadow-md hover:bg-navy-800">Buscar</button>
-                    <button type="submit" name="exportar" value="excel" class="px-4 py-2 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700" title="Baixar Excel"><i data-lucide="file-spreadsheet" class="w-5 h-5"></i></button>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Vendedor</label>
+                    <select name="vendedor" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                        <option value="todos" {% if filtros.get('vendedor') == 'todos' %}selected{% endif %}>Todos</option>
+                        {% for v in vendedores %}
+                        <option value="{{ v.id }}" {% if filtros.get('vendedor')|string == v.id|string %}selected{% endif %}>{{ v.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="flex items-end gap-2 col-span-1 md:col-span-2 lg:col-span-5 justify-end mt-2 border-t pt-4 border-gray-100">
+                    <button type="submit" class="bg-navy-900 text-white font-bold px-6 py-2 rounded-lg shadow-md hover:bg-navy-800">Aplicar Filtros</button>
                 </div>
             </div>
         </form>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-navy-900"><p class="text-xs font-bold text-gray-400 uppercase">Serviços / Itens</p><h3 class="text-xl font-black text-navy-900 mt-1">{{ qtd_servicos }} <span class="text-sm text-gray-500">/ {{ qtd_itens }}</span></h3></div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-blue-500"><p class="text-xs font-bold text-gray-400 uppercase">Faturamento Bruto</p><h3 class="text-lg font-bold text-blue-600 mt-1">R$ {{ "{:,.2f}".format(total_valor).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h3></div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-green-500"><p class="text-xs font-bold text-gray-400 uppercase">Recebido (Caixa)</p><h3 class="text-lg font-bold text-green-600 mt-1">R$ {{ "{:,.2f}".format(total_pago).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h3></div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-orange-500"><p class="text-xs font-bold text-gray-400 uppercase">A Receber</p><h3 class="text-lg font-bold text-orange-600 mt-1">R$ {{ "{:,.2f}".format(total_restante).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h3></div>
+    <!-- KPIs -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-l-green-500 flex items-center justify-between">
+            <div>
+                <p class="text-sm font-bold text-gray-400 uppercase">Total Vendido (Recebido)</p>
+                <h3 class="text-3xl font-black text-green-600 mt-1">R$ {{ total_vendido }}</h3>
+                <p class="text-xs text-gray-500 mt-2">No período filtrado ({{ data_inicio[-2:] }}/{{ data_inicio[5:7] }}/{{ data_inicio[:4] }} a {{ data_fim[-2:] }}/{{ data_fim[5:7] }}/{{ data_fim[:4] }})</p>
+            </div>
+            <div class="p-4 bg-green-50 rounded-full text-green-500"><i data-lucide="dollar-sign" class="w-8 h-8"></i></div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-l-orange-500 flex items-center justify-between">
+            <div>
+                <p class="text-sm font-bold text-gray-400 uppercase">Total a Receber</p>
+                <h3 class="text-3xl font-black text-orange-600 mt-1">R$ {{ total_a_receber }}</h3>
+                <p class="text-xs text-gray-500 mt-2">Saldo pendente geral (ignora período de recebimento)</p>
+            </div>
+            <div class="p-4 bg-orange-50 rounded-full text-orange-500"><i data-lucide="wallet" class="w-8 h-8"></i></div>
+        </div>
     </div>
 
-    <div class="flex flex-col lg:flex-row gap-6">
+    <!-- Gráficos - Linha 1 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         
-        <div class="w-full lg:w-1/4 bg-white p-5 rounded-xl shadow-sm border border-gray-100 h-fit no-print">
-            <h3 class="font-bold text-navy-900 mb-4 flex items-center border-b pb-2"><i data-lucide="layout-grid" class="w-4 h-4 mr-2 text-blue-500"></i> Estrutura da Tabela</h3>
-            
-            <p class="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-wider">Identificação</p>
-            <div class="space-y-2 mb-4">
-                <label class="flex items-center text-sm cursor-pointer"><input type="checkbox" value="id" class="chk-col mr-2" checked disabled> ID / Data de Criação</label>
-                <label class="flex items-center text-sm cursor-pointer text-green-600 font-bold"><input type="checkbox" value="dtrecebimento" class="chk-col mr-2" checked> Data de Recebimento</label>
-                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="cliente" class="chk-col mr-2" checked> Cliente</label>
-                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="vendedor" class="chk-col mr-2"> Vendedor</label>
-            </div>
-
-            <p class="text-[10px] text-blue-500 uppercase font-bold mb-2 tracking-wider">Nível de Detalhamento</p>
-            <div class="space-y-2 mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
-                <label class="flex items-center text-sm cursor-pointer font-medium text-navy-900"><input type="checkbox" value="item" class="chk-col mr-2"> Item / Serviço Específico</label>
-                <label class="flex items-center text-sm cursor-pointer text-gray-700"><input type="checkbox" value="produto" class="chk-col mr-2"> Acabamento / Material</label>
-                <label class="flex items-center text-sm cursor-pointer text-gray-700"><input type="checkbox" value="vunit" class="chk-col mr-2"> Valor Unitário</label>
-                <p class="text-[10px] text-blue-600 mt-1 leading-tight italic">* Marcar opções acima divide a tabela por item.</p>
-            </div>
-
-            <p class="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-wider">Valores e Status</p>
-            <div class="space-y-2">
-                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="qtd" class="chk-col mr-2" checked> Quantidade</label>
-                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="vtotal" class="chk-col mr-2" checked> Valor Total</label>
-                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="acresc_desc" class="chk-col mr-2" checked> Acrésc. / Desc.</label>
-                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="vpago" class="chk-col mr-2"> Valor Pago</label>
-                <label class="flex items-center text-sm cursor-pointer font-bold text-orange-600"><input type="checkbox" value="vareceber" class="chk-col mr-2" checked> A Receber</label>
-                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="sprod" class="chk-col mr-2" checked> Status Produção</label>
-                <label class="flex items-center text-sm cursor-pointer hover:text-blue-600"><input type="checkbox" value="spgto" class="chk-col mr-2" checked> Status Pagamento</label>
+        <!-- Comparativo de Vendas (Ocupa 2 colunas) -->
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 h-96 flex flex-col lg:col-span-2">
+            <h3 class="font-bold text-navy-900 mb-4 border-b pb-2 flex justify-between items-center">
+                <span>Comparativo de Vendas (Recebido)</span>
+                <select id="compVendasToggle" class="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 py-1 pl-2 pr-8 text-gray-600">
+                    <option value="diario">Por Dia</option>
+                    <option value="mensal">Por Mês</option>
+                </select>
+            </h3>
+            <div class="relative flex-1">
+                <canvas id="compVendasChart"></canvas>
             </div>
         </div>
 
-        <div class="w-full lg:w-3/4 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-            <div class="overflow-x-auto flex-1">
-                <table class="w-full text-left text-sm" id="tabelaDinamica">
-                    <thead class="bg-navy-900 text-white text-xs uppercase font-bold tracking-wider" id="tabelaHead">
-                        </thead>
-                    <tbody class="divide-y divide-gray-100 text-gray-700" id="tabelaBody">
-                        </tbody>
+        <!-- Rosca Funil (Ocupa 1 coluna) -->
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 h-96 flex flex-col lg:col-span-1">
+            <h3 class="font-bold text-navy-900 mb-4 border-b pb-2 flex justify-between items-center">
+                <span>Recebimento por Funil</span>
+            </h3>
+            <div class="relative flex-1">
+                <canvas id="roscaFunilChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+    
+    <!-- Gráficos - Linha 2 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+        <!-- Pareto Vendedor (Ocupa 2 colunas) -->
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 h-[450px] flex flex-col lg:col-span-2">
+            <h3 class="font-bold text-navy-900 mb-4 border-b pb-2 flex justify-between items-center">
+                <span>Vendas por Vendedor (Pareto)</span>
+            </h3>
+            <div class="relative flex-1">
+                <canvas id="paretoChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Detalhamento Pareto (Ocupa 1 coluna) -->
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 h-[450px] overflow-y-auto custom-scrollbar lg:col-span-1">
+            <h3 class="font-bold text-navy-900 mb-4 border-b pb-2 flex justify-between items-center">
+                <span>Detalhamento - Vendedor</span>
+            </h3>
+            <table class="w-full text-left text-sm">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase text-xs">
+                        <th class="p-2 font-bold">Vendedor</th>
+                        <th class="p-2 font-bold text-right">Valor (R$)</th>
+                        <th class="p-2 font-bold text-right">Part. (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in pareto_data %}
+                    <tr class="border-b border-gray-100 hover:bg-gray-100 transition-colors cursor-pointer" onclick="openVendedorModal('{{ item.vendedor }}')">
+                        <td class="p-2 font-semibold text-navy-900 truncate max-w-[120px]" title="{{ item.vendedor }}">{{ item.vendedor }}</td>
+                        <td class="p-2 font-bold text-green-600 text-right whitespace-nowrap">{{ fmt_moeda(item.valor) }}</td>
+                        <td class="p-2 text-gray-600 text-right">{{ "%.1f"|format(item.perc_participacao) }}%</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="p-4 text-center text-gray-500">Nenhum dado encontrado para o período filtrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Gráficos - Linha 3 -->
+    <div class="grid grid-cols-1 mb-6">
+        <!-- Aging A Receber -->
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 h-[450px] flex flex-col">
+            <h3 class="font-bold text-navy-900 mb-4 border-b pb-2 flex justify-between items-center">
+                <span>A Receber por Faixas (Dias desde a Venda)</span>
+            </h3>
+            <div class="relative flex-1">
+                <canvas id="agingChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalhamento do Vendedor -->
+    <div id="vendedorModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 flex flex-col max-h-[80vh]">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+                <h3 class="font-bold text-navy-900 flex items-center gap-2">
+                    <i data-lucide="user" class="w-5 h-5 text-blue-600"></i>
+                    <span id="modalVendedorNome">Vendedor</span>
+                </h3>
+                <button onclick="closeVendedorModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto custom-scrollbar flex-1">
+                <table class="w-full text-left text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 border-b text-gray-500 uppercase text-xs">
+                            <th class="p-2 font-bold">Cliente</th>
+                            <th class="p-2 font-bold">Data</th>
+                            <th class="p-2 font-bold text-right">Valor (R$)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalVendedorBody">
+                        <!-- Preenchido via JS -->
+                    </tbody>
                 </table>
             </div>
-            
-            <div class="bg-gray-50 px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 no-print">
-                
-                <div class="flex items-center gap-2 text-sm text-gray-600 font-medium">
-                    <span>Mostrar</span>
-                    <select id="selectLinhas" class="border border-gray-300 rounded px-2 py-1 outline-none focus:border-navy-900 bg-white cursor-pointer">
-                        <option value="10">10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                    </select>
-                    <span>por página</span>
-                </div>
-                
-                <span class="text-xs text-gray-500 font-bold uppercase tracking-wider" id="infoPaginacao">
-                    Página 1
-                </span>
-                
-                <div class="flex gap-2">
-                    <button id="btnPrevPage" class="px-4 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                        Anterior
-                    </button>
-                    <button id="btnNextPage" class="px-4 py-1.5 bg-navy-900 text-white rounded-lg text-xs font-bold hover:bg-navy-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm">
-                        Próxima
-                    </button>
-                </div>
-            </div>
-
         </div>
-
     </div>
+
+    <!-- Modal Detalhamento do Aging -->
+    <div id="agingModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl mx-4 flex flex-col max-h-[80vh]">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+                <h3 class="font-bold text-navy-900 flex items-center gap-2">
+                    <i data-lucide="clock" class="w-5 h-5 text-orange-500"></i>
+                    <span>Títulos a Receber: <span id="modalAgingFaixa" class="text-blue-600"></span></span>
+                </h3>
+                <button onclick="closeAgingModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto custom-scrollbar flex-1">
+                <table class="w-full text-left text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 border-b text-gray-500 uppercase text-xs">
+                            <th class="p-2 font-bold">ID Venda</th>
+                            <th class="p-2 font-bold">Cliente</th>
+                            <th class="p-2 font-bold">Data Criação</th>
+                            <th class="p-2 font-bold text-center">Dias Pendente</th>
+                            <th class="p-2 font-bold text-right">Valor a Receber (R$)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalAgingBody">
+                        <!-- Preenchido via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 </div>
-
-<script id="dados-relatorio" type="application/json">
-    {{ dados_json|tojson|safe }}
-</script>
-
 {% endblock %}
 
 {% block scripts %}
-    <script src="{{ url_for('static', filename='js/relatorios.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 
+<script id="dash-data" type="application/json">
+{
+    "comp_vendas": {{ comp_vendas|tojson }},
+    "pareto_data": {{ pareto_data|tojson }},
+    "rosca_labels": {{ rosca_labels|tojson }},
+    "rosca_values": {{ rosca_values|tojson }},
+    "detalhes_vendedor": {{ detalhes_vendedor|tojson }},
+    "aging_receber": {{ aging_receber|tojson }},
+    "detalhes_aging": {{ detalhes_aging|tojson }}
+}
+</script>
+
+<script>
+let dashData;
+
+function openVendedorModal(vendedorNome) {
+    document.getElementById('modalVendedorNome').textContent = vendedorNome;
+    const tbody = document.getElementById('modalVendedorBody');
+    tbody.innerHTML = '';
+
+    const detalhes = dashData.detalhes_vendedor[vendedorNome] || [];
+    
+    if (detalhes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-gray-500">Nenhum detalhe encontrado.</td></tr>';
+    } else {
+        detalhes.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.className = 'border-b border-gray-100 hover:bg-gray-50 transition-colors';
+            
+            const valorFormatado = 'R$ ' + parseFloat(item.valor).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            
+            tr.innerHTML = `
+                <td class="p-2 text-navy-900">${item.cliente}</td>
+                <td class="p-2 text-gray-500">${item.data}</td>
+                <td class="p-2 font-bold text-green-600 text-right whitespace-nowrap">${valorFormatado}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    document.getElementById('vendedorModal').classList.remove('hidden');
+    document.getElementById('vendedorModal').classList.add('flex');
+}
+
+function closeVendedorModal() {
+    document.getElementById('vendedorModal').classList.add('hidden');
+    document.getElementById('vendedorModal').classList.remove('flex');
+}
+
+function openAgingModal(faixaNome) {
+    document.getElementById('modalAgingFaixa').textContent = faixaNome;
+    const tbody = document.getElementById('modalAgingBody');
+    tbody.innerHTML = '';
+
+    const detalhes = dashData.detalhes_aging[faixaNome] || [];
+    
+    if (detalhes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">Nenhum detalhe encontrado.</td></tr>';
+    } else {
+        detalhes.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.className = 'border-b border-gray-100 hover:bg-gray-50 transition-colors';
+            
+            const valorFormatado = 'R$ ' + parseFloat(item.valor).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            
+            tr.innerHTML = `
+                <td class="p-2 font-semibold text-gray-600">#${item.servico_id}</td>
+                <td class="p-2 text-navy-900">${item.cliente}</td>
+                <td class="p-2 text-gray-500">${item.data}</td>
+                <td class="p-2 text-center text-orange-600 font-bold">${item.dias} dias</td>
+                <td class="p-2 font-bold text-red-600 text-right whitespace-nowrap">${valorFormatado}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    document.getElementById('agingModal').classList.remove('hidden');
+    document.getElementById('agingModal').classList.add('flex');
+}
+
+function closeAgingModal() {
+    document.getElementById('agingModal').classList.add('hidden');
+    document.getElementById('agingModal').classList.remove('flex');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+
+    try {
+        dashData = JSON.parse(document.getElementById('dash-data').textContent);
+    } catch(e) {
+        console.error("Erro ao carregar dados", e);
+        return;
+    }
+
+    const data = dashData;
+
+    Chart.register(ChartDataLabels);
+
+    // ─── 1. Comparativo de Vendas (Linhas Diário / Mensal) ─────────────────
+    const ctxComp = document.getElementById('compVendasChart');
+    let compChartInstance = null;
+
+    if (ctxComp) {
+        const toggle = document.getElementById('compVendasToggle');
+        
+        function renderCompChart(mode) {
+            const chartData = data.comp_vendas[mode];
+            
+            if (compChartInstance) {
+                compChartInstance.destroy();
+            }
+
+            compChartInstance = new Chart(ctxComp.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: chartData.lbl_atual,
+                            data: chartData.atual,
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true,
+                            pointRadius: 3,
+                            pointHoverRadius: 5
+                        },
+                        {
+                            label: chartData.lbl_anterior,
+                            data: chartData.anterior,
+                            borderColor: '#94a3b8',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            fill: false,
+                            pointRadius: 3,
+                            pointHoverRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        datalabels: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function(items) {
+                                    return (mode === 'diario' ? 'Dia ' : '') + items[0].label;
+                                },
+                                label: function(context) {
+                                    return context.dataset.label + ': R$ ' + context.raw.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { borderDash: [2, 4], color: '#e2e8f0' },
+                            ticks: { callback: v => 'R$ ' + v.toLocaleString('pt-BR') }
+                        },
+                        x: { 
+                            grid: { display: false } 
+                        }
+                    }
+                }
+            });
+        }
+
+        renderCompChart('diario'); // Inicializa no modo diário
+        
+        if (toggle) {
+            toggle.addEventListener('change', (e) => {
+                renderCompChart(e.target.value);
+            });
+        }
+    }
+
+    // ─── 2. Pareto Vendedor (barra + linha acumulada + linha 80%) ─────────
+    const ctxPareto = document.getElementById('paretoChart');
+    if (ctxPareto) {
+        const labels    = data.pareto_data.map(d => d.vendedor);
+        const valores   = data.pareto_data.map(d => d.valor);
+        const acumulado = data.pareto_data.map(d => d.perc_acumulado);
+
+        new Chart(ctxPareto.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        type: 'line',
+                        label: '% Acumulado',
+                        data: acumulado,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        tension: 0,
+                        yAxisID: 'y1',
+                        pointRadius: 4,
+                        pointBackgroundColor: '#fff',
+                        pointBorderWidth: 2,
+                        datalabels: { display: false }
+                    },
+                    {
+                        type: 'bar',
+                        label: 'Valor Recebido',
+                        data: valores,
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4,
+                        yAxisID: 'y',
+                        datalabels: { display: false }
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    datalabels: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                if (ctx.datasetIndex === 0)
+                                    return '% Acumulado: ' + ctx.raw.toFixed(1) + '%';
+                                return 'R$ ' + ctx.raw.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        type: 'linear', position: 'left', beginAtZero: true,
+                        ticks: { callback: v => 'R$ ' + v.toLocaleString('pt-BR') }
+                    },
+                    y1: {
+                        type: 'linear', position: 'right',
+                        grid: { drawOnChartArea: false },
+                        min: 0, max: 100,
+                        ticks: { callback: v => v + '%' }
+                    }
+                }
+            },
+            // Linha pontilhada vermelha nos 80%
+            plugins: [{
+                id: 'linha80',
+                afterDraw(chart) {
+                    const { ctx, chartArea: { left, right }, scales: { y1 } } = chart;
+                    const y = y1.getPixelForValue(80);
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.setLineDash([6, 4]);
+                    ctx.strokeStyle = 'rgba(239,68,68,0.6)';
+                    ctx.lineWidth = 2;
+                    ctx.moveTo(left, y);
+                    ctx.lineTo(right, y);
+                    ctx.stroke();
+                    // label "80%"
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = 'rgba(239,68,68,0.8)';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.fillText('80%', right + 4, y + 4);
+                    ctx.restore();
+                }
+            }]
+        });
+    }
+
+    // ─── 3. Rosca Funil (com % sobre cada fatia) ─────────────────────────
+    const ctxRosca = document.getElementById('roscaFunilChart');
+    if (ctxRosca) {
+        const palette = ['#0a192f','#3b82f6','#facc15','#ef4444','#10b981','#8b5cf6','#f97316'];
+        const total   = data.rosca_values.reduce((a, b) => a + b, 0);
+
+        new Chart(ctxRosca.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: data.rosca_labels,
+                datasets: [{
+                    data: data.rosca_values,
+                    backgroundColor: palette,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, padding: 12 } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const perc = total > 0 ? (ctx.raw / total * 100).toFixed(1) : 0;
+                                return `${ctx.label}: R$ ${ctx.raw.toLocaleString('pt-BR', {minimumFractionDigits:2})} (${perc}%)`;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        display: ctx => total > 0 && (ctx.dataset.data[ctx.dataIndex] / total * 100) >= 5,
+                        color: '#fff',
+                        font: { weight: 'bold', size: 12 },
+                        formatter: (value) => {
+                            const perc = total > 0 ? (value / total * 100).toFixed(1) : 0;
+                            return perc + '%';
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ─── 4. Aging A Receber (Barras) ─────────────────────────────────────────
+    const ctxAging = document.getElementById('agingChart');
+    if (ctxAging) {
+        const agingData = data.aging_receber;
+        const labels = ['0-10 dias', '11-20 dias', '21-30 dias', '31+ dias'];
+        const values = labels.map(l => agingData[l] || 0);
+
+        new Chart(ctxAging.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Valor A Receber',
+                    data: values,
+                    backgroundColor: ['#10b981', '#facc15', '#f97316', '#ef4444'],
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                        display: true,
+                        anchor: 'end',
+                        align: 'top',
+                        color: '#475569',
+                        font: { weight: 'bold', size: 11 },
+                        formatter: function(value) {
+                            if (value === 0) return '';
+                            return 'R$ ' + value.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'R$ ' + context.raw.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { borderDash: [2, 4], color: '#e2e8f0' },
+                        ticks: {
+                            callback: function(value) { return 'R$ ' + value.toLocaleString('pt-BR'); }
+                        }
+                    },
+                    x: { grid: { display: false } }
+                },
+                onClick: function(event, elements) {
+                    if (elements.length > 0) {
+                        const index = elements[0].index;
+                        const faixa = this.data.labels[index];
+                        openAgingModal(faixa);
+                    }
+                },
+                onHover: function(event, elements) {
+                    event.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

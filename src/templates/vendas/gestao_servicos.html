@@ -90,13 +90,15 @@
         </div>
         
         <div class="flex gap-2 w-full md:w-auto overflow-x-auto">
-            <select id="filtroStatus" class="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 font-medium cursor-pointer hover:border-navy-900 focus:outline-none">
-                <option value="">Status: Todos</option>
-                <option value="pendente" {{ 'selected' if filtros.status == 'pendente' }}>Pendente</option>
-                <option value="producao" {{ 'selected' if filtros.status == 'producao' }}>Produção</option>
-                <option value="pronto" {{ 'selected' if filtros.status == 'pronto' }}>Pronto</option>
-                <option value="entregue" {{ 'selected' if filtros.status == 'entregue' }}>Entregue</option>
-                <option value="cancelado" {{ 'selected' if filtros.status == 'cancelado' }}>Cancelado</option>
+            <select id="filtroFunil" class="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 font-medium cursor-pointer hover:border-navy-900 focus:outline-none">
+                <option value="">Funil: Todos</option>
+                <option value="Indicação" {{ 'selected' if filtros.funil == 'Indicação' }}>Indicação</option>
+                <option value="Captação" {{ 'selected' if filtros.funil == 'Captação' }}>Captação</option>
+                <option value="Lead" {{ 'selected' if filtros.funil == 'Lead' }}>Lead</option>
+                <option value="Visita" {{ 'selected' if filtros.funil == 'Visita' }}>Visita</option>
+                <option value="Resgate" {{ 'selected' if filtros.funil == 'Resgate' }}>Resgate</option>
+                <option value="Google" {{ 'selected' if filtros.funil == 'Google' }}>Google</option>
+                <option value="Cliente da Base" {{ 'selected' if filtros.funil == 'Cliente da Base' }}>Cliente da Base</option>
             </select>
 
             <select id="filtroVendedor" class="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 font-medium cursor-pointer hover:border-navy-900 focus:outline-none">
@@ -248,11 +250,14 @@
                 Página {{ paginacao.page }} de {{ paginacao.pages }}
             </span>
             <div class="flex gap-2">
+                {% set query = request.args.to_dict(flat=True) %}
+                {% set _ = query.pop('page', None) %}
+                
                 {% if paginacao.has_prev %}
-                    <a href="{{ url_for('vendas.listar_vendas', page=paginacao.prev_num) }}" class="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-bold text-gray-600 hover:bg-gray-100">Anterior</a>
+                    <a href="{{ url_for('vendas.listar_vendas', page=paginacao.prev_num, **query) }}" class="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-bold text-gray-600 hover:bg-gray-100">Anterior</a>
                 {% endif %}
                 {% if paginacao.has_next %}
-                    <a href="{{ url_for('vendas.listar_vendas', page=paginacao.next_num) }}" class="px-3 py-1 bg-navy-900 text-white rounded text-xs font-bold hover:bg-navy-700">Próxima</a>
+                    <a href="{{ url_for('vendas.listar_vendas', page=paginacao.next_num, **query) }}" class="px-3 py-1 bg-navy-900 text-white rounded text-xs font-bold hover:bg-navy-700">Próxima</a>
                 {% endif %}
             </div>
         </div>

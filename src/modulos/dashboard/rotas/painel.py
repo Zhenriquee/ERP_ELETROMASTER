@@ -191,7 +191,7 @@ def painel():
         # Processa os gráficos apenas se tiver a permissão dash_graficos
         # Processa Gráfico de Linhas (Fluxo)
         if pode_ver_fluxo:
-            for i in range(5, -1, -1):
+            for i in range(11, -1, -1):
                 data_ref = hoje - relativedelta(months=i)
                 mes_iter = data_ref.month
                 ano_iter = data_ref.year
@@ -223,14 +223,7 @@ def painel():
                 soma_d = float(soma_d_pago) + float(soma_d_pendente)
                 chart_data_despesas.append(soma_d)
 
-        # Processa Gráfico de Rosca (Custos)
-        if pode_ver_custos:
-            cats_db = db.session.query(Despesa.categoria, func.sum(Despesa.valor))\
-                .filter(extract('month', Despesa.data_vencimento) == mes_atual,
-                        extract('year', Despesa.data_vencimento) == ano_atual)\
-                .group_by(Despesa.categoria).all()
-            doughnut_labels = [c[0].title() for c in cats_db]
-            doughnut_data = [float(c[1]) for c in cats_db]
+
 
     # =================================================================
     # --- INDICADORES OPERACIONAIS ---

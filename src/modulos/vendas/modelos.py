@@ -131,6 +131,9 @@ class Venda(db.Model):
     motivo_cancelamento = db.Column(db.Text, nullable=True)
     data_cancelamento = db.Column(db.DateTime, nullable=True)
     usuario_cancelamento_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    
+    # Funil
+    funil = db.Column(db.String(50), nullable=True)
 
     # Relacionamentos
     vendedor = db.relationship('Usuario', foreign_keys=[vendedor_id])

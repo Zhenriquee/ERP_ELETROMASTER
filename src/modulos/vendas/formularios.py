@@ -12,6 +12,16 @@ class FormularioVendaWizard(FlaskForm):
     telefone = StringField('Telefone', validators=[DataRequired()])
     email = StringField('Email')
     endereco = StringField('Endereço Completo')
+    funil = SelectField('Funil', choices=[
+        ('', 'Selecione...'),
+        ('Indicação', 'Indicação'), 
+        ('Captação', 'Captação'), 
+        ('Lead', 'Lead'), 
+        ('Visita', 'Visita'), 
+        ('Resgate', 'Resgate'), 
+        ('Google', 'Google'), 
+        ('Cliente da Base', 'Cliente da Base')
+    ], validators=[DataRequired()])
 
     # --- Etapa 2: Serviço ---
     # CAMPO NOVO ADICIONADO AQUI:

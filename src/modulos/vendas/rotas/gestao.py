@@ -43,7 +43,7 @@ def listar_vendas():
     per_page = 10
     
     filtro_q = request.args.get('q', '').strip()
-    filtro_status = request.args.get('status', '')
+    filtro_funil = request.args.get('funil', '')
     filtro_vendedor = request.args.get('vendedor', '')
     filtro_data_inicio = request.args.get('data_inicio', '')
     filtro_data_fim = request.args.get('data_fim', '')
@@ -63,8 +63,8 @@ def listar_vendas():
             condicoes.append(Venda.id == int(filtro_q))
         query = query.filter(or_(*condicoes)).distinct()
 
-    if filtro_status:
-        query = query.filter(Venda.status == filtro_status)
+    if filtro_funil:
+        query = query.filter(Venda.funil == filtro_funil)
 
     if filtro_vendedor:
         # CORREÇÃO: Join com Colaborador para filtrar pelo nome real
@@ -103,8 +103,8 @@ def listar_vendas():
             condicoes_kpi.append(Venda.id == int(filtro_q))
         query_kpi_base = query_kpi_base.filter(or_(*condicoes_kpi)).distinct()
 
-    if filtro_status:
-        query_kpi_base = query_kpi_base.filter(Venda.status == filtro_status)
+    if filtro_funil:
+        query_kpi_base = query_kpi_base.filter(Venda.funil == filtro_funil)
 
     if filtro_vendedor:
         query_kpi_base = query_kpi_base.join(Usuario, Venda.vendedor_id == Usuario.id)\
@@ -172,7 +172,7 @@ def listar_vendas():
                            form_pgto=form_pgto,
                            filtros={
                                'q': filtro_q,
-                               'status': filtro_status,
+                               'funil': filtro_funil,
                                'vendedor': filtro_vendedor,
                                'data_inicio': filtro_data_inicio,
                                'data_fim': filtro_data_fim
@@ -213,6 +213,11 @@ def editar_venda(id):
             venda.cliente_contato = request.form.get('telefone')
             venda.cliente_email = request.form.get('email')
             venda.cliente_endereco = request.form.get('endereco')
+            
+            # Funil
+            funil_valor = request.form.get('funil')
+            if funil_valor:
+                venda.funil = funil_valor
             
             venda.prioridade = True if request.form.get('prioridade') == 'on' else False
             venda.descricao_servico = request.form.get('descricao_servico')

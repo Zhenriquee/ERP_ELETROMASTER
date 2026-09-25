@@ -76,30 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    const canvasCat = document.getElementById('categoriaChart');
-    if (canvasCat) {
-        const ctxCat = canvasCat.getContext('2d');
-        const palette = ['#0a192f', '#3b82f6', '#facc15', '#ef4444', '#10b981', '#8b5cf6', '#f97316'];
 
-        new Chart(ctxCat, {
-            type: 'doughnut',
-            data: {
-                labels: dados.doughLabels,
-                datasets: [{
-                    data: dados.doughData,
-                    backgroundColor: palette,
-                    borderWidth: 0,
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '70%',
-                plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } }
-            }
-        });
-    }
 });
 
 // 3. FUNÇÕES GLOBAIS DE MODAL (Necessárias para o onclick)
