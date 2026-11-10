@@ -145,14 +145,29 @@ function gerarOrcamentoMultiplo(vendedorNome, logoUrl) {
         return;
     }
 
+    // Função auxiliar para converter valor no formato BR (1.400,00) para número
+    function parseBRL(str) {
+        if (!str) return 0;
+        return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+    }
+
+    // Função auxiliar para formatar número como moeda BR (1.400,00)
+    function formatBRL(num) {
+        return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
     let itensHTML = '';
     linhas.forEach(linha => {
         const desc = linha.querySelector('input[name$="[descricao]"]')?.value || '-';
         const selectProd = linha.querySelector('select[name$="[produto_id]"]');
         const prod = selectProd && selectProd.selectedIndex >= 0 ? selectProd.options[selectProd.selectedIndex].text : '-';
         const qtd = linha.querySelector('input[name$="[qtd]"]')?.value || '1';
-        const unit = linha.querySelector('input[name$="[unit]"]')?.value || '0.00';
-        const totalLinha = linha.querySelector('input[name$="[total]"]')?.value || '0.00';
+        const unitRaw = linha.querySelector('input[name$="[unit]"]')?.value || '0,00';
+        const totalRaw = linha.querySelector('input[name$="[total]"]')?.value || '0,00';
+
+        // Converte corretamente o formato BR antes de formatar para exibição
+        const unitNum = parseBRL(unitRaw);
+        const totalNum = parseBRL(totalRaw);
 
         itensHTML += `
             <tr class="border-b border-gray-200">
@@ -161,8 +176,8 @@ function gerarOrcamentoMultiplo(vendedorNome, logoUrl) {
                     <span class="text-xs text-gray-500">${prod}</span>
                 </td>
                 <td class="p-3 text-center">${qtd}</td>
-                <td class="p-3 text-right">R$ ${parseFloat(unit).toFixed(2).replace('.', ',')}</td>
-                <td class="p-3 text-right font-bold">R$ ${parseFloat(totalLinha).toFixed(2).replace('.', ',')}</td>
+                <td class="p-3 text-right">R$ ${formatBRL(unitNum)}</td>
+                <td class="p-3 text-right font-bold">R$ ${formatBRL(totalNum)}</td>
             </tr>
         `;
     });
