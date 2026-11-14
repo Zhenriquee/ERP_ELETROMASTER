@@ -1,7 +1,7 @@
 from flask import render_template, url_for
 from flask_login import login_required
-from sqlalchemy.orm import joinedload # <--- NOVA IMPORTAÇÃO
-from src.modulos.vendas.modelos import ItemVenda, Venda, hora_brasilia
+from sqlalchemy.orm import joinedload, defer # <--- defer adicionado para não carregar dados_binarios (BLOB)
+from src.modulos.vendas.modelos import ItemVenda, Venda, FotoItemVenda, hora_brasilia
 from src.modulos.autenticacao.permissoes import cargo_exigido
 from src.modulos.estoque.modelos import ProdutoEstoque
 from . import bp_operacional
@@ -29,7 +29,7 @@ def calcular_tempo_decorrido(data_inicio):
 @cargo_exigido('producao_operar')
 def painel():
     
-    # 1. Busca ITENS (Vendas Múltiplas) - OTIMIZADO (Traz venda, produto, cor e fotos juntos)
+    # 1. Busca ITENS (Vendas Múltiplas) - OTIMIZADO (Traz venda, produto, cor e fotos juntos, sem o BLOB)
     itens_multi = ItemVenda.query.join(Venda).filter(
         ItemVenda.status.in_(['pendente', 'producao', 'retrabalho', 'pronto']),
         Venda.status != 'cancelado',
@@ -39,10 +39,10 @@ def painel():
         joinedload(ItemVenda.venda),
         joinedload(ItemVenda.produto),
         joinedload(ItemVenda.cor),
-        joinedload(ItemVenda.fotos)
+        joinedload(ItemVenda.fotos).defer(FotoItemVenda.dados_binarios)
     ).all()
 
-    # 2. Busca VENDAS SIMPLES - OTIMIZADO (Traz produto, cor e itens[com fotos] juntos)
+    # 2. Busca VENDAS SIMPLES - OTIMIZADO (Traz produto, cor e itens[com fotos sem o BLOB] juntos)
     vendas_simples = Venda.query.filter(
         Venda.modo == 'simples',
         Venda.status.in_(['pendente', 'producao', 'retrabalho', 'pronto']),
@@ -50,7 +50,7 @@ def painel():
     ).options(
         joinedload(Venda.produto),
         joinedload(Venda.cor),
-        joinedload(Venda.itens).joinedload(ItemVenda.fotos)
+        joinedload(Venda.itens).joinedload(ItemVenda.fotos).defer(FotoItemVenda.dados_binarios)
     ).all()
     
     tarefas = []

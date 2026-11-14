@@ -54,15 +54,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if(typeof lucide !== 'undefined') lucide.createIcons();
 });
 
-// --- FUNÇÕES DE FILTRO ---
-// --- FUNÇÕES DE FILTRO ---
+// --- VARIÁVEIS GLOBAIS DE PAGINAÇÃO ---
+const ITENS_POR_PAGINA = 10;
+let paginaAtual = 1;
+let statusAtivoAtual = 'pendente';
+
+// --- FUNÇÕES DE FILTRO E PAGINAÇÃO ---
 function filtrarCards(status) {
-    const cards = document.querySelectorAll('.card-servico');
-    const steps = document.querySelectorAll('.step-pipeline');
-    const emptyState = document.getElementById('emptyState');
-    
+    statusAtivoAtual = status;
+    paginaAtual = 1; // Ao mudar de aba, volta para a página 1
     localStorage.setItem('filtroProducao', status);
 
+    const steps = document.querySelectorAll('.step-pipeline');
     steps.forEach(step => {
         step.classList.remove('ativo', 'ring-2', 'ring-offset-2', 'ring-gray-300', 'ring-blue-500', 'ring-yellow-500', 'ring-orange-500');
     });
@@ -72,40 +75,61 @@ function filtrarCards(status) {
         stepAtivo.classList.add('ativo', 'ring-2', 'ring-offset-2');
         if(status === 'pendente') stepAtivo.classList.add('ring-gray-300');
         if(status === 'producao') stepAtivo.classList.add('ring-blue-500');
-        if(status === 'retrabalho') stepAtivo.classList.add('ring-orange-500'); // NOVO
+        if(status === 'retrabalho') stepAtivo.classList.add('ring-orange-500');
         if(status === 'pronto') stepAtivo.classList.add('ring-yellow-500');
     }
 
-    let visiveis = 0;
-    
-    cards.forEach(card => {
+    renderizarPagina();
+}
+
+function renderizarPagina() {
+    const cards = Array.from(document.querySelectorAll('.card-servico'));
+    const emptyState = document.getElementById('emptyState');
+    const containerPaginacao = document.getElementById('paginacaoContainer');
+
+    // Filtra os cards que pertencem à aba ativa
+    const cardsFiltrados = cards.filter(card => {
         const statusCard = card.dataset.status;
-        const deveMostrar = (status === 'todos') || (statusCard === status);
-        
-        if (deveMostrar) {
-            card.style.display = 'flex';
-            card.classList.remove('hidden');
-            
-            card.classList.remove('card-animado');
-            void card.offsetWidth; 
-            card.classList.add('card-animado');
-            
-            visiveis++;
-        } else {
-            card.style.display = 'none';
-        }
+        return (statusAtivoAtual === 'todos') || (statusCard === statusAtivoAtual);
     });
 
+    const totalItens = cardsFiltrados.length;
+    const totalPaginas = Math.max(1, Math.ceil(totalItens / ITENS_POR_PAGINA));
+
+    if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
+    if (paginaAtual < 1) paginaAtual = 1;
+
+    const indiceInicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
+    const indiceFim = indiceInicio + ITENS_POR_PAGINA;
+
+    // Primeiro oculta todos os cards
+    cards.forEach(card => {
+        card.style.display = 'none';
+        card.classList.add('hidden');
+    });
+
+    // Exibe apenas os cards da fatia paginada
+    const cardsPagina = cardsFiltrados.slice(indiceInicio, indiceFim);
+    cardsPagina.forEach(card => {
+        card.style.display = 'flex';
+        card.classList.remove('hidden');
+
+        card.classList.remove('card-animado');
+        void card.offsetWidth;
+        card.classList.add('card-animado');
+    });
+
+    // Estado vazio
     if (emptyState) {
-        if (visiveis === 0) {
+        if (totalItens === 0) {
             emptyState.classList.remove('hidden');
             emptyState.classList.add('flex');
-            
+
             const tituloEmpty = emptyState.querySelector('h3');
             if(tituloEmpty) {
-                if(status === 'producao') tituloEmpty.innerText = "Nada sendo produzido agora!";
-                else if(status === 'retrabalho') tituloEmpty.innerText = "Nenhum retrabalho pendente!";
-                else if(status === 'pronto') tituloEmpty.innerText = "Nenhum item aguardando entrega!";
+                if(statusAtivoAtual === 'producao') tituloEmpty.innerText = "Nada sendo produzido agora!";
+                else if(statusAtivoAtual === 'retrabalho') tituloEmpty.innerText = "Nenhum retrabalho pendente!";
+                else if(statusAtivoAtual === 'pronto') tituloEmpty.innerText = "Nenhum item aguardando entrega!";
                 else tituloEmpty.innerText = "Nenhum serviço nesta etapa!";
             }
         } else {
@@ -113,6 +137,101 @@ function filtrarCards(status) {
             emptyState.classList.remove('flex');
         }
     }
+
+    // Atualiza controles de paginação
+    atualizarControlesPaginacao(totalItens, totalPaginas, indiceInicio, cardsPagina.length);
+}
+
+function atualizarControlesPaginacao(totalItens, totalPaginas, indiceInicio, qtdExibida) {
+    const container = document.getElementById('paginacaoContainer');
+    if (!container) return;
+
+    if (totalItens <= ITENS_POR_PAGINA) {
+        // Se houver 10 ou menos itens, esconde a paginação para manter a interface limpa
+        container.classList.add('hidden');
+        return;
+    }
+    container.classList.remove('hidden');
+
+    const infoSpan = document.getElementById('paginacaoInfo');
+    const totalSpan = document.getElementById('paginacaoTotal');
+    if (infoSpan && totalSpan) {
+        const de = totalItens === 0 ? 0 : indiceInicio + 1;
+        const ate = indiceInicio + qtdExibida;
+        infoSpan.innerText = `${de} a ${ate}`;
+        totalSpan.innerText = totalItens;
+    }
+
+    const btnPrimeira = document.getElementById('btnPagPrimeira');
+    const btnAnterior = document.getElementById('btnPagAnterior');
+    const btnProxima = document.getElementById('btnPagProxima');
+    const btnUltima = document.getElementById('btnPagUltima');
+
+    if (btnPrimeira) btnPrimeira.disabled = (paginaAtual === 1);
+    if (btnAnterior) btnAnterior.disabled = (paginaAtual === 1);
+    if (btnProxima) btnProxima.disabled = (paginaAtual === totalPaginas);
+    if (btnUltima) btnUltima.disabled = (paginaAtual === totalPaginas);
+
+    // Renderiza botões numéricos inteligentes (máximo 5 botões visíveis)
+    const botoesContainer = document.getElementById('paginasBotoes');
+    if (!botoesContainer) return;
+    botoesContainer.innerHTML = '';
+
+    let inicioP = Math.max(1, paginaAtual - 2);
+    let fimP = Math.min(totalPaginas, inicioP + 4);
+    if (fimP - inicioP < 4) {
+        inicioP = Math.max(1, fimP - 4);
+    }
+
+    for (let p = inicioP; p <= fimP; p++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.innerText = p;
+        btn.onclick = () => irParaPagina(p);
+        if (p === paginaAtual) {
+            btn.className = 'w-8 h-8 rounded-lg text-xs font-bold bg-navy-900 text-white shadow-sm';
+        } else {
+            btn.className = 'w-8 h-8 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-100 border border-gray-200 transition-colors';
+        }
+        botoesContainer.appendChild(btn);
+    }
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function mudarPagina(delta) {
+    irParaPagina(paginaAtual + delta);
+}
+
+function irParaPagina(p) {
+    const cards = Array.from(document.querySelectorAll('.card-servico'));
+    const cardsFiltrados = cards.filter(card => {
+        const statusCard = card.dataset.status;
+        return (statusAtivoAtual === 'todos') || (statusCard === statusAtivoAtual);
+    });
+    const totalPaginas = Math.max(1, Math.ceil(cardsFiltrados.length / ITENS_POR_PAGINA));
+
+    if (p < 1) p = 1;
+    if (p > totalPaginas) p = totalPaginas;
+
+    paginaAtual = p;
+    renderizarPagina();
+
+    // Rola suavemente até o topo dos cards para conforto visual
+    const grid = document.getElementById('gridCards');
+    if (grid) {
+        grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function irParaUltimaPagina() {
+    const cards = Array.from(document.querySelectorAll('.card-servico'));
+    const cardsFiltrados = cards.filter(card => {
+        const statusCard = card.dataset.status;
+        return (statusAtivoAtual === 'todos') || (statusCard === statusAtivoAtual);
+    });
+    const totalPaginas = Math.max(1, Math.ceil(cardsFiltrados.length / ITENS_POR_PAGINA));
+    irParaPagina(totalPaginas);
 }
 // --- FUNÇÕES DO MODAL DE DETALHES ---
 function verDetalhes(descricao, cliente, obs, metragem, tempoLabel, tempoVal) {

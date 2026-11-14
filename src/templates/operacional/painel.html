@@ -238,8 +238,35 @@
                     </div>
                 {% endif %}
             </div>
+    </div>
+    {% endfor %}
+</div>
+
+    <!-- PAGINAÇÃO DOS CARDS (MÁXIMO 10 POR PÁGINA) -->
+    <div id="paginacaoContainer" class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+        <div class="text-xs text-gray-500 font-medium">
+            Mostrando <span id="paginacaoInfo" class="font-bold text-navy-900">0</span> de <span id="paginacaoTotal" class="font-bold text-navy-900">0</span> serviços nesta etapa
         </div>
-        {% endfor %}
+        
+        <div class="flex items-center gap-1 sm:gap-2">
+            <button type="button" id="btnPagPrimeira" onclick="irParaPagina(1)" class="px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" title="Primeira Página">
+                &laquo;
+            </button>
+            <button type="button" id="btnPagAnterior" onclick="mudarPagina(-1)" class="px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1">
+                <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i> Anterior
+            </button>
+            
+            <div id="paginasBotoes" class="flex items-center gap-1">
+                <!-- Botões numéricos inseridos dinamicamente pelo operacional.js -->
+            </div>
+            
+            <button type="button" id="btnPagProxima" onclick="mudarPagina(1)" class="px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1">
+                Próxima <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </button>
+            <button type="button" id="btnPagUltima" onclick="irParaUltimaPagina()" class="px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" title="Última Página">
+                &raquo;
+            </button>
+        </div>
     </div>
 
 </div>
